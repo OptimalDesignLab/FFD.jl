@@ -23,11 +23,12 @@ SOURCE: The NURBS book 2nd Edition, Algorithm A2.2
 function basisFunctions(i, u, p, U, N)
 
   # Initialize variables
-  left = Array(Float64, p)
-  right = Array(Float64, p)
+  left = Array(Float64, p+1)
+  right = Array(Float64, p+1)
   saved = 0.0
 
   N[1] = 1.0
+
   for j = 2:p+1
     left[j] = u - U[i+1-j]
     right[j] = U[i+j] - u
@@ -35,13 +36,13 @@ function basisFunctions(i, u, p, U, N)
 
     for r = 1:j-1
       temp = N[r]/(right[r+1] + left[j-r])
-      N[r] = saved + right[r+1]*temp
+      N[r+1] = saved + right[r+1]*temp
       saved = left[r]*temp
     end
 
     N[j] = saved
   end
-
+  println("\nN = $N\n")
   return nothing
 end  # End function basisFunctions
 
@@ -73,15 +74,15 @@ function findSpan(u, n, U, p)
 
   low = p
   high = n+1
-  mid = 0.5*(low + high)
-
+  mid = div(low + high, 2)
+  # Do a binary search
   while u < U[mid] || u >= U[mid+1]
     if u < U[mid]
       high = mid
     else
       low = mid
     end  # End if
-    mid = 0.5*(low+high)
+    mid = div(low+high, 2)
   end  # End while
 
   return mid
@@ -114,6 +115,7 @@ function evalCurve(u, U, p, P, C)
   N = Array(Float64, p+1) # Array of basis functions 1D
   for i = 1:length(u)
     span = findSpan(u[i], nctl, U, p)
+    println("\nspan = $span\n")
     basisFunctions(span, u[i], p, U, N)
     C[i] = 0.0
     for j = 1:p+1
