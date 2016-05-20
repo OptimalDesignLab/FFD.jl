@@ -113,11 +113,12 @@ function evalCurve(u, U, order, P, C)
   N = Array(Float64, p+1) # Array of basis functions 1D
   for i = 1:length(u)
     span = findSpan(u[i], nctl, U, p)
-    println("\nspan = $span\n")
     basisFunctions(span, u[i], p, U, N)
     C[i] = 0.0
     for j = 1:p+1
-      C[i] += N[i]*P[span-p+i]
+      C[i] += N[j]*P[span-p+j-2] # -2 because compared to algorithm A3.1 this
+                                 # this uses 1 based indexeng. hence (span-1) &
+                                 # (j-1) when compared to A2.3
     end  # End for j = 1:p+1
   end    # End for i = 1:length(u)
 
