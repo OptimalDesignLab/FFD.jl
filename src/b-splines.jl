@@ -16,33 +16,30 @@ Computes the basis functions needed to compute B-Splines
 
 *  None
 
-SOURCE: The NURBS book 2nd Edition, Algorithm A2.2
+SOURCE: A practical guide to splines PG-112 BSPLVB
 
 """->
 
 function basisFunctions(i, u, p, U, N)
 
   # Initialize variables
-  left = Array(Float64, p+1)
-  right = Array(Float64, p+1)
+  delta_l = Array(Float64, p)
+  delta_r = Array(Float64, p)
   saved = 0.0
 
   N[1] = 1.0
-
-  for j = 2:p+1
-    left[j] = u - U[i+1-j]
-    right[j] = U[i+j] - u
+  for j = 1:p
+    delta_l[j] = U[i+j] - u
+    delta_r[j] = u - U[i+1-j]
     saved = 0.0
-
-    for r = 1:j-1
-      temp = N[r]/(right[r+1] + left[j-r])
-      N[r+1] = saved + right[r+1]*temp
-      saved = left[r]*temp
+    for r = 1:j
+      term = N[r]/(delta_r[r] + delta_l[j+1-r])
+      N[r] = saved + delta_r[r]*term
+      saved = delta_l[j+1-r]*term
     end
-
-    N[j] = saved
+    N[j+1] = saved
   end
-  println("\nN = $N\n")
+
   return nothing
 end  # End function basisFunctions
 
@@ -97,7 +94,7 @@ Determine the value of curve at certain points
 
 *  `u` : Array of coordinates where the curve needs to be computed
 *  `U` : Knot vector
-*  `p` : Degree of B-spline basis function, (Order p+1)
+*  `order` : order of B-spline basis functio, (order = p+1)
 *  `P` : Array of control points
 *  `C` : Resulting curve values
 
@@ -109,8 +106,9 @@ SOURCE: The NURBS book 2nd Edition, Algorithm A3.1
       : Gaetan's pyspline/src/eval_curve
 """->
 
-function evalCurve(u, U, p, P, C)
+function evalCurve(u, U, order, P, C)
 
+  p = order - 1  # Degree of B-spline basis function
   nctl = length(P)
   N = Array(Float64, p+1) # Array of basis functions 1D
   for i = 1:length(u)
