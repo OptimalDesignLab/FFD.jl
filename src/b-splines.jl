@@ -10,22 +10,25 @@ Computes the basis functions needed to compute B-Splines
 *  `u` : coordinate value (u,v,w is the coordinate space in 3D)
 *  `p` : Degree of B-spline basis function (Order p+1)
 *  `U` : Knot vector
-*  `N` : Array of basis functions
+*  `N` : Array of basis functions or the B-spline coefficients
 
 **Outputs**
 
 *  None
 
-SOURCE: A practical guide to splines PG-112 BSPLVB
+SOURCE: "A practical guide to splines" bt C. de Boor Page 112 BSPLVB
 
 """->
 
 function basisFunctions(i, u, p, U, N)
 
   # Initialize variables
-  delta_l = Array(Float64, p)
-  delta_r = Array(Float64, p)
+  jmax = 20
+  delta_l = Array(Float64, jmax)
+  delta_r = Array(Float64, jmax)
   saved = 0.0
+  # jhigh = p+1
+  # println("jhigh = $jhigh")
 
   N[1] = 1.0
   for j = 1:p
@@ -39,7 +42,7 @@ function basisFunctions(i, u, p, U, N)
     end
     N[j+1] = saved
   end
-
+  # println("N = $N")
   return nothing
 end  # End function basisFunctions
 
@@ -108,17 +111,21 @@ SOURCE: The NURBS book 2nd Edition, Algorithm A3.1
 
 function evalCurve(u, U, order, P, C)
 
+  @assert length(P) + order == length(U)
+
   p = order - 1  # Degree of B-spline basis function
   nctl = length(P)
   N = Array(Float64, p+1) # Array of basis functions 1D
   for i = 1:length(u)
     span = findSpan(u[i], nctl, U, p)
+    println("span = $span, u = $(u[i])")
     basisFunctions(span, u[i], p, U, N)
     C[i] = 0.0
     for j = 1:p+1
+      println(span-p+j-2)
       C[i] += N[j]*P[span-p+j-2] # -2 because compared to algorithm A3.1 this
                                  # this uses 1 based indexeng. hence (span-1) &
-                                 # (j-1) when compared to A2.3
+                                 # (j-1) when compared to A3.1
     end  # End for j = 1:p+1
   end    # End for i = 1:length(u)
 
