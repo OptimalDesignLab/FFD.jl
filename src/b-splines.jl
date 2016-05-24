@@ -66,7 +66,7 @@ SOURCE: The NURBS book 2nd Edition, Algorithm A2.1
 
 function findSpan(u, n, U, k)
 
-  if u == U[n+1]
+  if u >= U[n+1]
     return n  # Special case when u = last term of knot vector
   elseif u < U[k]
     return k  # When u lies at the starting point of the curve
@@ -115,19 +115,16 @@ function evalCurve(u, U, order, P, C)
 
   p = order - 1  # Degree of B-spline basis function
   nctl = length(P)
-  N = Array(Float64, p+1) # Array of basis functions 1D
+  N = Array(Float64, order) # Array of basis functions 1D
+
   for i = 1:length(u)
     span = findSpan(u[i], nctl, U, order)
     println("span = $span, u = $(u[i]), U[span] = $(U[span])")
-    # basisFunctions(span, u[i], p, U, N)
     basisFunctions(U, order, u[i], span, N)
     println("N = $N")
     C[i] = 0.0
     for j = 1:order
-      # println(span - order + j)
-      C[i] += N[j]*P[span-order+j] # -2 because compared to algorithm A3.1 this
-                                 # this uses 1 based indexeng. hence (span-1) &
-                                 # (j-1) when compared to A3.1
+      C[i] += N[j]*P[span-order+j]
     end  # End for j = 1:p+1
   end    # End for i = 1:length(u)
 
