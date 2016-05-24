@@ -19,7 +19,7 @@ Computes the basis functions needed to compute B-Splines
 SOURCE: "A practical guide to splines" bt C. de Boor Page 112 BSPLVB
 
 """->
-function basisFunctions(T, jhigh, x, left, N)
+function basisFunctions(U, order, x, span, N)
 
   # T = knot vector
   # jhigh = Max number of bases
@@ -28,7 +28,7 @@ function basisFunctions(T, jhigh, x, left, N)
   #         to avoid recalculations when several columns of the triangular Array
   #         of B-spline values are needed
   # x = location where bases are evaluated
-  # left = knot span index
+  # span = knot span index
   # N = bases
   # The calculation starts from scratch and the entire triangular array of B-spline
   # values of orders 1,2,...,jhigh is generated order by order (column by column)
@@ -37,13 +37,13 @@ function basisFunctions(T, jhigh, x, left, N)
   delta_l = zeros(Float64, jmax)
   delta_r = zeros(Float64, jmax)
 
-  jout = length(T) - left
+  # jout = length(U) - span
 
   N[1] = 1.0
 
-  for j = 1:(jhigh-1)
-    delta_r[j] = T[left+j] - x
-    delta_l[j] = x - T[left+1-j]
+  for j = 1:(order-1)
+    delta_r[j] = U[span+j] - x
+    delta_l[j] = x - U[span+1-j]
     saved = 0.0
     for i = 1:j
       term = N[i]/(delta_r[i] + delta_l[j+1-i])
