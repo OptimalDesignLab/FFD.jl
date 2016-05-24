@@ -2,6 +2,7 @@
 using Gadfly
 using Cairo
 using Fontconfig
+using ArrayViews
 
 include("./b-splines.jl")
 
@@ -30,13 +31,15 @@ order = 4
 degree = order - 1
 nctl = length(U) - order
 nbases = length(U) - order # Total number of basis functions for a knot vector
-concerned_index = 3 # Index of the basis function to be plotted
+# concerned_index = 3 # Index of the basis function to be plotted
 N = zeros(Float64, length(u), nbases)
+# println("sixe(N,2) = ", size(N,2))
 for i = 1:size(N,2)
-  evaluateBasis(U, u, order, nctl, concerned_index, N[:,i])
+  concerned_index = i
+  evaluateBasis(U, u, order, nctl, concerned_index, view(N,:,i))
 end
 
-# println("N = $N")
+# println("N = \n$N")
 
 myplot = plot(
   layer(x=u, y=N[:,1], Geom.line, Theme(default_color=colorant"green")),
