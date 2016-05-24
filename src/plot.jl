@@ -47,8 +47,8 @@ myplot = plot(
   layer(x=u, y=N[6], Geom.line, Theme(default_color=colorant"pink")),
   layer(x=u, y=N[7], Geom.line, Theme(default_color=colorant"yellow")),
   Guide.XLabel("u"),
-  Guide.YLabel("Basis Function Values")
-  Guide.yticks(ticks=collect(0:0.2:1))
+  Guide.YLabel("Basis Function Values"),
+  Guide.yticks(ticks=collect(0:0.2:1)),
 )
 
 draw(PDF("Bases.pdf", 10inch, 10inch), myplot)
