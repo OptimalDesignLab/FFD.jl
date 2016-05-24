@@ -39,16 +39,16 @@ end
 # println("N = $N")
 
 myplot = plot(
-  layer(x=u, y=N[1], Geom.line, Theme(default_color=colorant"green")),
-  layer(x=u, y=N[2], Geom.line, Theme(default_color=colorant"blue")),
-  layer(x=u, y=N[3], Geom.line, Theme(default_color=colorant"red")),
-  layer(x=u, y=N[4], Geom.line, Theme(default_color=colorant"black")),
-  layer(x=u, y=N[5], Geom.line, Theme(default_color=colorant"brown")),
-  layer(x=u, y=N[6], Geom.line, Theme(default_color=colorant"pink")),
-  layer(x=u, y=N[7], Geom.line, Theme(default_color=colorant"yellow")),
+  layer(x=u, y=N[:,1], Geom.line, Theme(default_color=colorant"green")),
+  layer(x=u, y=N[:,2], Geom.line, Theme(default_color=colorant"blue")),
+  layer(x=u, y=N[:,3], Geom.line, Theme(default_color=colorant"red")),
+  layer(x=u, y=N[:,4], Geom.line, Theme(default_color=colorant"black")),
+  layer(x=u, y=N[:,5], Geom.line, Theme(default_color=colorant"brown")),
+  layer(x=u, y=N[:,6], Geom.line, Theme(default_color=colorant"pink")),
+  layer(x=u, y=N[:,7], Geom.line, Theme(default_color=colorant"yellow")),
   Guide.XLabel("u"),
   Guide.YLabel("Basis Function Values"),
-  Guide.yticks(ticks=collect(0:0.2:1)),
+  Guide.yticks(ticks=collect(0:0.2:1))
 )
 
 draw(PDF("Bases.pdf", 10inch, 10inch), myplot)
