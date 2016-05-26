@@ -44,18 +44,57 @@ function basisFunctions(U, order, u, span, N)
   return nothing
 end
 
-function derivValue(U, order, u, span, P, Nderiv, nctl, jth_deriv)
+function dersBasisFunctions(span, u, order, nctl, U, Nderiv)
 
-  @assert length(U) == order + nctl
+  a = zeros(2, order)
+  ndu = zeros(order, order)
+  left = zeros(order)
+  right = zeros(order)
+
+  saved = 0.0
+  ndu[1,1] = 1.0
+
+  for j = 1:order-1
+    left[j] = u - U[span+1-j]
+    right[j] = U[span+j] - u
+    saved = 0.0
+
+    for i = 1:j
+      ndu[j,i] = right[i] + left[j-r+1]
+      temp = ndu[i,j-1]/ndu[j,r]
+      ndu[i,j] = saved + right
+
+    end
+
+
+  end  # End for j = 1:order - 1
+
+  return nothing
+end
+
+#=
+function derivValue(U, order, u, P, nctl, jth_deriv)
+
   # Number of control points = number of basis functions
+  @assert length(U) == order + nctl
 
-  bvalue = 0
+  # Initialize
+  kmax = 20 # Arbitrary
+  aj = zeros(Float64, kmax)
+  dl = zeros(Float64, kmax)
+  dr = zeros(Float64, kmax)
+
+  span = findSpan(u, nctl, U, order) # Find knot span index
+
+  bvalue = 0.0
 
   if jth_deriv > order
+    println("hello1")
     return bvalue
   end
 
-  if k == 1
+  if order == 1
+    println("hello2")
     bvalue = P[span]
     return bvalue
   else
@@ -67,6 +106,7 @@ function derivValue(U, order, u, span, P, Nderiv, nctl, jth_deriv)
     jcmin = 1
     imk = span - order
     if imk > 0
+      println("hello3")
       for j = 1:(order-1)
         dl[j] = u - U[span+1-j]
       end  # end for j = 1:k-1
@@ -85,10 +125,12 @@ function derivValue(U, order, u, span, P, Nderiv, nctl, jth_deriv)
     jcmax = order
     nmi = length(P) - span
     if nmi > 0
+      println("hello4")
       for j = 1:(order-1)
         dr[j] = U[span+j] - u
       end
     else
+      println("hello5")
       jcmax = order + nmi
       for j = 1:jcmax
         dr[j] = U[span+j] - u
@@ -112,6 +154,7 @@ function derivValue(U, order, u, span, P, Nderiv, nctl, jth_deriv)
       if jth_deriv == order - 1
         bvalue = aj[1]
       else
+        println("hello6")
         for j = (jth_deriv+1):(order-1)
           ilo = order - j
           for jj = 1:(order-j)
@@ -119,6 +162,7 @@ function derivValue(U, order, u, span, P, Nderiv, nctl, jth_deriv)
             ilo -= 1
           end
         end
+        bvalue = aj[1]
       end
 
     else
@@ -129,12 +173,15 @@ function derivValue(U, order, u, span, P, Nderiv, nctl, jth_deriv)
           ilo -= 1
         end
       end
+      bvalue = aj[1]
+    end
+
 
   end # End if-else statement for k == 1
 
   return bvalue
 end
-
+=#
 @doc """
 ### findSpan
 
