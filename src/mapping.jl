@@ -1,4 +1,10 @@
 # Type Mapping
+@doc """
+### Mapping
+
+A type for creating mapping objects needed for creating
+
+"""->
 
 type Mapping
   nctl::Array(Int, 3)   # Number of control points in each of the 3 dimensions
@@ -34,16 +40,6 @@ type Mapping
     end
 
     # Allocate and initialize mapping arrays
-    jctl = nctl[1]
-    kctl = nctl[2]
-    mctl = nctl[3]
-    jorder = order[1]
-    korder = order[2]
-    morder = order[3]
-    jmax = jkmmax[1]
-    kmax = jkmmax[2]
-    mmax = jkmmax[3]
-
     max_order = maximum(order)  # Highest order among 3 dimensions
     max_knot = max_order + maximum(nctl) # Maximum number of knots among 3 dimensions
 
@@ -57,8 +53,8 @@ type Mapping
     dr = zeros(max_order-1, 3)
     work = zeros(ntcl[1], nctl[2], nctl[3], max_work)
 
-    new nctl, jkmmax, order, xi, cp_xyz, edge_knot, edge_param, aj, dl, dr,
-        knot, work
+    new(nctl, jkmmax, order, xi, cp_xyz, edge_knot, edge_param, aj, dl, dr,
+        knot, work)
 
   end  # End constructor
 

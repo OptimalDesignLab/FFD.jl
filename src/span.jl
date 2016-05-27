@@ -7,10 +7,9 @@ Determines the knot span index, i
 
 **Inputs**
 
-*  `n` : Number of control points
-*  `k` : Order of B-spline basis function
 *  `u` : coordinate value (u,v,w is the coordinate space in 3D)
-*  `U` : Knot vector
+*  `map` : Object of type mapping
+*  `di`  : coordinate direction in which `u` exists
 
 **Outputs**
 
@@ -20,7 +19,10 @@ SOURCE: The NURBS book 2nd Edition, Algorithm A2.1
 
 """->
 
-function findSpan(u, n, U, k)
+function findSpan(u, map, di)
+
+  k = map.order[di]
+  U = view(map.knot, :, di)
 
   if u >= U[n+1]
     return n  # Special case when u = last term of knot vector
@@ -30,16 +32,16 @@ function findSpan(u, n, U, k)
 
   low = k-1
   high = n+1
-  mid = div(low + high, 2)
+  span = div(low + high, 2)
   # Do a binary search
-  while u < U[mid] || u >= U[mid+1]
-    if u < U[mid]
-      high = mid
+  while u < U[span] || u >= U[span+1]
+    if u < U[span]
+      high = span
     else
-      low = mid
+      low = span
     end  # End if
-    mid = div(low+high, 2)
+    span = div(low+high, 2)
   end  # End while
 
-  return mid
+  return span
 end  # End function findSpan
