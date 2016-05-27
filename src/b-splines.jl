@@ -44,144 +44,61 @@ function basisFunctions(U, order, u, span, N)
   return nothing
 end
 
-function dersBasisFunctions(span, u, order, nctl, U, Nderiv)
+@doc """
+### derivBasisFunctions
+Computes the derivatives of the basis functions at a particular point u.
 
-  a = zeros(2, order)
-  ndu = zeros(order, order)
-  left = zeros(order)
-  right = zeros(order)
+**Inputs**
 
-  saved = 0.0
-  ndu[1,1] = 1.0
+*  `map` : Object of mapping type
+*  `N`   : Basis functions
+*  `Nderiv` : Derivatives of the basis functions at u
+*  `U`   : Knot vector
+*  `di`  : Direction in which the derivative is to be evaluated
+*  `u`   : Location where the derivatives are to be calculated
+*  `span`: Knot span index of u
 
-  for j = 1:order-1
-    left[j] = u - U[span+1-j]
-    right[j] = U[span+j] - u
-    saved = 0.0
+**Outputs**
 
-    for i = 1:j
-      ndu[j,i] = right[i] + left[j-r+1]
-      temp = ndu[i,j-1]/ndu[j,r]
-      ndu[i,j] = saved + right
+*  None
 
-    end
+"""->
 
+function derivBasisFunctions(map, N, Nderiv, di, u, span)
 
-  end  # End for j = 1:order - 1
+  order = map.order[di]
+  N[1] = 1.0
+  Nderiv[1] = 0.0
+
+  dr = view(map.dr, :, :)
+  dl = view(map.dr, :, :)
+
+  if order > 1
+    for k = 1:order-1
+      kp1 = k + 1
+      dr[k,di] = map.knot[span+k,di] - u
+      dl[k,di] = u - map.knot[span+1-k, di]
+      saved = 0.0
+      dsaved = 0.0
+      for i = 1:k
+        temp = 1/( dr[i, di] + dl[k+1-i, di] )
+        dtemp = Nderiv[i]*temp
+        temp = N[i]*temp
+
+        N[i] = saved + dr[i,di]*temp
+        Nderiv[i] = dsaved - temp + dr[i,di]*dtemp
+
+        saved = dl[k+1-i,di]*temp
+        dsaved = temp + dl[k+1-i, di]*dtemp
+      end  # end for i = 1:k
+      N[k+1] = saved
+      Nderiv[k+1] = dsaved
+    end  # end for k = 1:order-1
+  end  # end if order > 1
 
   return nothing
 end
 
-#=
-function derivValue(U, order, u, P, nctl, jth_deriv)
-
-  # Number of control points = number of basis functions
-  @assert length(U) == order + nctl
-
-  # Initialize
-  kmax = 20 # Arbitrary
-  aj = zeros(Float64, kmax)
-  dl = zeros(Float64, kmax)
-  dr = zeros(Float64, kmax)
-
-  span = findSpan(u, nctl, U, order) # Find knot span index
-
-  bvalue = 0.0
-
-  if jth_deriv > order
-    println("hello1")
-    return bvalue
-  end
-
-  if order == 1
-    println("hello2")
-    bvalue = P[span]
-    return bvalue
-  else
-    # Store b-spline coefficients relevant to the knot interval (U[span], U[span+1])
-    # in another vector aj[1:order] and compute dl[j] = u -U[span+1-j],
-    # dr[j] = U[span+j] - u, j = 1,...,order-1 . Set any of the aj not obtainable
-    # from input to zero. Set any U.s not obtainable to U[1] or to U[length(P)+order]
-    # appropriately
-    jcmin = 1
-    imk = span - order
-    if imk > 0
-      println("hello3")
-      for j = 1:(order-1)
-        dl[j] = u - U[span+1-j]
-      end  # end for j = 1:k-1
-    else
-      jcmin = 1 - imk
-      for j = 1:span
-        dl[j] = u - U[span+1-j]
-      end  # end for j = 1:span
-
-      for j = span:(order-1)
-        aj[order-j] = 0.0
-        dl[j] = dl[span]
-      end
-    end  # end if imk > 0
-
-    jcmax = order
-    nmi = length(P) - span
-    if nmi > 0
-      println("hello4")
-      for j = 1:(order-1)
-        dr[j] = U[span+j] - u
-      end
-    else
-      println("hello5")
-      jcmax = order + nmi
-      for j = 1:jcmax
-        dr[j] = U[span+j] - u
-      end
-
-      for j = jcmax:(order-1)
-        aj[j+1] = 0
-        dr[j] = dr[jcmax]
-      end
-    end  # end if-else nmi > 0
-
-    for jc = jcmin:jcmax
-      aj[jc] = P[imk+jc]
-    end
-
-    # difference the coefficients jth_deriv times
-    if jth_deriv == 0
-      # compute value at u in (U[span], U[span+1]) of jth_deriv derivative,
-      # given its relevant b-spline coefficients/control points in
-      # aj[1],...,aj[order-jth_deriv]
-      if jth_deriv == order - 1
-        bvalue = aj[1]
-      else
-        println("hello6")
-        for j = (jth_deriv+1):(order-1)
-          ilo = order - j
-          for jj = 1:(order-j)
-            aj[jj] = ( aj[jj+1]*dl[ilo] + ajj[jj]*dr[jj] )/( dl[ilo] + dr[jj] )
-            ilo -= 1
-          end
-        end
-        bvalue = aj[1]
-      end
-
-    else
-      for j = 1:jth_deriv
-        ilo = order - j
-        for jj = 1:(order-j)
-          aj[jj] = ( (aj[jj+1] - aj[jj]) / (dl[ilo] + dr[jj]) ) * (order - j)
-          ilo -= 1
-        end
-      end
-      bvalue = aj[1]
-    end
-
-
-  end # End if-else statement for k == 1
-
-  return bvalue
-end
-=#
 @doc """
 ### findSpan
 
@@ -225,46 +142,3 @@ function findSpan(u, n, U, k)
 
   return mid
 end  # End function findSpan
-
-@doc """
-### evalCurve
-
-Determine the value of curve at certain points
-
-**Inputs**
-
-*  `u` : Array of coordinates where the curve needs to be computed
-*  `U` : Knot vector
-*  `order` : order of B-spline basis functions, (order = p+1)
-*  `P` : Array of control points
-*  `C` : Resulting curve values
-
-**Outputs**
-
-*  None
-
-SOURCE: The NURBS book 2nd Edition, Algorithm A3.1
-      : Gaetan's pyspline/src/eval_curve
-"""->
-
-function evalCurve(u, U, order, P, C)
-
-  @assert length(P) + order == length(U)
-
-  p = order - 1  # Degree of B-spline basis function
-  nctl = length(P)
-  N = Array(Float64, order) # Array of basis functions 1D
-
-  for i = 1:length(u)
-    span = findSpan(u[i], nctl, U, order)
-    println("span = $span, u = $(u[i]), U[span] = $(U[span])")
-    basisFunctions(U, order, u[i], span, N)
-    println("N = $N")
-    C[i] = 0.0
-    for j = 1:order
-      C[i] += N[j]*P[span-order+j]
-    end  # End for j = 1:p+1
-  end    # End for i = 1:length(u)
-
-  return nothing
-end
