@@ -4,6 +4,21 @@
 
 A type for creating mapping objects needed for creating
 
+**Members**
+
+*  `nctl`   : Array of number of control points in each direction
+*  `jkmmax` : Array of number of nodes in each direction
+*  `order`  : Array of order of B-splines in each direction
+*  `xi`     :
+*  `cp_xyz` :
+*  `edge_knot` : 3D Array of edge knot vectors. dim1 = Knot vector, dim2 = edge
+                 number, dim3 = direction (di)
+*  `edge_param`:
+*  `aj`   :
+*  `dl`   :
+*  `knot` :
+*  `work` :
+
 """->
 
 type Mapping
