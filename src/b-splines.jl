@@ -46,13 +46,16 @@ end
 
 @doc """
 ### derivBasisFunctions
-Computes the derivatives of the basis functions at a particular point u.
+
+Computes the basis functions and its first & second (method 2) derivative at a
+particular point u.
 
 **Inputs**
 
 *  `map` : Object of mapping type
 *  `N`   : Basis functions
-*  `Nderiv` : Derivatives of the basis functions at u
+*  `Nderiv` : First derivative of the basis functions at u
+*  `N2deriv`: Second derivative of the basis functions at u
 *  `U`   : Knot vector
 *  `di`  : Direction in which the derivative is to be evaluated
 *  `u`   : Location where the derivatives are to be calculated
@@ -71,7 +74,7 @@ function derivBasisFunctions(map, N, Nderiv, di, u, span)
   Nderiv[1] = 0.0
 
   dr = view(map.dr, :, :)
-  dl = view(map.dr, :, :)
+  dl = view(map.dl, :, :)
 
   if order > 1
     for k = 1:order-1
@@ -99,46 +102,42 @@ function derivBasisFunctions(map, N, Nderiv, di, u, span)
   return nothing
 end
 
-@doc """
-### findSpan
+function derivBasisFunctions(map, N, Nderiv, N2deriv, di, u, span)
 
-Determines the knot span index, i
+  order = map.order[di]
+  N[1] = 1.0
+  Nderiv[1] = 0.0
+  N2deriv[1] = 0.0
 
-**Inputs**
+  dr = view(map.dr, :, :)
+  dl = view(map.dl, :, :)
 
-*  `n` : Number of control points
-*  `k` : Order of B-spline basis function
-*  `u` : coordinate value (u,v,w is the coordinate space in 3D)
-*  `U` : Knot vector
+  if order > 1
+    for k = 1:order-1
+      dr[k,di] = map.knot[span+k,di] - u
+      dl[k,di] = u - map.knot[span+1-k, di]
+      saved = 0.0
+      dsaved = 0.0
+      d2saved = 0.0
+      for i = 1:k
+        temp = 1/( dr[i,di] + dl[k+1-i, di] )
+        dtemp = Nderiv[i]*temp
+        d2temp = N2deriv[i]*temp
+        temp = bval[i]*temp
 
-**Outputs**
+        N[i] = saved + dr[i,di]*temp
+        Nderiv[i] = dsaved - temp + dr[i,di]*dtemp
+        N2deriv[i] = d2saved - 2*dtemp + dr[i,di]*d2temp
 
-*  `span` : Knot span index
+        saved = dl[k+1-i,di]*temp
+        dsaved = temp + dl[k+1-i,di]*dtemp
+        d2saved = 2*dtemp + dl[k+1-i,di]*d2temp
+      end  E End for i = 1:k
+      N[k+1] = saved
+      Nderiv[k+1] = dsaved
+      N2deriv[k+1] = d2saved
+    end # End for k = 1:order-1
+  end  # End if order > 1
 
-SOURCE: The NURBS book 2nd Edition, Algorithm A2.1
-
-"""->
-
-function findSpan(u, n, U, k)
-
-  if u >= U[n+1]
-    return n  # Special case when u = last term of knot vector
-  elseif u < U[k]
-    return k  # When u lies at the starting point of the curve
-  end
-
-  low = k-1
-  high = n+1
-  mid = div(low + high, 2)
-  # Do a binary search
-  while u < U[mid] || u >= U[mid+1]
-    if u < U[mid]
-      high = mid
-    else
-      low = mid
-    end  # End if
-    mid = div(low+high, 2)
-  end  # End while
-
-  return mid
-end  # End function findSpan
+  return nothing
+end
