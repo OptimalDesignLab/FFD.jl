@@ -12,8 +12,9 @@ A type for creating mapping objects needed for creating
 *  `xi`     :
 *  `cp_xyz` :
 *  `edge_knot` : 3D Array of edge knot vectors. dim1 = Knot vector, dim2 = edge
-                 number, dim3 = direction (di)
-*  `edge_param`:
+                 number (1:4), dim3 = direction (di)
+*  `edge_param`: 3D array to store edge spacing parameters. dim1 = A or b,
+                 dim2 = edge number (1:4), dim3 = direction (di)
 *  `aj`   :
 *  `dl`   :
 *  `knot` :
