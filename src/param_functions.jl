@@ -197,7 +197,7 @@ function calcEdgeSpacingParam(map)
   end      # End for di = 1:3
 
   return nothing
-end
+end  # End function calcEdgeSpacingParam(map)
 
 function bfunc(x, f, df, Nm1, dx1, dx2)
 

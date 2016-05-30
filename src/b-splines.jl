@@ -21,7 +21,11 @@ from scratch and the entire triangular array of B-spline values of orders
 SOURCE: "A practical guide to splines" bt C. de Boor Page 112 BSPLVB
 
 """->
-function basisFunctions(U, order, u, span, N)
+function basisFunctions(map, N, di u, span)
+
+  # (U, order, u, span, N)
+  order = map.order[di]
+  U = view(map.knot, :, di)
 
   jmax = 20 # arbitrarily imposed
   delta_l = zeros(Float64, jmax)
