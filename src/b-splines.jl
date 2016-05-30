@@ -157,7 +157,8 @@ version of basisFunctions.
 *  `map`    : Object of mapping type
 *  `span`   : Array of Knot span indices. length = 3
 *  `uvw`    : Parameter values
-*  `bval3D` : 3D basis functions
+*  `bval3D` : 3D basis functions. each dimension corresponding to the dimensions
+              of uvw. length = max_order
 
 REFERENCE : Carl de Boor, 'Practical Guide to Splines', pgs 132-134
 

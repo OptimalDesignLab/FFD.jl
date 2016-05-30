@@ -284,3 +284,20 @@ function calcdXdxi(map, xi, jderiv, dX)
 
   return nothing
 end  # End function calcdXdxi(map, xi, jderiv)
+
+@doc """
+### calcJacobian
+
+Calculates the metric Jacobian value based on the B-spline explicit mapping.
+
+**Arguments**
+
+*  `map`  : Object of Mapping type
+*  `Jac`  : Array of mesh Jacobians in j,k,m format
+
+"""->
+
+function calcJacobian(map, Jac)
+
+  return nothing
+end
