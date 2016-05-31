@@ -80,7 +80,7 @@ end  # End Mapping
 @doc """
 ### calcdXdxi
 
-It calculates th epartial derivative of the mapping (including the 0th order)
+It calculates the partial derivative of the mapping (including the 0th order)
 
 (x,y,z) = [x(xi,eta,zeta), y(xi,eta,zeta), z(xi,eta,zeta)]
 
@@ -92,7 +92,8 @@ It calculates th epartial derivative of the mapping (including the 0th order)
               in the xi[mdi] direction.
 *  `dX`     : Derivative of X w.r.t the 3 dimensions. length = 3
 
-REFERENCE: Carl de Boor, 'Pratical Guide to Splines', pgs 138-149
+REFERENCE: Carl de Boor, 'Pratical Guide to Splines', pgs 138-149, function
+           BVALUE
 
 Notes: (taken from Mapping_Mod.f90)
 1) de Boor points out (pg 149) that for many points (as we may
@@ -288,6 +289,7 @@ end  # End function calcdXdxi(map, xi, jderiv)
 @doc """
 ### calcJacobian
 
+!!!!!   NOT NEEDED   !!!!
 Calculates the metric Jacobian value based on the B-spline explicit mapping.
 
 **Arguments**
@@ -335,6 +337,8 @@ end
 
 @doc """
 ### resizeMapping
+
+!!!! NOT NEEDED FOR FFD  !!!!
 
 Uses edge spacing parameters to refine/coarsen in each parameter direction.
 This might be useful for refinement studies where we want to insert or delete
@@ -400,6 +404,9 @@ end  # End function resizeMapping(map, jkmmax)
 
 @doc """
 ### calcXi
+
+!!!! NOT NEEDED FOR FFD !!!
+
 Calculates the intermediate parameters, (xi,eta,zeta), using the edge spacing
 control functions defined by map%edgpar(1:2,:,:)
 

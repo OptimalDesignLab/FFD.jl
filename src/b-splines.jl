@@ -146,6 +146,7 @@ function derivBasisFunctions(map, N, Nderiv, N2deriv, di, u, span)
   return nothing
 end
 
+#=
 @doc """
 ### basisFunctions3D
 
@@ -223,3 +224,4 @@ function basisFunctions3D(map, span, uvw, bval3D)
 
   return nothing
 end
+=#

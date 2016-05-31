@@ -2,6 +2,8 @@
 @doc """
 ### calcChordLengthParam
 
+!!! NOT NEEDED FOR FFD !!!
+
 Calculates the mapping parameter values based on the chord lengths in physical
 xyz space. It also calculates the edge knot vectors.
 
@@ -126,6 +128,8 @@ end  # end function calcChordLengthParam
 @doc """
 ### calcEdgeSpacingParam
 
+
+!!!  NOT NEEDED  !!!
 Uses the xi, eta, zeta values to calculate the parameters for hyperbolic tangent
 spacing function. These parameters are
 
@@ -191,7 +195,7 @@ function calcEdgeSpacingParam(map)
         # need to find b using Newton's method
         x1 = small
         x2 = sqrt(6*(1/x2 - 1))
-        map.edge_param[2,edg,di] =  ### TODO: figure out newton's method
+        map.edge_param[2,edg,di] =  bfuncNewtonSolve(x2, Nm1, dx1, dx2)
       end  # End if x2 > 1
     end    # End for edg = 1:4
   end      # End for di = 1:3
@@ -208,9 +212,9 @@ function bfunc(x, Nm1, dx1, dx2)
   return f, df
 end  # end function bfunc
 
-function bfuncNewtonSolve(Nm1, dx1, dx2)
+function bfuncNewtonSolve(guess, Nm1, dx1, dx2)
 
-  b = zero(AbstractFloat)
+  b = guess
   b_next = zero(AbstractFloat)
 
   for i = 1:50
