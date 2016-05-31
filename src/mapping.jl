@@ -299,5 +299,35 @@ Calculates the metric Jacobian value based on the B-spline explicit mapping.
 
 function calcJacobian(map, Jac)
 
+  # Check if map.jkmmax = size(Jac)
+  @assert map.jkmmax[1] == size(Jac,1)
+  @assert map.jkmmax[2] == size(Jac,2)
+  @assert map.jkmmax[3] == size(Jac,3)
+
+  # Allocate and initialize arrays
+  scal = zeros(AbstractFloat, 3)
+  xi = zeros(AbstractFloat, 3)
+  dx = zeros(AbstractFloat, 3, 3)
+
+  scal[:] = 1 ./ (map.jkmmax[:] - 1)
+
+  for m = 1:map.jkmmax[3]
+    for k = 1:map.jkmmax[2]
+      for j = 1:map.jkmmax[1]
+        xi[:] = map.jkmmax[j,k,m,:]
+        calcdXdxi(map, xi, jderiv, dx[:,1])
+        calcdXdxi(map, xi, jderiv, dx[:,2])
+        calcdXdxi(map, xi, jderiv, dx[:,3])
+        dx[:,1] *= scal[1]
+        dx[:,2] *= scal[2]
+        dx[:,3] *= scal[3]
+        Jac[j,k,m] = dx[1,1]*dx[2,2]*dx[3,3] + dx[1,2]*dx[2,3]*dx[3,1] +
+                     dx[1,3]*dx[2,1]*dx[3,2] - dx[1,1]*dx[2,3]*dx[3,2] -
+                     dx[1,2]*dx[2,1]*dx[3,3] - dx[1,3]*dx[2,2]*dx[3,1]
+        Jac[j,k,m] = 1/Jac[j,k,m]
+      end  # End for j = 1:map.jkmmax[1]
+    end  # End for k = 1:map.jkmmax[2]
+  end  # End for m = 1:map.jkmmax[3]
+
   return nothing
 end
