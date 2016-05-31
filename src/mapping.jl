@@ -286,6 +286,75 @@ function calcdXdxi(map, xi, jderiv, dX)
   return nothing
 end  # End function calcdXdxi(map, xi, jderiv)
 
+
+@doc """
+### contractWithdGdB
+
+Used to contract the matrix dG/dB, the derivative of the mesh node coordinates
+with respect to the mapping control points, with a given array, here labelled
+dJdGrid and stored in (j,k,m,:) format. This can be used to find
+dJ/dB = (dJ/dG)(dG/dB) for some objective J. In practice, the objective used is
+actually
+
+             J_practice = J_obj + psi^T dot R
+
+where J_obj is the actual objective, psi are the flow adjoints, and R is the
+flow residual.
+
+**Arguments**
+
+*  `map`     : Object of mapping type
+*  `dJdGrid` : The derivative of the objective w.r.t the grid coordintes
+
+"""->
+
+function contractWithdGdB(map, dJdGrid)
+
+  @assert map.jkmmax[1] == size(dJdGrid, 1)
+  @assert map.jkmmax[2] == size(dJdGrid, 2)
+  @assert map.jkmmax[3] == size(dJdGrid, 3)
+
+  # Allocate and initialize arrays
+  basis = zeros(AbstractFloat, maximum(map.order), 3)
+  fill!(map.work, 0.0)
+
+  # Loop over the nodes of the mapping
+  for m = 1:map.jkmmax[3]
+    for k = 1:map.jkmmax[2]
+      for j = 1:map.jkmmax[1]
+
+        # Store the parameter values and dJdGrid
+        xi[:] = map.xi[j,k,m,:]
+        dJdG = view(dJdGrid, j, k, m, 1:3)
+
+        # Evaluate the knot vectors and basis values
+        # TODO: Compute the knot vector for subsequent operations
+        for di = 1:3
+          span[di] = findSpan(xi[di], map, di)
+          basisFunctions(map, basis[:,di], di, xi[di], span[di])
+        end  # End for di = 1:3
+
+        for r = 1:map.order[3]
+          rs = r + span[3] - map.order[3]
+          for q = 1:map.order[2]
+            qs = q + span[2] - map.order[2]
+            for p = 1:map.order[1]
+
+              ps = p + span[1] - map.order[1]
+              coeff = basis[p,1]*basis[q,2]*basis[r,3]
+              map.work[ps, qs, rs, 1:3] += coedd*dJdG[:]
+
+            end  End for p = 1:map.order[1]
+          end  # End for q = 1:map.order[2]
+        end  # End for r = 1:map.order[3]
+
+      end  # End for j = 1:map.jkmmax[1]
+    end    # End for k = 1:map.jkmmax[2]
+  end      # End for m = 1:map.jkmmax[3]
+
+  return nothing
+end  # End function contractWithdGdB(map, dJdGrid)
+
 @doc """
 ### calcJacobian
 
@@ -333,7 +402,6 @@ function calcJacobian(map, Jac)
 
   return nothing
 end
-
 
 @doc """
 ### resizeMapping
@@ -400,7 +468,6 @@ function resizeMapping(map, jkmmax)
 
   return nothing
 end  # End function resizeMapping(map, jkmmax)
-
 
 @doc """
 ### calcXi
@@ -504,71 +571,3 @@ function calcXi(map, uvw, xi)
 
   return nothing
 end
-
-@doc """
-### contractWithdGdB
-
-Used to contract the matrix dG/dB, the derivative of the mesh node coordinates
-with respect to the mapping control points, with a given array, here labelled
-dJdGrid and stored in (j,k,m,:) format. This can be used to find
-dJ/dB = (dJ/dG)(dG/dB) for some objective J. In practice, the objective used is
-actually
-
-             J_practice = J_obj + psi^T dot R
-
-where J_obj is the actual objective, psi are the flow adjoints, and R is the
-flow residual.
-
-**Arguments**
-
-*  `map`     : Object of mapping type
-*  `dJdGrid` : The derivative of the objective w.r.t the grid coordintes
-
-"""->
-
-function contractWithdGdB(map, dJdGrid)
-
-  @assert map.jkmmax[1] == size(dJdGrid, 1)
-  @assert map.jkmmax[2] == size(dJdGrid, 2)
-  @assert map.jkmmax[3] == size(dJdGrid, 3)
-
-  # Allocate and initialize arrays
-  basis = zeros(AbstractFloat, maximum(map.order), 3)
-  fill!(map.work, 0.0)
-
-  # Loop over the nodes of the mapping
-  for m = 1:map.jkmmax[3]
-    for k = 1:map.jkmmax[2]
-      for j = 1:map.jkmmax[1]
-
-        # Store the parameter values and dJdGrid
-        xi[:] = map.xi[j,k,m,:]
-        dJdG = view(dJdGrid, j, k, m, 1:3)
-
-        # Evaluate the knot vectors and basis values
-        # TODO: Compute the knot vector for subsequent operations
-        for di = 1:3
-          span[di] = findSpan(xi[di], map, di)
-          basisFunctions(map, basis[:,di], di, xi[di], span[di])
-        end  # End for di = 1:3
-
-        for r = 1:map.order[3]
-          rs = r + span[3] - map.order[3]
-          for q = 1:map.order[2]
-            qs = q + span[2] - map.order[2]
-            for p = 1:map.order[1]
-
-              ps = p + span[1] - map.order[1]
-              coeff = basis[p,1]*basis[q,2]*basis[r,3]
-              map.work[ps, qs, rs, 1:3] += coedd*dJdG[:]
-              
-            end  End for p = 1:map.order[1]
-          end  # End for q = 1:map.order[2]
-        end  # End for r = 1:map.order[3]
-
-      end  # End for j = 1:map.jkmmax[1]
-    end    # End for k = 1:map.jkmmax[2]
-  end      # End for m = 1:map.jkmmax[3]
-
-  return nothing
-end  # End function contractWithdGdB(map, dJdGrid)
