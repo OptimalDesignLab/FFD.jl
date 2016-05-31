@@ -396,3 +396,104 @@ function resizeMapping(map, jkmmax)
 
   return nothing
 end  # End function resizeMapping(map, jkmmax)
+
+
+@doc """
+### calcXi
+Calculates the intermediate parameters, (xi,eta,zeta), using the edge spacing
+control functions defined by map%edgpar(1:2,:,:)
+
+**Arguments**
+
+*  `map`  : Object of Mapping type
+*  `uvw`  : j,k,m indices scaled to fit in [0,1],  i.e. uniform spacing
+*  `xi`   : Parametric coordinates (length = 3)
+
+"""->
+
+function calcXi(map, uvw, xi)
+
+  # Allocate and initialize arrays
+  # xi = zeros(AbstractFloat, 3)
+  xiedg = zeros(AbstractFloat, 4, 3)
+  F = zeros(AbstractFloat, 3)
+  dF = zeros(AbstractFloat, 3, 3)
+  dxi = zeros(AbstractFloat, 3)
+  psi = zeros(AbstractFloat, 3)
+  dpsi = zeros(AbstractFloat, 3)
+
+
+  for di = 1:3
+    it1 = mod(di,3) + 1
+    it2 = mod(di+1,3) + 1
+    for edg 1:4
+      A = map.edge_param[1, edg, di]
+      b = map.edge_param[2, edg, di]
+      fac = uvw[di] - 0.5
+      if b == 0.0
+        # Use taylor series to determine u
+        fac = 1.0 + 2.0*fac
+      else
+        fac = 1.0 + tanh(b*fac)/tanh(0.5*b)
+      end  # End if b == 0.0
+      xiedg[edg, di] = fac/( 2*A + (1 - A)*fac )
+    end  # End for edg 1:4
+  end  # End for di = 1:3
+
+  # calculate the intermediate params by find the intersection of 3 trilinear
+  # surface (via Newton's method)
+
+  # Get initial estimate
+  for di = 1:3
+    xi[di] = 0.0
+    for edg = 1:4
+      xi[di] = 0.25*xiedg[edg,di]
+    end
+  end
+
+  # loop until sufficiently converged
+
+  for n = 1:100
+    # Get the RHS and LHS for Newton's method
+    F[:] = -xi[:]
+    fill!(dF, 0.0)
+    for di = 1:3
+      it1 = mod(di,3) + 1
+      it2 = mod(di+1,3) + 1
+      dF[di,di] = 1.0
+      for edg = 1:4
+        if mod(edg,2) == 1
+          psi[it1] = 1.0 - xi[it1]
+          dpsi[it1] = 1.0
+        else
+          psi[it1] = xi[it1]
+          dpsi[it1] = 1.0
+        end  # End if mod(edg,2) == 1
+
+        if mod((edg+1)/2,2) == 1
+          psi[it2] = 1.0 - xi[it2]
+          dpsi[it2] = -1.0
+        else
+          psi[it2] = xi[it2]
+          dpsi[it2] = 1.0
+        end  # End if mod((edg+1)/2,2) == 1
+
+        F[di] += psi[it1]*psi[it2]*xiedg[edg,di]
+        dF[di,it1] -= -dpsi[it1]*psi[it2]*xiedg[edg,di]
+        dF[di,it2] -= -psi[it1]*dpsi[it2]*xiedg[edg,di]
+      end  # End for edg = 1:4
+    end # End for di = 1:3
+
+    # Solve for the update
+    # TODO: Solve for the update
+
+    # update parameter and exit loop
+    xi[:] += F[:]
+    if norm(F,2) < 1e-13
+      return nothing
+    end
+
+  end  # End for n = 1:100
+
+  return nothing
+end
