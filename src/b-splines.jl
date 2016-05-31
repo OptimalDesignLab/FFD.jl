@@ -177,7 +177,7 @@ function basisFunctions3D(map, span, uvw, bval3D)
       map.dl[k,3] = uvw[3] - map.knot[offset+1-k,3]
       saved = 0.0
       for i = 1:k
-        temp = bval3D[:,:,i]/(map.dr[i,3] + map.dl[k+1-i,3])
+        temp = bval3D[:,:,i] ./ (map.dr[i,3] + map.dl[k+1-i,3])
         bval3D[:,:,i] = saved + map.dr[i,3]*temp
         saved = map.dl[k+1-i,3]*temp
       end  # End for i = 1:k
@@ -194,7 +194,7 @@ function basisFunctions3D(map, span, uvw, bval3D)
       map.dl[k,2] = uvw[2] - map.knot[offset+1-k,2]
       saved = 0.0
       for i = 1:k
-        temp = bval3D[:,i,:]/(map.dr[i,2] + map.dl[k+1-i,2])
+        temp = bval3D[:,i,:] ./ (map.dr[i,2] + map.dl[k+1-i,2])
         bval3D[:,i,:] = saved + map.dr[i,2]*temp
         saved = map.dl[k+1-i,2]*temp
       end  # End for i = 1:k
@@ -211,7 +211,7 @@ function basisFunctions3D(map, span, uvw, bval3D)
       map.dl[k,1] = uvw[1] - map.knot[offset+1-k,1]
       saved = 0.0
       for i = 1:k
-        temp = bval3D[i,:,:]/(map.dr[i,1] + map.dl[k+1-i,1])
+        temp = bval3D[i,:,:] ./ (map.dr[i,1] + map.dl[k+1-i,1])
         bval3D[i,:,:] = saved + map.dr[i,1]*temp
         saved = map.dl[k+1-i,1]*temp
       end  # End for i = 1:k

@@ -191,7 +191,7 @@ function calcEdgeSpacingParam(map)
         # need to find b using Newton's method
         x1 = small
         x2 = sqrt(6*(1/x2 - 1))
-        map.edge_param[2,edg,di] = ### TODO: figure out newton's method
+        map.edge_param[2,edg,di] =  ### TODO: figure out newton's method
       end  # End if x2 > 1
     end    # End for edg = 1:4
   end      # End for di = 1:3
@@ -199,7 +199,7 @@ function calcEdgeSpacingParam(map)
   return nothing
 end  # End function calcEdgeSpacingParam(map)
 
-function bfunc(x, f, df, Nm1, dx1, dx2)
+function bfunc(x, Nm1, dx1, dx2)
 
   tmp = 1 / (Nm1*sqrt(dx1*dx2))
   f = sinh(x) - x*tmp
@@ -207,3 +207,21 @@ function bfunc(x, f, df, Nm1, dx1, dx2)
 
   return f, df
 end  # end function bfunc
+
+function bfuncNewtonSolve(Nm1, dx1, dx2)
+
+  b = zero(AbstractFloat)
+  b_next = zero(AbstractFloat)
+
+  for i = 1:50
+    f, df = bfunc(b, Nm1, dx1, dx2)
+    b_next = b - f/df
+    if norm(b_next-b, 2) < 1e-12
+      break
+    else
+      b = b_next
+    end
+  end # End for i = 1:50
+
+  return b_next
+end
