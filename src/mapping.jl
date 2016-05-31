@@ -331,3 +331,68 @@ function calcJacobian(map, Jac)
 
   return nothing
 end
+
+
+@doc """
+### resizeMapping
+
+Uses edge spacing parameters to refine/coarsen in each parameter direction.
+This might be useful for refinement studies where we want to insert or delete
+points in a continous way, or for grid sequencing/multigrid applications.
+
+**Arguments**
+
+*  `map`  : Object of Mapping type
+*  `jkmmax` : dersired number of (xi, eta, zeta) parameters
+
+"""->
+
+function resizeMapping(map, jkmmax)
+
+  for i = 1:3
+    @assert jkmmax[i] > 0
+  end
+
+  # Check if resizing is necessary
+  if map.jkmmax[1] != jkmmax[1] || map.jkmmax[2] != jkmmax[2] || map.jkmmax[3]
+     != jkmmax[3]
+    map.xi = zeros(AbstractFloat, jkmmax[1], jkmmax[2], jkmmax[3], 3)
+  end
+
+  uvw = zeros(AbstractFloat, 3)
+
+  # Loop over all nodes, calculate each new (xi, eta, zeta)
+  for m = 1:map.jkmmax[3]
+    uvw[3] = (m-1)/(map.jkmmax[3] - 1)
+    for k = 1:map.jkmmax[2]
+      uvw[2] = (k-1)/(map.jkmmax[2]-1)
+      for j = 1:map.jkmmax[1]
+
+        uvw[1] = (j-1)/(map.jkmmax[1] - 1)
+        calcXi(map, uvw, map.xi[j,k,m,:])
+        # need to set lower/upper value explicitly to avoid round-off errors
+        if j == 1
+          map.xi[j,k,m,1] = 0.0
+        end
+        if k == 1
+          map.xi[j,k,m,2] = 0.0
+        end
+        if m == 1
+          map.xi[j,k,m,3] = 0.0
+        end
+        if j == map.jkmmax[1]
+          map.xi[j,k,m,1] = 1.0
+        end
+        if k == map.jkmmax[2]
+          map.xi[j,k,m,2] = 1.0
+        end
+        if m == map.jkmmax[3]
+          map.xi[j,k,m,3] = 1.0
+        end
+
+      end  # End for j = 1:map.jkmmax[1]
+    end  # End for k = 1:map.jkmmax[2]
+  end  # End for m = 1:map.jkmmax[3]
+
+  return nothing
+end  # End function resizeMapping(map, jkmmax)
