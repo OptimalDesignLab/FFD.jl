@@ -24,32 +24,43 @@ A type for creating mapping objects needed for creating
 """->
 
 type Mapping
-  nctl::Array(Int, 3)   # Number of control points in each of the 3 dimensions
-  jkmmax::Array(Int, 3) # Number of nodes in each direction
-  order::Array(Int, 3)  # Order of B-spline in each direction
+  nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
+  jkmmax::AbstractArray{Int, 1} # Number of nodes in each direction
+  order::AbstractArray{Int, 1}  # Order of B-spline in each direction
 
-  xi = AbstractArray{AbstractFloat, 4}     # Coordinate values
-  cp_xyz = AbstractArray{AbstractFloat, 4} # Cartesian coordinates of control points
-  edge_knot = AbstractArray{AbstractFloat, 3}  # edge knot vectors
-  edge_param = AbstractArray{AbstractFloat, 3} # edge parameters
+  xi::AbstractArray{AbstractFloat, 4}     # Coordinate values
+  cp_xyz::AbstractArray{AbstractFloat, 4} # Cartesian coordinates of control points
+  edge_knot::AbstractArray{AbstractFloat, 3}  # edge knot vectors
+  edge_param::AbstractArray{AbstractFloat, 3} # edge parameters
 
   # Working arrays
-  aj = AbstractArray{AbstractFloat, 3}
-  dl = AbstractArray{AbstractFloat, 2}
-  dr = AbstractArray{AbstractFloat, 2}
-  knot = AbstractArray{AbstractFloat, 2}
-  work = AbstractArray{AbstractFloat, 4}
+  aj::AbstractArray{AbstractFloat, 3}
+  dl::AbstractArray{AbstractFloat, 2}
+  dr::AbstractArray{AbstractFloat, 2}
+  knot::AbstractArray{Vector{AbstractFloat}, 1}
+  work::AbstractArray{AbstractFloat, 4}
 
   function Mapping(ncpts, nnodes, k)
 
+    # Assertion statements to prevent errors
+    for i = 1:3
+      @assert ncpts[i] > 0  # Assert number of control points > 0
+      @assert nnodes[i] > 0 # Assert number of nodes > 0
+      @assert k[i] > 0      # Assert order > 0
+    end
+
     # Define max_wrk = number of work elements at each control point
     const max_work = 2*6  # 2*n_variables
+
+    nctl = zeros(Int, 3)
+    jkmmax = zeros(Int, 3)
+    order = zeros(Int, 3)
 
     nctl[:] = ncpts[:]    # Set number of control points
     jkmmax[:] = nnodes[:] # Set map refinement level in each coordinate direction
     order[:] = k[:]       # Set the order of B-splines
 
-    # Assertion statements to prevent errors
+
     for i = 1:3
       @assert nctl[i] > 0
       @assert jkmmax[i] > 0
@@ -63,7 +74,11 @@ type Mapping
     xi = zeros(jkmmax[1], jkmmax[2], jkmmax[3], 3)
     cp_xyz = zeros(nctl[1], nctl[2], nctl[3], 3)
     edge_knot = zeros(max_knot, 4, 3)
-    knot = zeros(max_knot, 3)
+    knot = Array(Vector{AbstractFloat}, 3)
+    for i = 1:3
+      knot[i] = zeros(AbstractFloat, nctl[i]+order[i])
+    end
+    #knot = zeros(max_knot, 3)
     edge_param = zeros(2,4,3)
     aj = zeros(3, max_order, 3)
     dl = zeros(max_order-1, 3)
