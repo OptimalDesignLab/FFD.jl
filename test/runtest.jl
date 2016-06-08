@@ -1,6 +1,7 @@
 # runtest.jl
 include("../src/b-splines.jl")
 
+#=
 # Testing functions based on Ex2.3 from the NURBS book. considering only one
 # value.
 # U = [0,0,0,0, 0.1,0.2,0.5,1.0,1.0,1.0,1.0]
@@ -37,3 +38,12 @@ println("]\nC = $C")
 
 println("bvalue = $bvalue")
 println("C_1 = $C_1")
+=#
+
+include("../src/knot.jl")
+order = 3
+nctl = 7
+X = 0:0.1:1
+U = zeros(order+nctl)
+calcKnot(order, nctl, X, U)
+println("U = $U")

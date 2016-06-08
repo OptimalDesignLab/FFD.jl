@@ -2,7 +2,8 @@
 @doc """
 ### Mapping
 
-A type for creating mapping objects needed for creating
+A type for creating mapping objects needed for creating. The mapping is intended
+for a uniform knot distribution along the 3 dimensions in the parametric space.
 
 **Members**
 
@@ -30,7 +31,7 @@ type Mapping
 
   xi::AbstractArray{AbstractFloat, 4}     # Coordinate values
   cp_xyz::AbstractArray{AbstractFloat, 4} # Cartesian coordinates of control points
-  edge_knot::AbstractArray{AbstractFloat, 3}  # edge knot vectors
+  edge_knot::AbstractArray{Vector{AbstractFloat}, 1}  # edge knot vectors
   edge_param::AbstractArray{AbstractFloat, 3} # edge parameters
 
   # Working arrays
@@ -73,9 +74,10 @@ type Mapping
 
     xi = zeros(jkmmax[1], jkmmax[2], jkmmax[3], 3)
     cp_xyz = zeros(nctl[1], nctl[2], nctl[3], 3)
-    edge_knot = zeros(max_knot, 4, 3)
+    edge_knot = Array(Vector{AbstractFloat}, 3)
     knot = Array(Vector{AbstractFloat}, 3)
     for i = 1:3
+      edge_knot[i] = zeros(AbstractFloat, nctl[i]+order[i])
       knot[i] = zeros(AbstractFloat, nctl[i]+order[i])
     end
     #knot = zeros(max_knot, 3)

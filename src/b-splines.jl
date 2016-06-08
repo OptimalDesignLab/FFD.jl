@@ -136,7 +136,7 @@ function derivBasisFunctions(map, N, Nderiv, N2deriv, di, u, span)
         saved = dl[k+1-i,di]*temp
         dsaved = temp + dl[k+1-i,di]*dtemp
         d2saved = 2*dtemp + dl[k+1-i,di]*d2temp
-      end  E End for i = 1:k
+      end  # End for i = 1:k
       N[k+1] = saved
       Nderiv[k+1] = dsaved
       N2deriv[k+1] = d2saved
