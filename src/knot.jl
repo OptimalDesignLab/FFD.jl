@@ -3,7 +3,10 @@
 @doc """
 ### calcKnotLMS
 
-Computes the knot vector in the parametric space [0,1]
+Computes the knot vector in the parametric space [0,1]. This is for a least
+squares curve approximation.
+
+REFERENCE: Equation 9.68 & eqation 9.69, Page 412 The NURBS book, 2nd Edition
 
 **Inputs**
 
@@ -21,7 +24,8 @@ Computes the knot vector in the parametric space [0,1]
 function calcKnotLMS(order, nctl, X, U)
   # REFERENCE : Gaetan's pySpline knots.f90, knots_lms
 
-  @assert length(U) = nctl + order
+  @assert length(U) = nctl + order "Length of specified knot vector is not equal
+  to the sum of number of control points and order"
 
   lengthX = length(X)
 
