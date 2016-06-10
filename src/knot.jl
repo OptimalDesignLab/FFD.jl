@@ -1,6 +1,44 @@
 # knot.jl
 # File for creating knots in the physical space in 1D, 2D or 3D.
 @doc """
+### calcKnot
+
+Computes a uniform knot vector for the mapping object. It is assumed that the
+number of control points is known from before. It is user specified. The knot
+vector is computed in the parametric space [0,1] in all the 3 directions
+
+**Inputs**
+
+*  `map` : Object of mapping type
+*  `xi`  : Parametric coordinate values
+
+**Outputs**
+
+*  None
+
+"""->
+
+function calcKnot(map, xi)
+
+  for di = 1:map.ndim
+    order = map.order[di]
+    nctl = map.nctl[di]
+    # Zero out the knot vector
+    map.edge_knot[di][:] = 0.0
+    step = 1 / (nctl-order+1)
+    low = 0.0
+    for i = (order+1):nctl
+      map.edge_knot[di][i] = low + step
+      low += step
+    end
+    # Fill the end of the knot vector
+    map.edge_knot[di][nctl+1:nctl+order] = 1.0
+  end
+
+  return nothing
+end
+
+@doc """
 ### calcKnotLMS
 
 Computes the knot vector in the parametric space [0,1]. This is for a least

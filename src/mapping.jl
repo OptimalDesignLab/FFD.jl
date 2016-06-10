@@ -25,6 +25,8 @@ for a uniform knot distribution along the 3 dimensions in the parametric space.
 """->
 
 type Mapping
+
+  ndim::Int                     # Mapping object to indicate 2D or 3D
   nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
   jkmmax::AbstractArray{Int, 1} # Number of nodes in each direction
   order::AbstractArray{Int, 1}  # Order of B-spline in each direction
@@ -53,6 +55,7 @@ type Mapping
     # Define max_wrk = number of work elements at each control point
     const max_work = 2*6  # 2*n_variables
 
+    ndim = 3  # To indicate a 3D Mapping object is being created
     nctl = zeros(Int, 3)
     jkmmax = zeros(Int, 3)
     order = zeros(Int, 3)
