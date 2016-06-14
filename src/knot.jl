@@ -18,7 +18,7 @@ vector is computed in the parametric space [0,1] in all the 3 directions
 
 """->
 
-function calcKnot(map, xi)
+function calcKnot(map)
 
   for di = 1:map.ndim
     order = map.order[di]

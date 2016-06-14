@@ -43,9 +43,10 @@ type Mapping
   knot::AbstractArray{Vector{AbstractFloat}, 1}
   work::AbstractArray{AbstractFloat, 4}
 
-  function Mapping(ncpts, nnodes, k)
+  function Mapping(dim, k, ncpts, nnodes)
 
     # Assertion statements to prevent errors
+    @assert dim >= 2 "Only 2D and 3D valid"
     for i = 1:3
       @assert ncpts[i] > 0 "Number of control points specified is <= 0 in $i direction"
       @assert nnodes[i] > 0 "Number of nodes specified is <= 0 in $i direction"
@@ -55,7 +56,7 @@ type Mapping
     # Define max_wrk = number of work elements at each control point
     const max_work = 2*6  # 2*n_variables
 
-    ndim = 3  # To indicate a 3D Mapping object is being created
+    ndim = dim  # To indicate a 3D Mapping object is being created
     nctl = zeros(Int, 3)
     jkmmax = zeros(Int, 3)
     order = zeros(Int, 3)
@@ -88,9 +89,9 @@ type Mapping
     aj = zeros(3, max_order, 3)
     dl = zeros(max_order-1, 3)
     dr = zeros(max_order-1, 3)
-    work = zeros(ntcl[1], nctl[2], nctl[3], max_work)
+    work = zeros(nctl[1], nctl[2], nctl[3], max_work)
 
-    new(nctl, jkmmax, order, xi, cp_xyz, edge_knot, edge_param, aj, dl, dr,
+    new(ndim, nctl, jkmmax, order, xi, cp_xyz, edge_knot, edge_param, aj, dl, dr,
         knot, work)
 
   end  # End constructor
@@ -364,9 +365,9 @@ function contractWithdGdB(map, dJdGrid)
               coeff = basis[p,1]*basis[q,2]*basis[r,3]
               map.work[ps, qs, rs, 1:3] += coedd*dJdG[:]
 
-            end  End for p = 1:map.order[1]
-          end  # End for q = 1:map.order[2]
-        end  # End for r = 1:map.order[3]
+            end # End for p = 1:map.order[1]
+          end   # End for q = 1:map.order[2]
+        end     # End for r = 1:map.order[3]
 
       end  # End for j = 1:map.jkmmax[1]
     end    # End for k = 1:map.jkmmax[2]
