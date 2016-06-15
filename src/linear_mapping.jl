@@ -66,3 +66,8 @@ function linearMap(map, box, X, pX)
 
   return nothing
 end
+
+function calcParametricLinear()
+
+  retrun nothing
+end  # End function calcParametricLinear
