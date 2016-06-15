@@ -45,6 +45,8 @@ type BoundingBox
   # Parametric space
   function BoundingBox(dim, coord, spacing) # 3D
 
+    ndim = dim # Set dimensions
+
     # Allocate members
     origin = Array(AbstractFloat, 3)
     unitVector = Array(AbstractFloat, 3, 3)
@@ -54,7 +56,6 @@ type BoundingBox
     lengths = Array(AbstractFloat, ndim) # same as above
 
     # Populate members of BoundingBox
-    ndim = dim
     geom_coord[:,:] = coord[:,:]
     offset[:] = spacing[:]
 

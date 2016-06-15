@@ -12,6 +12,9 @@ the (x,y,z) space. Presently, Only a bounding box which is a cube varying
 between [0,1] in each of the s,t,u direction.
 
 """->
+function void()
+  return nothing
+end
 
 @doc """
 ### linearMap
@@ -36,14 +39,14 @@ function linearMap(map, box, X, pX)
   # no rotation.
 
   # Get the x,y,z coordinates for the origin of the s,t,u system
-  origin = BoundingBox.origin
+  origin = box.origin
   S = box.unitVector[:,1]
   T = box.unitVector[:,2]
   U = box.unitVector[:,3]
   XmX0 = X - origin
 
   # calculate s
-  TcrossU = corss(T,U)
+  TcrossU = cross(T,U)
   s = dot(TcrossU,XmX0)/dot(TcrossU,S)
 
   # Calculate t
@@ -54,7 +57,7 @@ function linearMap(map, box, X, pX)
   ScrossT = cross(S,T)
   u = dot(ScrossT,XmX0)/dot(ScrossT,U)
 
-  pX[:] = [s,t,u] 
+  pX[:] = [s,t,u]
 
   return nothing
 end

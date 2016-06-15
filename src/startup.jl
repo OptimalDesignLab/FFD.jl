@@ -5,6 +5,8 @@
 # Includes
 include("mapping.jl")
 include("knot.jl")
+include("bounding_box.jl")
+include("linear_mapping.jl")
 
 ndim = 3
 order = [4,4,4]  # Order of B-splines in the 3 directions
@@ -12,6 +14,26 @@ nControlPts = [8,8,8]
 nnodes = [11,11,11]  # Number of nodes of the FE grid that need to be mapped
 
 map = Mapping(ndim, order, nControlPts, nnodes)
+
+# Create Bounding Box
+offset = [0.,0.,0.]  # offset for the bounding box
+geom_bounds = [5 5 5;10 10 10]
+box = BoundingBox(ndim, geom_bounds, offset)
+println("origin = $(box.origin)")
+
+# Unit vectors
+box.unitVector = 5*eye(Float64, 3)
+
+x = [10.,10.,10.]
+pX = zeros(3)
+
+linearMap(map, box, x, pX)
+
+println("pX = $pX")
+
+# Populate S, T, U direction vectors for the
+
+#=
 println(map.ndim)
 println(map.nctl)
 
@@ -38,3 +60,4 @@ for i = 1:3
 end
 println("\nV = \n", V)
 println("\nW = \n", W)
+=#
