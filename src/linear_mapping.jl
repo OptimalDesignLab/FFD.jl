@@ -40,8 +40,21 @@ function linearMap(map, box, X, pX)
   S = box.unitVector[:,1]
   T = box.unitVector[:,2]
   U = box.unitVector[:,3]
+  XmX0 = X - origin
 
+  # calculate s
+  TcrossU = corss(T,U)
+  s = dot(TcrossU,XmX0)/dot(TcrossU,S)
 
+  # Calculate t
+  ScrossU = cross(S,U)
+  t = dot(ScrossU,XmX0)/dot(ScrossU,T)
+
+  # calculate u
+  ScrossT = cross(S,T)
+  u = dot(ScrossT,XmX0)/dot(ScrossT,U)
+
+  pX[:] = [s,t,u] 
 
   return nothing
 end
