@@ -12,6 +12,9 @@ points.
 *  `ndim` : 2D or 3D
 *  `origin` : intended origin of the (s,t,u) parametric coordinate system in the
               (x,y,z) space
+*  `unitVector`: Unit vectors that define the (s,t,u) coordinate axes expressed
+                 in (x,y,z) coordinate system. dim1 = x,y,z values, dim2 = s,t
+                 or u vector
 *  `geom_coord` : Highest and lowest values of x,y,z coordinates along every
                   dimension. dim1 = highest and lowest values, dim2 = x,y or z
                   direction
@@ -31,6 +34,7 @@ type BoundingBox
   # Physical space
   ndim::Integer # 2D or 3D
   origin::Array{AbstractFloat, 1}
+  unitVector::Array{AbstractFloat, 2}
   geom_coord::Array{AbstractFloat, 2}  # highest and lowst values of x, y, z
                                        # coordinates along every dimension
                                        # in the physical space
@@ -43,6 +47,7 @@ type BoundingBox
 
     # Allocate members
     origin = Array(AbstractFloat, 3)
+    unitVector = Array(AbstractFloat, 3, 3)
     geom_coord = Array(AbstractFloat, 2, ndim) # each row = x_min, x_max,  each column = ndim
     box_bound = Array(AbstractFloat, 2, ndim)  # same as above
     offset = Array(AbstractFloat, ndim) # offset for each dimenstion in the (x, y, z) space
@@ -63,7 +68,7 @@ type BoundingBox
     origin = box_bound[1,:] # Get the lower x,y,z ordinates to be defined as the
                             # origin
 
-    new(ndim, origin, geom_coord, offset, box_bound, lengths)
+    new(ndim, origin, unitVector, geom_coord, offset, box_bound, lengths)
 
   end
 end

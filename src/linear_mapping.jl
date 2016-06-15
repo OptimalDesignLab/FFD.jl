@@ -12,7 +12,36 @@ the (x,y,z) space. Presently, Only a bounding box which is a cube varying
 between [0,1] in each of the s,t,u direction.
 
 """->
-function linearMap(map, box)
+
+@doc """
+### linearMap
+
+Take in one coordinate in (x,y,z) space and convert it to parametric (s,t,u)
+space
+
+**Arguments**
+
+*  `map` : Object of mapping type
+*  `box` : BoundingBox object
+*  `X`   : Point coordinate in (x,y,z) space
+*  `pX`   : corresponding coordinates in (s,t,u) space
+
+"""->
+
+function linearMap(map, box, X, pX)
+
+  # The assumption of the mapping for the bounding box presently is that
+  # coordinate transformation from physical x,y,z coordinate transformation to
+  # parametric s,t,u coordinate involved only translation and scaling. There is
+  # no rotation.
+
+  # Get the x,y,z coordinates for the origin of the s,t,u system
+  origin = BoundingBox.origin
+  S = box.unitVector[:,1]
+  T = box.unitVector[:,2]
+  U = box.unitVector[:,3]
+
+
 
   return nothing
 end
