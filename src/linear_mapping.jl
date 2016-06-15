@@ -43,19 +43,24 @@ function linearMap(map, box, X, pX)
   S = box.unitVector[:,1]
   T = box.unitVector[:,2]
   U = box.unitVector[:,3]
+  # lengthS = box.lengths[1]
+  # lengthT = box.lengths[2]
+  # lengthU = box.lengths[3]
+
   XmX0 = X - origin
 
   # calculate s
+  # Division by lengths[i] to ensure s,t,u lie between [0,1]
   TcrossU = cross(T,U)
-  s = dot(TcrossU,XmX0)/dot(TcrossU,S)
+  s = dot(TcrossU,XmX0)/(dot(TcrossU,S)*box.lengths[1])
 
   # Calculate t
   ScrossU = cross(S,U)
-  t = dot(ScrossU,XmX0)/dot(ScrossU,T)
+  t = dot(ScrossU,XmX0)/(dot(ScrossU,T)*box.lengths[2])
 
   # calculate u
   ScrossT = cross(S,T)
-  u = dot(ScrossT,XmX0)/dot(ScrossT,U)
+  u = dot(ScrossT,XmX0)/(dot(ScrossT,U)*box.lengths[3])
 
   pX[:] = [s,t,u]
 

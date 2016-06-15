@@ -60,10 +60,11 @@ type BoundingBox
     offset[:] = spacing[:]
 
     # Get the boumding box coordinates and dimensions
-    for i = 1:size(geom_coord,2)
+    for i = 1:size(geom_coord,2)  # TODO: Come up with a better definition of box_bound and lengths
       box_bound[1,i] = geom_coord[1,i] - offset[i]
       box_bound[2,i] = geom_coord[2,i] + offset[i]
-      lengths[i] = norm(box_bound[:,i], 2)
+      # println("box_bound[:,i] = ", box_bound[:,i])
+      lengths[i] = box_bound[2,i] - box_bound[1,i]
     end
 
     origin = box_bound[1,:] # Get the lower x,y,z ordinates to be defined as the

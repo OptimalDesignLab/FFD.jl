@@ -17,15 +17,17 @@ map = Mapping(ndim, order, nControlPts, nnodes)
 
 # Create Bounding Box
 offset = [0.,0.,0.]  # offset for the bounding box
-geom_bounds = [5 5 5;10 10 10]
+geom_bounds = [3 3 3;10 6 10]
 box = BoundingBox(ndim, geom_bounds, offset)
 println("origin = $(box.origin)")
 
 # Unit vectors
-box.unitVector = 5*eye(Float64, 3)
+box.unitVector = eye(Float64, 3)
 
-x = [10.,10.,10.]
+x = [10.,4.5,10.]
 pX = zeros(3)
+println("box.lengths = $(box.lengths)")
+println("box.box_bound = $(box.box_bound)")
 
 linearMap(map, box, x, pX)
 
