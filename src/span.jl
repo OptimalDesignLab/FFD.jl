@@ -19,11 +19,12 @@ SOURCE: The NURBS book 2nd Edition, Algorithm A2.1
 
 """->
 
-function findSpan(u, map, di)
+function findSpan(u, U, k)
 
-  k = map.order[di]
-  U = view(map.knot, :, di)
+  # k = map.order[di]
+  # U = view(map.knot, :, di)
 
+  n = length(U) - k
   if u >= U[n+1]
     return n  # Special case when u = last term of knot vector
   elseif u < U[k]

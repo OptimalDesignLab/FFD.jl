@@ -42,3 +42,57 @@ function evalCurve(u, U, order, P, C)
 
   return nothing
 end
+
+@doc """
+### evalVolume
+
+Determine the the coordinates of a point in a 3D volume using B-splines
+
+**Arguments**
+
+*  `box` :
+
+
+"""->
+
+function evalVolume(map, box, Vol)
+
+  for k = 1:map.jkmmax[3]
+    for j = 1:map.jkmmax[2]
+      for i = 1:map.jkmmax[1]
+        u = map.xi[i,j,k,1]
+        v = map.xi[i,j,k,2]
+        w = map.xi[i,j,k,3]
+        Nu = zeros(map.order[1])
+        Nv = zeros(map.order[2])
+        Nw = zeros(map.order[3])
+
+        # Work with u
+        span = findSpan(u, map.edge_knot[1], map.order[1])
+        basisFunctions(map, Nu, 1, u, span)
+        startu = span - map.order[1]
+
+        # work with v
+        span = findSpan(u, map.edge_knot[2], map.order[2])
+        basisFunctions(map, Nv, 2, v, span)
+        startv = span - map.order[2]
+
+        # work with w
+        span = findSpan(u, map.edge_knot[3], map.order[3])
+        basisFunctions(map, Nw, 3, w, span)
+        startw = span - map.order[3]
+
+        for ii = 1:map.order[1]
+          for jj = 1:map.order[2]
+            for kk = 1:map.order[3]
+              Vol[i,j,k,:] += Nu[ii]*Nv[jj]*Nw[kk]*
+                              map.cp_xyz[startu+ii, startv+jj, startw+kk,:]
+            end  # End for kk = 1:map.order[3]
+          end    # End for jj = 1:map.order[2]
+        end      # End for ii = 1:map.order[1]
+      end  # End for i = 1:map.jkmmax[3]
+    end    # End for j = 1:map.jkmmax[2]
+  end      # End for k = 1:map.jkmmax[1]
+
+  return nothing
+end

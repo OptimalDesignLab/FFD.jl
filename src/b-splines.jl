@@ -25,7 +25,7 @@ function basisFunctions(map, N, di, u, span)
 
   # (U, order, u, span, N)
   order = map.order[di]
-  U = view(map.knot, :, di)
+  U = map.edge_knot[di]
 
   jmax = 20 # arbitrarily imposed
   delta_l = zeros(Float64, jmax)

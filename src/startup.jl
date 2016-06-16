@@ -8,15 +8,20 @@ include("knot.jl")
 include("bounding_box.jl")
 include("linear_mapping.jl")
 include("control_point.jl")
+include("span.jl")
+include("b-splines.jl")
+include("evaluations.jl")
 
 using ArrayViews
 
 ndim = 3
 order = [4,4,4]  # Order of B-splines in the 3 directions
-nControlPts = [8,8,8]
+nControlPts = [4,4,4]
 nnodes = [5,3,4]  # Number of nodes of the FE grid that need to be mapped
 
 map = Mapping(ndim, order, nControlPts, nnodes)
+calcKnot(map)  # Create knot vectors
+
 
 # Create Bounding Box
 offset = [0.,0.,0.]  # offset for the bounding box
@@ -79,10 +84,24 @@ end=#
 
 # Define the control points
 controlPoint(map,box)
+#=
 for k = 1:map.nctl[3]
   for j = 1:map.nctl[2]
     for i = 1:map.nctl[1]
       println("cp_xyz[$i,$j,$k,:] = ", map.cp_xyz[i,j,k,:])
+    end
+    println('\n')
+  end
+  println('\n')
+end
+=#
+Vol = zeros(nodes_xyz)
+evalVolume(map, box, Vol)
+
+for k = 1:nnodes[3]
+  for j = 1:nnodes[2]
+    for i = 1:nnodes[1]
+      println("nodes_xyz_err[$i,$j,$k,:] = ", nodes_xyz[i,j,k,:]-Vol[i,j,k,:])
     end
     println('\n')
   end
@@ -101,8 +120,7 @@ println("pX = $pX")
 println(map.ndim)
 println(map.nctl)
 
-#  knot vectors
-calcKnot(map)
+
 # println(map.edge_knot)
 
 U = zeros(3,3,3)
