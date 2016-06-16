@@ -1,3 +1,4 @@
+#=
 @doc """
 ### Linear mapping
 
@@ -15,7 +16,8 @@ between [0,1] in each of the s,t,u direction.
 function void()
   return nothing
 end
-
+=#
+#=
 @doc """
 ### linearMap
 
@@ -30,7 +32,7 @@ space
 *  `pX`   : corresponding coordinates in (s,t,u) space
 
 """->
-
+=#
 function linearMap(map, box, X, pX)
 
   # The assumption of the mapping for the bounding box presently is that
@@ -67,7 +69,32 @@ function linearMap(map, box, X, pX)
   return nothing
 end
 
-function calcParametricLinear()
+@doc """
+### calcParametricMappingLinear
 
-  retrun nothing
+Creates a linear mapping for an array of nodes in the (x,y,z) space to the
+(s,t,u) space.
+
+**Arguments**
+
+*  `map` : Objecto of Mapping type
+*  `box` : BoundingBox object
+*  `nodes_xyz` : (x,y,z) coordinates of the nodes of the mesh
+"""->
+
+function calcParametricMappingLinear(map, box, nodes_xyz)
+
+  for k = 1:map.jkmmax[3]
+    for j = 1:map.jkmmax[2]
+      for i = 1:map.jkmmax[1]
+        # X = view(nodes_xyz, i, j, k, :)
+        # pX = view(map.xi, i, j, k, :)
+        X = nodes_xyz[i,j,k,:]
+        pX = view(map.xi,i,j,k,:)
+        linearMap(map, box, X, pX)
+      end
+    end
+  end
+
+  return nothing
 end  # End function calcParametricLinear
