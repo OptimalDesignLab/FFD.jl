@@ -7,6 +7,7 @@ include("mapping.jl")
 include("knot.jl")
 include("bounding_box.jl")
 include("linear_mapping.jl")
+include("control_point.jl")
 
 using ArrayViews
 
@@ -66,7 +67,7 @@ end
 #----------------------------------------
 
 calcParametricMappingLinear(map, box, nodes_xyz)
-for k = 1:nnodes[3]
+#=for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
       println("nodes_stu[$i,$j,$k,:] = ", map.xi[i,j,k,:])
@@ -74,7 +75,20 @@ for k = 1:nnodes[3]
     println('\n')
   end
   println('\n')
+end=#
+
+# Define the control points
+controlPoint(map,box)
+for k = 1:map.nctl[3]
+  for j = 1:map.nctl[2]
+    for i = 1:map.nctl[1]
+      println("cp_xyz[$i,$j,$k,:] = ", map.cp_xyz[i,j,k,:])
+    end
+    println('\n')
+  end
+  println('\n')
 end
+
 
 #=
 linearMap(map, box, x, pX)

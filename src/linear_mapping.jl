@@ -42,9 +42,9 @@ function linearMap(map, box, X, pX)
 
   # Get the x,y,z coordinates for the origin of the s,t,u system
   origin = box.origin
-  S = box.unitVector[:,1]
-  T = box.unitVector[:,2]
-  U = box.unitVector[:,3]
+  S = box.unitVector[:,1]*box.lengths[1]
+  T = box.unitVector[:,2]*box.lengths[2]
+  U = box.unitVector[:,3]*box.lengths[3]
   # lengthS = box.lengths[1]
   # lengthT = box.lengths[2]
   # lengthU = box.lengths[3]
@@ -54,15 +54,15 @@ function linearMap(map, box, X, pX)
   # calculate s
   # Division by lengths[i] to ensure s,t,u lie between [0,1]
   TcrossU = cross(T,U)
-  s = dot(TcrossU,XmX0)/(dot(TcrossU,S)*box.lengths[1])
+  s = dot(TcrossU,XmX0)/dot(TcrossU,S)
 
   # Calculate t
   ScrossU = cross(S,U)
-  t = dot(ScrossU,XmX0)/(dot(ScrossU,T)*box.lengths[2])
+  t = dot(ScrossU,XmX0)/dot(ScrossU,T)
 
   # calculate u
   ScrossT = cross(S,T)
-  u = dot(ScrossT,XmX0)/(dot(ScrossT,U)*box.lengths[3])
+  u = dot(ScrossT,XmX0)/dot(ScrossT,U)
 
   pX[:] = [s,t,u]
 
