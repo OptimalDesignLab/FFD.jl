@@ -97,7 +97,7 @@ end
 =#
 Vol = zeros(nodes_xyz)
 evalVolume(map, box, Vol)
-
+#=
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
@@ -107,6 +107,23 @@ for k = 1:nnodes[3]
   end
   println('\n')
 end
+=#
+
+# Check linear scaling
+fill!(Vol, 0.0)
+map.cp_xyz = 3*map.cp_xyz
+evalVolume(map, box, Vol)
+# Output the values to check for errors
+for k = 1:nnodes[3]
+  for j = 1:nnodes[2]
+    for i = 1:nnodes[1]
+      println( "Vol_err[$i,$j,$k,:] = ", Vol[i,j,k,:]-3*nodes_xyz[i,j,k,:] )
+    end
+    println('\n')
+  end
+  println('\n')
+end
+
 
 
 #=
