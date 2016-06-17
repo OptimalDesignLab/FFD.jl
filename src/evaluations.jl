@@ -60,9 +60,11 @@ symbol convention used in the function is from the book
 
 function evalVolume(map, Vol)
 
-  for k = 1:map.jkmmax[3]
-    for j = 1:map.jkmmax[2]
-      for i = 1:map.jkmmax[1]
+  fill!(Vol, 0.0) # Zero out all entries of Vol
+
+  for k = 1:map.numnodes[3]
+    for j = 1:map.numnodes[2]
+      for i = 1:map.numnodes[1]
         u = map.xi[i,j,k,1]
         v = map.xi[i,j,k,2]
         w = map.xi[i,j,k,3]
@@ -88,14 +90,16 @@ function evalVolume(map, Vol)
         for ii = 1:map.order[1]
           for jj = 1:map.order[2]
             for kk = 1:map.order[3]
-              Vol[i,j,k,:] += Nu[ii]*Nv[jj]*Nw[kk]*
-                              map.cp_xyz[startu+ii, startv+jj, startw+kk,:]
+              for idim = 1:map.ndim
+                Vol[i,j,k,idim] += Nu[ii]*Nv[jj]*Nw[kk]*
+                                map.cp_xyz[startu+ii, startv+jj, startw+kk,idim]
+              end
             end  # End for kk = 1:map.order[3]
           end    # End for jj = 1:map.order[2]
         end      # End for ii = 1:map.order[1]
-      end  # End for i = 1:map.jkmmax[3]
-    end    # End for j = 1:map.jkmmax[2]
-  end      # End for k = 1:map.jkmmax[1]
+      end  # End for i = 1:map.numnodes[3]
+    end    # End for j = 1:map.numnodes[2]
+  end      # End for k = 1:map.numnodes[1]
 
   return nothing
 end

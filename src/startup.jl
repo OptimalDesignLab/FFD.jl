@@ -62,7 +62,7 @@ for k = 1:nnodes[3]
 end
 
 # Output the values to check for errors
-
+#=
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
@@ -71,11 +71,12 @@ for k = 1:nnodes[3]
     println('\n')
   end
 end
-
+=#
 #----------------------------------------
 
 calcParametricMappingLinear(map, box, nodes_xyz)
-#=for k = 1:nnodes[3]
+#=
+for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
       println("nodes_stu[$i,$j,$k,:] = ", map.xi[i,j,k,:])
@@ -83,22 +84,21 @@ calcParametricMappingLinear(map, box, nodes_xyz)
     println('\n')
   end
   println('\n')
-end=#
-
+end
+=#
 # Define the control points
 controlPoint(map,box)
-#=
-for k = 1:map.nctl[3]
+#=for k = 1:map.nctl[3]
   for j = 1:map.nctl[2]
     for i = 1:map.nctl[1]
       println("cp_xyz[$i,$j,$k,:] = ", round(map.cp_xyz[i,j,k,:],2) )
     end
     println('\n')
   end
-end
-=#
+end=#
+
 Vol = zeros(nodes_xyz)
-evalVolume(map, Vol)
+# evalVolume(map, Vol)
 #=
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
@@ -110,39 +110,43 @@ for k = 1:nnodes[3]
   println('\n')
 end
 =#
-#=
+
 # Check linear scaling (Translation)
+#=
 fill!(Vol, 0.0)
-map.cp_xyz = 3*map.cp_xyz
+# move the x coordinates of all the control by 4 units
+map.cp_xyz[:,:,:,3] += 2
 evalVolume(map, Vol)
 # Output the values to check for errors
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
-      println( "Vol_err[$i,$j,$k,:] = ", Vol[i,j,k,:]-3*nodes_xyz[i,j,k,:] )
+      println( "Vol_err[$i,$j,$k,:] = ", round(Vol[i,j,k,:]-nodes_xyz[i,j,k,:],2) )
     end
     println('\n')
   end
   println('\n')
 end
 =#
+
 # Check angular rotation
 # Rotate control points by 90 degrees about Z axis
 gamma = 0.5*pi # angle in radians by which ctls are rotated
+rotx = [1. 0. 0.;0. cos(gamma) -sin(gamma);0. sin(gamma) cos(gamma)]
+roty = [cos(gamma) 0. sin(gamma);0. 1. 0.;-sin(gamma) 0. cos(gamma)]
 rotz = [cos(gamma) -sin(gamma) 0;sin(gamma) cos(gamma) 0;0 0 1]
 controlPoint(map,box) # Recreate unperturbed control points
 # Perform the rotation
 for k = 1:map.nctl[3]
   for j = 1:map.nctl[2]
     for i = 1:map.nctl[1]
-      map.cp_xyz[i,j,k,:] = rotz*map.cp_xyz[i,j,k,:]
+      map.cp_xyz[i,j,k,:] = roty*map.cp_xyz[i,j,k,:]
     end
   end
 end
 
 
-println("Rotated coordinates")
-#=
+println("Rotated coordinates\n")#=
 for k = 1:map.nctl[3]
   for j = 1:map.nctl[2]
     for i = 1:map.nctl[1]
@@ -150,11 +154,10 @@ for k = 1:map.nctl[3]
     end
     println('\n')
   end
-end
-=#
+end=#
+
 evalVolume(map, Vol)
 # Check Output
-
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
