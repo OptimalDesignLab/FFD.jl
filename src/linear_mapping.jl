@@ -17,12 +17,14 @@ function void()
   return nothing
 end
 =#
-#=
+
 @doc """
 ### linearMap
 
 Take in one coordinate in (x,y,z) space and convert it to parametric (s,t,u)
-space
+space. The symbols used in this function have been taken from the paper
+"Free Form Deformation of Solid Geometric Models, Sederberg & Parry, 1986". It
+may change at a later date
 
 **Arguments**
 
@@ -32,7 +34,7 @@ space
 *  `pX`   : corresponding coordinates in (s,t,u) space
 
 """->
-=#
+
 function linearMap(map, box, X, pX)
 
   # The assumption of the mapping for the bounding box presently is that
@@ -84,9 +86,9 @@ Creates a linear mapping for an array of nodes in the (x,y,z) space to the
 
 function calcParametricMappingLinear(map, box, nodes_xyz)
 
-  for k = 1:map.jkmmax[3]
-    for j = 1:map.jkmmax[2]
-      for i = 1:map.jkmmax[1]
+  for k = 1:map.numnodes[3]
+    for j = 1:map.numnodes[2]
+      for i = 1:map.numnodes[1]
         # X = view(nodes_xyz, i, j, k, :)
         # pX = view(map.xi, i, j, k, :)
         X = nodes_xyz[i,j,k,:]

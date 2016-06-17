@@ -8,7 +8,7 @@ for a uniform knot distribution along the 3 dimensions in the parametric space.
 **Members**
 
 *  `nctl`   : Array of number of control points in each direction
-*  `jkmmax` : Array of number of nodes in each direction
+*  `numnodes` : Array of number of nodes in each direction
 *  `order`  : Array of order of B-splines in each direction
 *  `xi`     :
 *  `cp_xyz` :
@@ -28,7 +28,7 @@ type Mapping
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
   nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
-  jkmmax::AbstractArray{Int, 1} # Number of nodes in each direction
+  numnodes::AbstractArray{Int, 1} # Number of nodes in each direction
   order::AbstractArray{Int, 1}  # Order of B-spline in each direction
 
   xi::AbstractArray{AbstractFloat, 4}     # Coordinate values
@@ -58,17 +58,17 @@ type Mapping
 
     ndim = dim  # To indicate a 3D Mapping object is being created
     nctl = zeros(Int, 3)
-    jkmmax = zeros(Int, 3)
+    numnodes = zeros(Int, 3)
     order = zeros(Int, 3)
 
     nctl[:] = ncpts[:]    # Set number of control points
-    jkmmax[:] = nnodes[:] # Set map refinement level in each coordinate direction
+    numnodes[:] = nnodes[:] # Set map refinement level in each coordinate direction
     order[:] = k[:]       # Set the order of B-splines
 
 
     for i = 1:3
       @assert nctl[i] > 0
-      @assert jkmmax[i] > 0
+      @assert numnodes[i] > 0
       @assert order[i] > 0
     end
 
@@ -76,7 +76,7 @@ type Mapping
     max_order = maximum(order)  # Highest order among 3 dimensions
     max_knot = max_order + maximum(nctl) # Maximum number of knots among 3 dimensions
 
-    xi = zeros(jkmmax[1], jkmmax[2], jkmmax[3], 3)
+    xi = zeros(numnodes[1], numnodes[2], numnodes[3], 3)
     cp_xyz = zeros(nctl[1], nctl[2], nctl[3], 3)
     edge_knot = Array(Vector{AbstractFloat}, 3)
     knot = Array(Vector{AbstractFloat}, 3)
@@ -91,7 +91,7 @@ type Mapping
     dr = zeros(max_order-1, 3)
     work = zeros(nctl[1], nctl[2], nctl[3], max_work)
 
-    new(ndim, nctl, jkmmax, order, xi, cp_xyz, edge_knot, edge_param, aj, dl, dr,
+    new(ndim, nctl, numnodes, order, xi, cp_xyz, edge_knot, edge_param, aj, dl, dr,
         knot, work)
 
   end  # End constructor
@@ -331,18 +331,18 @@ flow residual.
 
 function contractWithdGdB(map, dJdGrid)
 
-  @assert map.jkmmax[1] == size(dJdGrid, 1)
-  @assert map.jkmmax[2] == size(dJdGrid, 2)
-  @assert map.jkmmax[3] == size(dJdGrid, 3)
+  @assert map.numnodes[1] == size(dJdGrid, 1)
+  @assert map.numnodes[2] == size(dJdGrid, 2)
+  @assert map.numnodes[3] == size(dJdGrid, 3)
 
   # Allocate and initialize arrays
   basis = zeros(AbstractFloat, maximum(map.order), 3)
   fill!(map.work, 0.0)
 
   # Loop over the nodes of the mapping
-  for m = 1:map.jkmmax[3]
-    for k = 1:map.jkmmax[2]
-      for j = 1:map.jkmmax[1]
+  for m = 1:map.numnodes[3]
+    for k = 1:map.numnodes[2]
+      for j = 1:map.numnodes[1]
 
         # Store the parameter values and dJdGrid
         xi[:] = map.xi[j,k,m,:]
@@ -369,9 +369,9 @@ function contractWithdGdB(map, dJdGrid)
           end   # End for q = 1:map.order[2]
         end     # End for r = 1:map.order[3]
 
-      end  # End for j = 1:map.jkmmax[1]
-    end    # End for k = 1:map.jkmmax[2]
-  end      # End for m = 1:map.jkmmax[3]
+      end  # End for j = 1:map.numnodes[1]
+    end    # End for k = 1:map.numnodes[2]
+  end      # End for m = 1:map.numnodes[3]
 
   return nothing
 end  # End function contractWithdGdB(map, dJdGrid)

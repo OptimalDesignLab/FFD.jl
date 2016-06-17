@@ -49,7 +49,7 @@ type BoundingBox
 
     # Allocate members
     origin = Array(AbstractFloat, 3)
-    unitVector = Array(AbstractFloat, 3, 3)
+    unitVector = eye(ndim) # Create a unit vector aligned with the physical space
     geom_coord = Array(AbstractFloat, 2, ndim) # each row = x_min, x_max,  each column = ndim
     box_bound = Array(AbstractFloat, 2, ndim)  # same as above
     offset = Array(AbstractFloat, ndim) # offset for each dimenstion in the (x, y, z) space

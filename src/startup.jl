@@ -22,6 +22,9 @@ nnodes = [5,3,4]  # Number of nodes of the FE grid that need to be mapped
 map = Mapping(ndim, order, nControlPts, nnodes)
 calcKnot(map)  # Create knot vectors
 
+for i = 1:3
+  println("map.edge_knot[$i] = ", map.edge_knot[i])
+end
 
 # Create Bounding Box
 offset = [0.,0.,0.]  # offset for the bounding box
@@ -30,7 +33,7 @@ box = BoundingBox(ndim, geom_bounds, offset)
 println("origin = $(box.origin)")
 
 # Unit vectors
-box.unitVector = eye(Float64, 3)
+# box.unitVector = eye(Float64, 3)
 
 println("box.lengths = $(box.lengths)")
 println("box.box_bound = $(box.box_bound)\n\n")
@@ -59,6 +62,7 @@ for k = 1:nnodes[3]
 end
 
 # Output the values to check for errors
+
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
@@ -66,7 +70,6 @@ for k = 1:nnodes[3]
     end
     println('\n')
   end
-  println('\n')
 end
 
 #----------------------------------------
@@ -88,15 +91,14 @@ controlPoint(map,box)
 for k = 1:map.nctl[3]
   for j = 1:map.nctl[2]
     for i = 1:map.nctl[1]
-      println("cp_xyz[$i,$j,$k,:] = ", map.cp_xyz[i,j,k,:])
+      println("cp_xyz[$i,$j,$k,:] = ", round(map.cp_xyz[i,j,k,:],2) )
     end
     println('\n')
   end
-  println('\n')
 end
 =#
 Vol = zeros(nodes_xyz)
-evalVolume(map, box, Vol)
+evalVolume(map, Vol)
 #=
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
@@ -108,11 +110,11 @@ for k = 1:nnodes[3]
   println('\n')
 end
 =#
-
-# Check linear scaling
+#=
+# Check linear scaling (Translation)
 fill!(Vol, 0.0)
 map.cp_xyz = 3*map.cp_xyz
-evalVolume(map, box, Vol)
+evalVolume(map, Vol)
 # Output the values to check for errors
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
@@ -123,40 +125,42 @@ for k = 1:nnodes[3]
   end
   println('\n')
 end
-
-
-
-#=
-linearMap(map, box, x, pX)
-
-println("pX = $pX")
 =#
-# Populate S, T, U direction vectors for the
-
-#=
-println(map.ndim)
-println(map.nctl)
-
-
-# println(map.edge_knot)
-
-U = zeros(3,3,3)
-V = zeros(U)
-W = zeros(U)
-
-for i = 1:3
-  for j = 1:3
-    for k = 1:3
-      U[i,j,k] = 0.5*i
-      V[i,j,k] = 0.5*j
-      W[i,j,k] = 0.5*k
+# Check angular rotation
+# Rotate control points by 90 degrees about Z axis
+gamma = 0.5*pi # angle in radians by which ctls are rotated
+rotz = [cos(gamma) -sin(gamma) 0;sin(gamma) cos(gamma) 0;0 0 1]
+controlPoint(map,box) # Recreate unperturbed control points
+# Perform the rotation
+for k = 1:map.nctl[3]
+  for j = 1:map.nctl[2]
+    for i = 1:map.nctl[1]
+      map.cp_xyz[i,j,k,:] = rotz*map.cp_xyz[i,j,k,:]
     end
   end
 end
 
-for i = 1:3
-  println("\nU[:,:,$i] = \n", U[:,:,i])
+
+println("Rotated coordinates")
+#=
+for k = 1:map.nctl[3]
+  for j = 1:map.nctl[2]
+    for i = 1:map.nctl[1]
+      println("cp_xyz[$i,$j,$k,:] = ", round(map.cp_xyz[i,j,k,:],2) )
+    end
+    println('\n')
+  end
 end
-println("\nV = \n", V)
-println("\nW = \n", W)
 =#
+evalVolume(map, Vol)
+# Check Output
+
+for k = 1:nnodes[3]
+  for j = 1:nnodes[2]
+    for i = 1:nnodes[1]
+      println( "Vol[$i,$j,$k,:] = ", round(Vol[i,j,k,:],2) )
+    end
+    println('\n')
+  end
+  println('\n')
+end
