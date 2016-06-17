@@ -1,15 +1,5 @@
 # test components
-include("../src/mapping.jl")
-include("../src/knot.jl")
-include("../src/bounding_box.jl")
-include("../src/linear_mapping.jl")
-include("../src/control_point.jl")
-include("../src/span.jl")
-include("../src/b-splines.jl")
-include("../src/evaluations.jl")
 
-using ArrayViews
-using FactCheck
 
 # Create Test mesh for tests
 nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
@@ -35,7 +25,7 @@ end
 ndim = 3
 order = [2,2,2]  # Order of B-splines in the 3 directions
 nControlPts = [3,3,3]
-map = Mapping(ndim, order, nControlPts, nnodes)
+map = LinearMapping(ndim, order, nControlPts, nnodes)
 
 # Create BoundingBox object
 offset = [0.5,0.5,0.5]  # offset for the bounding box
@@ -89,7 +79,7 @@ facts("--- Checking Linear Mapping ---") do
 
 end # End facts("--- Checking Linear Mapping ---") do
 
-facts("--- Checking Contol Point Generation ---") do
+facts("--- Checking Control Point Generation ---") do
 
   controlPoint(map, box)
   for i = 1:3

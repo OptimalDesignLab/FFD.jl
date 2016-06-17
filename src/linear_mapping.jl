@@ -47,9 +47,6 @@ function linearMap(map, box, X, pX)
   S = box.unitVector[:,1]*box.lengths[1]
   T = box.unitVector[:,2]*box.lengths[2]
   U = box.unitVector[:,3]*box.lengths[3]
-  # lengthS = box.lengths[1]
-  # lengthT = box.lengths[2]
-  # lengthU = box.lengths[3]
 
   XmX0 = X - origin
 

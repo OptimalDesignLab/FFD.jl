@@ -12,7 +12,7 @@ from scratch and the entire triangular array of B-spline values of orders
 *  `order` : Order of B-spline
 *  `u`     : Location where basis functions are to be evaluated
 *  `span`  : Knot span index
-*  `N`     : Bassi Functions
+*  `N`     : Basis Functions
 
 **Outputs**
 
@@ -21,11 +21,11 @@ from scratch and the entire triangular array of B-spline values of orders
 SOURCE: "A practical guide to splines" bt C. de Boor Page 112 BSPLVB
 
 """->
-function basisFunctions(map, N, di, u, span)
+function basisFunctions(U, order, u, span, N)
 
   # (U, order, u, span, N)
-  order = map.order[di]
-  U = map.edge_knot[di]
+  #order = map.order[di]
+  # U = map.edge_knot[di]
 
   jmax = 20 # arbitrarily imposed
   delta_l = zeros(Float64, jmax)
@@ -145,83 +145,3 @@ function derivBasisFunctions(map, N, Nderiv, N2deriv, di, u, span)
 
   return nothing
 end
-
-#=
-@doc """
-### basisFunctions3D
-
-It returns the non-zero basis values for a 3D B-spline tensor product. This a 3D
-version of basisFunctions.
-
-**Arguments**
-
-*  `map`    : Object of mapping type
-*  `span`   : Array of Knot span indices. length = 3
-*  `uvw`    : Parameter values
-*  `bval3D` : 3D basis functions. each dimension corresponding to the dimensions
-              of uvw. length = max_order
-
-REFERENCE : Carl de Boor, 'Practical Guide to Splines', pgs 132-134
-
-"""->
-
-function basisFunctions3D(map, span, uvw, bval3D)
-
-  # Use a Cartesian tensor product to find the basis values
-
-  # Starting with di = 3 and work down
-  order = map.order[3]
-  offset = span[3]
-  if order > 1
-    for k = 1:(order-1)
-      map.dr[k,3] = map.knot[offset+k,3] - uvw[3]
-      map.dl[k,3] = uvw[3] - map.knot[offset+1-k,3]
-      saved = 0.0
-      for i = 1:k
-        temp = bval3D[:,:,i] ./ (map.dr[i,3] + map.dl[k+1-i,3])
-        bval3D[:,:,i] = saved + map.dr[i,3]*temp
-        saved = map.dl[k+1-i,3]*temp
-      end  # End for i = 1:k
-      bval3D[:,:,k+1] = saved
-    end  # end for k = 1:(order-1)
-  end # end if order > 1
-
-  # di = 2
-  order = map.order[2]
-  offset = span[2]
-  if order > 1
-    for k = 1:(order-1)
-      map.dr[k,2] = map.knot[offset+k,2] - uvw[2]
-      map.dl[k,2] = uvw[2] - map.knot[offset+1-k,2]
-      saved = 0.0
-      for i = 1:k
-        temp = bval3D[:,i,:] ./ (map.dr[i,2] + map.dl[k+1-i,2])
-        bval3D[:,i,:] = saved + map.dr[i,2]*temp
-        saved = map.dl[k+1-i,2]*temp
-      end  # End for i = 1:k
-      bval3D[:,k+1,:] = saved
-    end  # end for k = 1:(order-1)
-  end # end if order > 1
-
-  # di = 1
-  order = map.order[1]
-  offset = span[1]
-  if order > 1
-    for k = 1:(order-1)
-      map.dr[k,1] = map.knot[offset+k,1] - uvw[1]
-      map.dl[k,1] = uvw[1] - map.knot[offset+1-k,1]
-      saved = 0.0
-      for i = 1:k
-        temp = bval3D[i,:,:] ./ (map.dr[i,1] + map.dl[k+1-i,1])
-        bval3D[i,:,:] = saved + map.dr[i,1]*temp
-        saved = map.dl[k+1-i,1]*temp
-      end  # End for i = 1:k
-      bval3D[k+1,:,:] = saved
-    end  # end for k = 1:(order-1)
-  end # end if order > 1
-
-  @assert (sum(bval3D) - 1) < 1e-13
-
-  return nothing
-end
-=#

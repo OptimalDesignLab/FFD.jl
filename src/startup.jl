@@ -4,13 +4,6 @@
 
 # Includes
 include("mapping.jl")
-include("knot.jl")
-include("bounding_box.jl")
-include("linear_mapping.jl")
-include("control_point.jl")
-include("span.jl")
-include("b-splines.jl")
-include("evaluations.jl")
 
 using ArrayViews
 
@@ -19,7 +12,7 @@ order = [2,2,2]  # Order of B-splines in the 3 directions
 nControlPts = [3,3,3]
 nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
 
-map = Mapping(ndim, order, nControlPts, nnodes)
+map = LinearMapping(ndim, order, nControlPts, nnodes)
 calcKnot(map)  # Create knot vectors
 
 for i = 1:3

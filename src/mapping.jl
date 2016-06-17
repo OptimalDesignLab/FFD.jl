@@ -1,3 +1,11 @@
+include("knot.jl")
+include("bounding_box.jl")
+include("linear_mapping.jl")
+include("control_point.jl")
+include("span.jl")
+include("b-splines.jl")
+include("evaluations.jl")
+
 # Type Mapping
 @doc """
 ### Mapping
@@ -26,7 +34,7 @@ for a uniform knot distribution along the 3 dimensions in the parametric space.
 
 """->
 
-type Mapping
+type LinearMapping
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
   nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
@@ -45,7 +53,7 @@ type Mapping
   knot::AbstractArray{Vector{AbstractFloat}, 1}
   work::AbstractArray{AbstractFloat, 4}
 
-  function Mapping(dim, k, ncpts, nnodes)
+  function LinearMapping(dim, k, ncpts, nnodes)
 
     # Assertion statements to prevent errors
     @assert dim >= 2 "Only 2D and 3D valid"

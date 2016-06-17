@@ -24,16 +24,13 @@ SOURCE: The NURBS book 2nd Edition, Algorithm A3.1
 function evalCurve(u, U, order, P, C)
 
   @assert length(P) + order == length(U)
-
   p = order - 1  # Degree of B-spline basis function
   nctl = length(P)
   N = Array(Float64, order) # Array of basis functions 1D
 
   for i = 1:length(u)
-    span = findSpan(u[i], nctl, U, order)
-    println("span = $span, u = $(u[i]), U[span] = $(U[span])")
+    span = findSpan(u[i], U, order, nctl)
     basisFunctions(U, order, u[i], span, N)
-    println("N = $N")
     C[i] = 0.0
     for j = 1:order
       C[i] += N[j]*P[span-order+j]
@@ -74,17 +71,17 @@ function evalVolume(map, Vol)
 
         # Work with u
         span = findSpan(u, map.edge_knot[1], map.order[1], map.nctl[1])
-        basisFunctions(map, Nu, 1, u, span)
+        basisFunctions(map.edge_knot[1], map.order[1], u, span, Nu)
         startu = span - map.order[1]
 
         # work with v
         span = findSpan(u, map.edge_knot[2], map.order[2], map.nctl[2])
-        basisFunctions(map, Nv, 2, v, span)
+        basisFunctions(map.edge_knot[2], map.order[2], v, span, Nv)
         startv = span - map.order[2]
 
         # work with w
         span = findSpan(u, map.edge_knot[3], map.order[3], map.nctl[3])
-        basisFunctions(map, Nw, 3, w, span)
+        basisFunctions(map.edge_knot[3], map.order[3], w, span, Nw)
         startw = span - map.order[3]
 
         for ii = 1:map.order[1]

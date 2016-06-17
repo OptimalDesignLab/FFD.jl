@@ -10,7 +10,7 @@ Determines the knot span index, i
 *  `u` : coordinate value (u,v,w is the coordinate space in 3D)
 *  `U` : Knot vector
 *  `k` : B-spline order
-*  `nctl` : Number of control points 
+*  `nctl` : Number of control points
 
 **Outputs**
 
