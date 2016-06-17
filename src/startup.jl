@@ -15,9 +15,9 @@ include("evaluations.jl")
 using ArrayViews
 
 ndim = 3
-order = [4,4,4]  # Order of B-splines in the 3 directions
-nControlPts = [4,4,4]
-nnodes = [5,3,4]  # Number of nodes of the FE grid that need to be mapped
+order = [2,2,2]  # Order of B-splines in the 3 directions
+nControlPts = [3,3,3]
+nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
 
 map = Mapping(ndim, order, nControlPts, nnodes)
 calcKnot(map)  # Create knot vectors
@@ -27,8 +27,8 @@ for i = 1:3
 end
 
 # Create Bounding Box
-offset = [0.,0.,0.]  # offset for the bounding box
-geom_bounds = [1. 1. 1.;5. 3. 4.]
+offset = [0.5,0.5,0.5]  # offset for the bounding box
+geom_bounds = [1. 1. 1.;3. 3. 3.]
 box = BoundingBox(ndim, geom_bounds, offset)
 println("origin = $(box.origin)")
 
@@ -40,7 +40,7 @@ println("box.box_bound = $(box.box_bound)\n\n")
 
 #------------------------------------
 # Representative obeject
-nnodes = [5,3,4]
+# nnodes = [5,3,4]
 nodes_xyz = zeros(nnodes[1], nnodes[2], nnodes[3], 3)
 origin = [1,1,1]
 incx = 0.0
@@ -81,21 +81,20 @@ for k = 1:nnodes[3]
     for i = 1:nnodes[1]
       println("nodes_stu[$i,$j,$k,:] = ", map.xi[i,j,k,:])
     end
-    println('\n')
   end
-  println('\n')
 end
 =#
 # Define the control points
 controlPoint(map,box)
-#=for k = 1:map.nctl[3]
+
+for k = 1:map.nctl[3]
   for j = 1:map.nctl[2]
     for i = 1:map.nctl[1]
       println("cp_xyz[$i,$j,$k,:] = ", round(map.cp_xyz[i,j,k,:],2) )
     end
     println('\n')
   end
-end=#
+end
 
 Vol = zeros(nodes_xyz)
 # evalVolume(map, Vol)
@@ -140,7 +139,7 @@ controlPoint(map,box) # Recreate unperturbed control points
 for k = 1:map.nctl[3]
   for j = 1:map.nctl[2]
     for i = 1:map.nctl[1]
-      map.cp_xyz[i,j,k,:] = roty*map.cp_xyz[i,j,k,:]
+      map.cp_xyz[i,j,k,:] = rotx*map.cp_xyz[i,j,k,:]
     end
   end
 end
@@ -158,6 +157,7 @@ end=#
 
 evalVolume(map, Vol)
 # Check Output
+#=
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
@@ -166,4 +166,4 @@ for k = 1:nnodes[3]
     println('\n')
   end
   println('\n')
-end
+end=#

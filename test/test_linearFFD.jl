@@ -1,57 +1,18 @@
 # test components
-include("mapping.jl")
-include("knot.jl")
-include("bounding_box.jl")
-include("linear_mapping.jl")
-include("control_point.jl")
-include("span.jl")
-include("b-splines.jl")
-include("evaluations.jl")
+include("../src/mapping.jl")
+include("../src/knot.jl")
+include("../src/bounding_box.jl")
+include("../src/linear_mapping.jl")
+include("../src/control_point.jl")
+include("../src/span.jl")
+include("../src/b-splines.jl")
+include("../src/evaluations.jl")
 
 using ArrayViews
 using FactCheck
 
-ndim = 3
-order = [4,4,4]  # Order of B-splines in the 3 directions
-nControlPts = [4,4,4]
-nnodes = [5,3,4]  # Number of nodes of the FE grid that need to be mapped
-map = Mapping(ndim, order, nControlPts, nnodes) # Create Mapping Object
-
-# Create BoundingBox object
-offset = [0.,0.,0.]  # offset for the bounding box
-geom_bounds = [1. 1. 1.;5. 3. 4.]
-box = BoundingBox(ndim, geom_bounds, offset)
-
-facts("--- Checking Mapping object ---") do
-
-  @fact map.ndim --> 3
-  @fact map.nctl --> [4,4,4]
-  @fact map.order --> [4,4,4]
-  @fact map.numnodes --> [5,3,4]
-
-  context("--- Checking Knot calculations ---") do
-
-    calcKnot(map)
-    for i = 1:map.ndim
-      @fact map.edge_knot[i] --> roughly([0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0],
-                                         atol=1e-15)
-    end
-
-  end  # End context("--- Checking Knot calculations ---")
-
-end  # End facts("--- Checking Mapping object ---") do
-
-facts("--- Checking BoundingBox ---") do
-
-  @fact box.ndim --> 3
-  @fact box.origin --> [1., 1., 1.]
-  @fact box.unitVector --> [1. 0. 0.;0. 1. 0.;0. 0. 1.]
-  @fact geom_coord --> [1. 1. 1.;5. 3. 4.]
-  @fact box.offset --> [0.,0.,0.]
-
-end  # End facts("--- Checking BoundingBox ---") do
-
-# Create Test mesh
+# Create Test mesh for tests
+nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
 nodes_xyz = zeros(nnodes[1], nnodes[2], nnodes[3], 3)
 origin = [1,1,1]
 incz = 0.0
@@ -70,7 +31,91 @@ for k = 1:nnodes[3]
   incz += 1
 end
 
+# Create Mapping Object
+ndim = 3
+order = [2,2,2]  # Order of B-splines in the 3 directions
+nControlPts = [3,3,3]
+map = Mapping(ndim, order, nControlPts, nnodes)
+
+# Create BoundingBox object
+offset = [0.5,0.5,0.5]  # offset for the bounding box
+geom_bounds = [1. 1. 1.;3. 3. 3.]
+box = BoundingBox(ndim, geom_bounds, offset)
+
+facts("--- Checking Mapping object ---") do
+
+  @fact map.ndim --> 3
+  @fact map.nctl --> [3,3,3]
+  @fact map.order --> [2,2,2]
+  @fact map.numnodes --> [3,3,3]
+
+  context("--- Checking Knot calculations ---") do
+
+    calcKnot(map)
+    for i = 1:map.ndim
+      @fact map.edge_knot[i][1] --> 0.0
+      @fact map.edge_knot[i][2] --> 0.0
+      @fact map.edge_knot[i][3] --> roughly(0.5, atol=1e-15)
+      @fact map.edge_knot[i][4] --> 1.0
+      @fact map.edge_knot[i][5] --> 1.0
+    end
+
+  end  # End context("--- Checking Knot calculations ---")
+
+end  # End facts("--- Checking Mapping object ---") do
+
+facts("--- Checking BoundingBox ---") do
+
+  @fact box.ndim --> 3
+  @fact box.origin --> [0.5, 0.5, 0.5]
+  @fact box.unitVector --> [1. 0. 0.;0. 1. 0.;0. 0. 1.]
+  @fact box.geom_coord --> [1. 1. 1.;3. 3. 3.]
+  @fact box.offset --> [0.5,0.5,0.5]
+  @fact box.box_bound --> [0.5 0.5 0.5;3.5 3.5 3.5]
+
+end  # End facts("--- Checking BoundingBox ---") do
+
 facts("--- Checking Linear Mapping ---") do
 
+  calcParametricMappingLinear(map, box, nodes_xyz)
+  for i = 1:3
+    @fact map.xi[1,1,1,i] --> roughly(0.16666666666666666, atol = 1e-15)
+    @fact map.xi[2,2,2,i] --> roughly(0.5, atol = 1e-15)
+    @fact map.xi[3,3,3,i] --> roughly(0.8333333333333334, atol = 1e-15)
+  end
+  @fact map.xi[1,2,3,1] --> roughly(0.16666666666666666, atol = 1e-15)
+  @fact map.xi[1,2,3,2] --> roughly(0.5, atol = 1e-15)
+  @fact map.xi[1,2,3,3] --> roughly(0.8333333333333334, atol = 1e-15)
 
 end # End facts("--- Checking Linear Mapping ---") do
+
+facts("--- Checking Contol Point Generation ---") do
+
+  controlPoint(map, box)
+  for i = 1:3
+    @fact map.cp_xyz[1,1,1,i] --> roughly(0.5, atol = 1e-15)
+    @fact map.cp_xyz[2,2,2,i] --> roughly(2.0, atol = 1e-15)
+    @fact map.cp_xyz[3,3,3,i] --> roughly(3.5, atol = 1e-15)
+  end
+  @fact map.cp_xyz[1,2,3,1] --> roughly(0.5, atol = 1e-15)
+  @fact map.cp_xyz[1,2,3,2] --> roughly(2.0, atol = 1e-15)
+  @fact map.cp_xyz[1,2,3,3] --> roughly(3.5, atol = 1e-15)
+
+end # End facts("--- Checking Contol Point Generation ---")
+
+facts("--- Checking FFD Volume Evaluation ---") do
+
+  Vol = zeros(nodes_xyz)
+  evalVolume(map, Vol)
+  for idim = 1:3
+    for k = 1:map.numnodes[3]
+      for j = 1:map.numnodes[2]
+        for i = 1:map.numnodes[1]
+          err = Vol[i,j,k,idim] - nodes_xyz[i,j,k,idim]
+          @fact err --> roughly(0.0, atol = 1e-14)
+        end
+      end
+    end
+  end
+
+end  # facts("--- Checking FFD Volume Evaluation ---")
