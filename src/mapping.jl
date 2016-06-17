@@ -7,11 +7,13 @@ for a uniform knot distribution along the 3 dimensions in the parametric space.
 
 **Members**
 
-*  `nctl`   : Array of number of control points in each direction
-*  `numnodes` : Array of number of nodes in each direction
-*  `order`  : Array of order of B-splines in each direction
-*  `xi`     :
-*  `cp_xyz` :
+*  `nctl`    : Array of number of control points in each direction
+*  `numnodes`: Array of number of nodes in each direction
+*  `order`   : Array of order of B-splines in each direction
+*  `xi`      : Array of parametric coordinates of the nodes of the geometry
+               embedded within. The parametric axes within FFD are called
+               (s,t,u)
+*  `cp_xyz`  : Control point coordinates in the (x,y,z) space
 *  `edge_knot` : 3D Array of edge knot vectors. dim1 = Knot vector, dim2 = edge
                  number (1:4), dim3 = direction (di)
 *  `edge_param`: 3D array to store edge spacing parameters. dim1 = A or b,

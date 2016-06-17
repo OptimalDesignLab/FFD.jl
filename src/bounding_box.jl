@@ -63,7 +63,6 @@ type BoundingBox
     for i = 1:size(geom_coord,2)  # TODO: Come up with a better definition of box_bound and lengths
       box_bound[1,i] = geom_coord[1,i] - offset[i]
       box_bound[2,i] = geom_coord[2,i] + offset[i]
-      # println("box_bound[:,i] = ", box_bound[:,i])
       lengths[i] = box_bound[2,i] - box_bound[1,i]
     end
 

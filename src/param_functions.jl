@@ -2,7 +2,7 @@
 @doc """
 ### para3D
 
-Calculates the parametric locations for a 3D block
+Calculates the parametric locations for a 3D block Taken from GAETAN's code
 
 **Inputs**
 
