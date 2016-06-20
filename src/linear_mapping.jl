@@ -83,12 +83,11 @@ Creates a linear mapping for an array of nodes in the (x,y,z) space to the
 
 function calcParametricMappingLinear(map, box, nodes_xyz)
 
+  X = zeros(map.ndim)
   for k = 1:map.numnodes[3]
     for j = 1:map.numnodes[2]
       for i = 1:map.numnodes[1]
-        # X = view(nodes_xyz, i, j, k, :)
-        # pX = view(map.xi, i, j, k, :)
-        X = nodes_xyz[i,j,k,:]
+        X[:] = nodes_xyz[i,j,k,:]
         pX = view(map.xi,i,j,k,:)
         linearMap(map, box, X, pX)
       end

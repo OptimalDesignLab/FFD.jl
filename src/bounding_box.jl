@@ -66,7 +66,7 @@ type BoundingBox
       lengths[i] = box_bound[2,i] - box_bound[1,i]
     end
 
-    origin = box_bound[1,:] # Get the lower x,y,z ordinates to be defined as the
+    origin[:] = box_bound[1,:] # Get the lower x,y,z ordinates to be defined as the
                             # origin
 
     new(ndim, origin, unitVector, geom_coord, offset, box_bound, lengths)
