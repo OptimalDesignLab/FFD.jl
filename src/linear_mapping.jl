@@ -68,6 +68,22 @@ function linearMap(map, box, X, pX)
   return nothing
 end
 
+function nonlinearMap(map, box, X, pX)
+
+  origin = box.origin
+
+  # Initial guess
+  s = origin[1]
+  t = origin[2]
+  u = origin[3]
+  J = zeros(map.ndim, map.ndim)
+
+  # Construct jacobian
+  calcdXdxi(map, )
+
+  return nothing
+end
+
 @doc """
 ### calcParametricMappingLinear
 

@@ -62,41 +62,60 @@ function evalVolume(map, Vol)
   for k = 1:map.numnodes[3]
     for j = 1:map.numnodes[2]
       for i = 1:map.numnodes[1]
-        u = map.xi[i,j,k,1]
-        v = map.xi[i,j,k,2]
-        w = map.xi[i,j,k,3]
-        Nu = zeros(map.order[1])
-        Nv = zeros(map.order[2])
-        Nw = zeros(map.order[3])
-
-        # Work with u
-        span = findSpan(u, map.edge_knot[1], map.order[1], map.nctl[1])
-        basisFunctions(map.edge_knot[1], map.order[1], u, span, Nu)
-        startu = span - map.order[1]
-
-        # work with v
-        span = findSpan(u, map.edge_knot[2], map.order[2], map.nctl[2])
-        basisFunctions(map.edge_knot[2], map.order[2], v, span, Nv)
-        startv = span - map.order[2]
-
-        # work with w
-        span = findSpan(u, map.edge_knot[3], map.order[3], map.nctl[3])
-        basisFunctions(map.edge_knot[3], map.order[3], w, span, Nw)
-        startw = span - map.order[3]
-
-        for ii = 1:map.order[1]
-          for jj = 1:map.order[2]
-            for kk = 1:map.order[3]
-              for idim = 1:map.ndim
-                Vol[i,j,k,idim] += Nu[ii]*Nv[jj]*Nw[kk]*
-                                map.cp_xyz[startu+ii, startv+jj, startw+kk,idim]
-              end
-            end  # End for kk = 1:map.order[3]
-          end    # End for jj = 1:map.order[2]
-        end      # End for ii = 1:map.order[1]
+        xyz = view(Vol, i,j,k,:)
+        evalVolumePoint(map, map.xi[i,j,k,:], xyz)
       end  # End for i = 1:map.numnodes[3]
     end    # End for j = 1:map.numnodes[2]
   end      # End for k = 1:map.numnodes[1]
+
+  return nothing
+end
+
+@doc """
+### evalVolumePoint
+
+Computes a pont in the FFD volume. The symbol convention used in this function
+is from "The NURBS book 2nd Edition"
+
+**Arguments**
+
+*  `map` : Object of Mapping type
+*  `xi`  : Parametric FFD coordinates (referred to as the (s,t,u) coordinate
+           systems within FFD functions and as (u,v,w) in this function)
+*  `xyz` : (x,y,z) coordinates of the parametric point in the FFD volume
+"""->
+
+function evalVolumePoint(map, xi, xyz)
+
+  Nu = zeros(map.order[1])
+  Nv = zeros(map.order[2])
+  Nw = zeros(map.order[3])
+
+  # Work with u
+  span = findSpan(xi[1], map.edge_knot[1], map.order[1], map.nctl[1])
+  basisFunctions(map.edge_knot[1], map.order[1], xi[1], span, Nu)
+  startu = span - map.order[1]
+
+  # Work with v
+  span = findSpan(xi[2], map.edge_knot[2], map.order[2], map.nctl[2])
+  basisFunctions(map.edge_knot[2], map.order[2], xi[2], span, Nv)
+  startv = span - map.order[2]
+
+  # Work with w
+  span = findSpan(xi[3], map.edge_knot[3], map.order[3], map.nctl[3])
+  basisFunctions(map.edge_knot[3], map.order[3], xi[3], span, Nw)
+  startw = span - map.order[3]
+
+  for ii = 1:map.order[1]
+    for jj = 1:map.order[2]
+      for kk = 1:map.order[3]
+        for idim = 1:map.ndim
+          xyz[idim] += Nu[ii]*Nv[jj]*Nw[kk]*
+                       map.cp_xyz[startu+ii, startv+jj, startw+kk, idim]
+        end
+      end  # End for kk = 1:map.order[3]
+    end    # End for jj = 1:map.order[2]
+  end      # End for ii = 1:map.order[1]
 
   return nothing
 end
