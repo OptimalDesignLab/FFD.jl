@@ -44,13 +44,11 @@ type LinearMapping
   xi::AbstractArray{AbstractFloat, 4}     # Coordinate values
   cp_xyz::AbstractArray{AbstractFloat, 4} # Cartesian coordinates of control points
   edge_knot::AbstractArray{Vector{AbstractFloat}, 1}  # edge knot vectors
-  edge_param::AbstractArray{AbstractFloat, 3} # edge parameters
 
   # Working arrays
   aj::AbstractArray{AbstractFloat, 3}
   dl::AbstractArray{AbstractFloat, 2}
   dr::AbstractArray{AbstractFloat, 2}
-  knot::AbstractArray{Vector{AbstractFloat}, 1}
   work::AbstractArray{AbstractFloat, 4}
 
   function LinearMapping(dim, k, ncpts, nnodes)
@@ -89,20 +87,16 @@ type LinearMapping
     xi = zeros(numnodes[1], numnodes[2], numnodes[3], 3)
     cp_xyz = zeros(nctl[1], nctl[2], nctl[3], 3)
     edge_knot = Array(Vector{AbstractFloat}, 3)
-    knot = Array(Vector{AbstractFloat}, 3)
     for i = 1:3
       edge_knot[i] = zeros(AbstractFloat, nctl[i]+order[i])
-      knot[i] = zeros(AbstractFloat, nctl[i]+order[i])
     end
-    #knot = zeros(max_knot, 3)
-    edge_param = zeros(2,4,3)
+
     aj = zeros(3, max_order, 3)
     dl = zeros(max_order-1, 3)
     dr = zeros(max_order-1, 3)
     work = zeros(nctl[1], nctl[2], nctl[3], max_work)
 
-    new(ndim, nctl, numnodes, order, xi, cp_xyz, edge_knot, edge_param, aj, dl, dr,
-        knot, work)
+    new(ndim, nctl, numnodes, order, xi, cp_xyz, edge_knot, aj, dl, dr, work)
 
   end  # End constructor
 
@@ -135,184 +129,196 @@ Notes: (taken from Mapping_Mod.f90)
    and mdi for the mathematical coordinates in this function.
 
 """->
+
 function calcdXdxi(map, xi, jderiv, dX)
 
-  # dX = zeros(AbstractFloat, 3)
-  span = zeros(Int, 3)
-
-  for mdi = 1:3
-    if jderiv[mdi] >= map.order[mdi]
-      return nothing
-    end  # End if
-  end # End for mdi = 1:3
-
-  # Find the spatially varying knot vector
-  calcKnot(map, xi)  # TODO: Need to write a calcKnot
-
-  # Find the span array in all 3 dimensions such that
-  # knot(mdi, left(mdi)) <= xi(mdi) <= knot(mdi, left(mdi)+1)
-  for mdi = 1:3
-    span[mdi] = findSpan(xi[mdi], map, mdi)
-  end  # End for mdi = 1:3
-
-  # Calculations involving the knot vectors are independent, so loop through
-  # them independently
+  # initialize intermediate arrays
   km1 = zeros(Int, 3)
-  jcmin = zeros(Int, 3)
   jcmax = zeros(Int, 3)
+  jcmin = zeros(Int, 3)
   imk = zeros(Int, 3)
-  for mdi = 1:3
-    # Store the B-spline coefficients relevant to the knot span index in
-    # aj[mdi,1],...,aj[mdi, order] and compute
-    # dl[mdi,j] = xi[mdi] - knot[mdi, span-j]
-    # dr[mdi,j] = knot[mdi, span+j] - xi[mdi], for all j = 1:order[mdi]-1
+  left = zeros(Int, 3)
 
-    jcmin[mdi] = 1
-    imk[mdi] = span[mdi] - map.order[mdi]
-    if imk[mdi] < 0
-      # We are close to the left end of the knot interval, so some of the aj
-      # will be set to 0 later
-      jcmin[mdi] = 1 - imk[mdi]
-      for j = 1:span[mdi]
-        map.dl[j,mdi] = xi[mdi] - map.knot[span[mdi]+1-j,mdi]
-      end # End for j = 1:span[mdi]
-      for j = span[mdi]:(map.order[mdi]-1)
-        map.dl[j,mdi] = map.dl[span[mdi], mdi]
-      end  # End for j = span[mdi]:(map.order[mdi]-1)
-    else
-      for j = 1:(map.order[mdi]-1)
-        map.dl[j,mdi] = xi[mdi] - map.knot[span[mdi]+1-j, mdi]
-      end  # End for j = 1:(map.order[mdi]-1)
-    end  # End if imk[mdi] < 0
-
-    jcmax[mdi] = map.order[mdi]
-    n = map.nctl[mdi]
-    nmi = n - span[mdi]
-    if nmi < 0
-      # We are close to the right end of the knot interval, so some of the aj
-      # will be set to 0 later
-      jcmax[mdi] = map.order[mdi] + nmi
-      for j = 1:jcmax[mdi]
-        map.dr[j,mdi] = map.knot[span[mdi]+j, mdi] - xi[mdi]
-      end  # End for j = 1:jcmax[mdi]
-      for j = jcmax[mdi]:(map.order[mdi]-1)
-        map.dr[j,mdi] = map.dr[jcmax[mdi], mdi]
+  # the derivative is zero if any of jderiv(mdi) >= order(mdi)
+    for mdi = 1:3
+      if jderiv[mdi] >= map.order[mdi]
+        return
       end
-    else
-      for j = 1:(map.order[mdi]-1)
-        map.dr[j,mdi] = map.knot[span[mdi]+j, mdi] - xi[mdi]
-      end  # End for j = 1:(map.order[mdi]-1)
-    end  # end if nmi < 0
-  end  # End for mdi = 1:3
+    end
 
-  # Set all elements of aj[:,:,1] to zero, in case we are close to the ends of
-  # the knot vector
-  fill!(map.aj[:,:,1], 0.0)
+    # find the spatially varying knot vector
+    calcKnot(map)
 
-  for jc1 = jcmin[1]:jcmax[1]
-    p = imk[1] + jc[1]
+    # find the left(3) array such that
+    #   knot(mdi,left(mdi)) <= xi(mdi) <= knot(mdi,left(mdi)+1)
+    for mdi = 1:3
+      left[mdi] = findSpan(xi[mdi], map.edge_knot[mdi], map.order[mdi], map.nctl[mdi])
+    end
+    # the calculations involving the knot vectors are independent,
+    # so loop through them sequentially
 
-    # Set all elements of aj[:,:,2] to zero, in case we are close to the ends of
-    # the knot vector
-    fill!(map.aj[:,:,2], 0.0)
 
-    for jc2 = jcmin[2]:jcmax[2]
-      q = imk[2] + jc2
-      # Set all elements of aj[:,:,3] to zero, in case close to the ends of
-      # the knot vector
-      fill!(map.aj[:,:,3], 0.0)
+    for mdi = 1:3
 
-      for jc3 = jcmin[3]:jcmax[3]
-        map.aj[:,jc3,3] = map.cp_xyz[p,q,imk[3]+jc3,:]
-      end  # End for jc3 = jcmin[3]:jcmax[3]
+      # we will store the (order) b-spline coefficients relevant
+      # to the knot interval [knot(mdi,left),knot(mdi,left+1)]
+      # in aj[mdi,1],...,aj[mdi,order]
+      # and compute dl[mdi,j] = xi[mdi] - knot[mdi][left-j]
+      #             dr[mdi,j] = knot[mdi][left+j] - xi[mdi]
+      # for all j = 1,...,order[mdi]-1
 
-      if jderiv[3] != 0
+      km1[mdi] = map.order[mdi] - 1
+      jcmin[mdi] = 1
+      imk[mdi] = left[mdi] - map.order[mdi]
+      if imk[mdi] < 0
+        # we are close to the left end of the knot interval, so some
+        # of the aj will be set to zero later
+        jcmin[mdi] = 1 - imk[mdi]
+        for j = 1:left[mdi]
+          map.dl[j,mdi] = xi[mdi] - map.edge_knot[mdi][left[mdi]+1-j]
+        end
+        for j = left[mdi]:km1[mdi]
+          map.dl[j,mdi] = map.dl[left[mdi],mdi]
+        end
+      else
+        for j = 1:km1[mdi]
+          map.dl[j,mdi] = xi[mdi] - map.edge_knot[mdi][left[mdi]+1-j]
+        end
+      end
+
+      jcmax[mdi] = map.order[mdi]
+      n = map.nctl[mdi]
+      nmi = n - left[mdi]
+      if nmi < 0
+        # we are close to the right end of the knot interval, so some
+        # of the aj will be set to zero later
+        jcmax[mdi] = map.order[mdi] + nmi
+        for j = 1:jcmax[mdi]
+          map.dr[j,mdi] = map.edge_knot[mdi][left[mdi]+j] - xi[mdi]
+        end
+        for j = jcmax[mdi]:km[mdi]
+          map.dr[j,mdi] = map.dr[jcmax[mdi],mdi]
+        end
+      else
+        for j = 1:km1[mdi]
+          map.dr[j,mdi] = map.edge_knot[mdi][left[mdi]+j] - xi[mdi]
+        end
+      end
+    end # mdi loop
+    # set all elements of aj[:,:,1] to zero, in case we are close to
+    # the ends of the knot vector
+    map.aj[:,:,1] = 0.0
+
+    for jc1 = jcmin[1]:jcmax[1]
+      p = imk[1] + jc1
+
+      # set all the elements of aj[:,:,2] to zero, in case we are
+      # close to the ends of the knot vector
+      map.aj[:,:,2] = 0.0
+
+      for jc2 = jcmin[2]:jcmax[2]
+        q = imk[2] + jc2
+
+        # set all the elements of aj[:,:,3] to zero, in case we are
+        # close to the ends of the knot vector
+        map.aj[:,:,3] = 0.0
+
+        for jc3 = jcmin[3]:jcmax[3]
+          map.aj[:,jc3,3] = map.cp_xyz[p,q,imk[3]+jc3,:]
+        end
+
+        if jderiv[3] != 0
+          # derivative: apply the recursive formula X.12b from de Boor
+          for j = 1:jderiv[3]
+            kmj = map.order[3] - j
+            ilo = kmj
+            for jj = 1:kmj
+              map.aj[:,jj,3] = (map.aj[:,jj+1,3] - map.aj[:,jj,3]) *
+                               kmj / (map.dl[ilo,3] + map.dr[jj,3])
+              ilo = ilo - 1
+            end
+          end
+        end
+        #println("map.aj[:,:,3] = \n", map.aj[:,:,3])
+        if jderiv[3] != km1[3]
+          # if jderiv != order - 1, we need to apply the recursive
+          # formula from de Boor
+          for j = jderiv[3]+1:km1[3]
+            kmj = map.order[3] - j
+            ilo = kmj
+            for jj = 1:kmj
+              map.aj[:,jj,3] = (map.aj[:,jj+1,3]*map.dl[ilo,3] +
+                   map.aj[:,jj,3]*map.dr[jj,3]) / (map.dl[ilo,3] + map.dr[jj,3])
+              ilo = ilo - 1
+            end
+          end
+        end
+        # println("map.aj[:,:,3] = \n", map.aj[:,:,3])
+
+        map.aj[:,jc2,2] = map.aj[:,1,3]
+      end # get next element of aj(:,2)
+
+      if jderiv[2] != 0
         # derivative: apply the recursive formula X.12b from de Boor
-        for j = 1:jderiv[3]
-          kmj = map.order[3] - j
+        for j = 1:jderiv[2]
+          kmj = map.order[2] - j
           ilo = kmj
           for jj = 1:kmj
-            map.aj[:,:,3] = ( map.aj[:,jj+1,3] - map.aj[:,jj,3] ) * kmj /
-                            ( map.dl[ilo,3] + map.dr[jj,3] )
-            ilo -= 1
-          end  # End for jj = 1:kmj
-        end    # End for j = 1:jderiv[3]
-      end      # End if jderiv[3] != 0
+            map.aj[:,jj,2] = (map.aj[:,jj+1,2] - map.aj[:,jj,2]) * kmj /
+                             (map.dl[ilo,2] + map.dr[jj,2])
+            ilo = ilo - 1
+          end
+        end
+      end
 
-      if jderiv[3] != map.order[3]-1
-        # if jderiv != order-1, apply recursive formula from de Boor
-        for j = (jderiv[3]+1):(map.order[3]-1)
-          kmj = map.order[3] - j
+      if jderiv[2] != km1[2]
+        # if jderiv /= order - 1, we need to apply the recursive
+        # formula from de Boor
+        for j = jderiv[2]+1:km1[2]
+          kmj = map.order[2] - j
           ilo = kmj
           for jj = 1:kmj
-            map.aj[:,jj,3] = ( map.aj[:,jj+1,3]*map.dl[ilo,3] +
-                               map.aj[:,jj,3]*map.dr[jj,3] ) /
-                               ( map.dl[ilo,3] + map.dr[jj,3] )
-            ilo -= 1
-          end # End for jj = 1:kmj
-        end   # End for j = (jderiv[3]+1):(map.order[3]-1)
-      end     # End if jderiv[3] != map.order[3]-1
+            map.aj[:,jj,2] = (map.aj[:,jj+1,2]*map.dl[ilo,2] + map.aj[:,jj,2]*
+                             map.dr[jj,2]) / (map.dl[ilo,2] + map.dr[jj,2])
+            ilo = ilo - 1
+          end
+        end
+      end
 
-      map.aj[:,jc2,2] = map.aj[:,1,3]
-    end  # End for jc2 = jcmin[2]:jcmax[2], get next element of aj[:,2]
+      map.aj[:,jc1,1] = map.aj[:,1,2]
+      # println("map.aj[:,:,2] = \n", map.aj[:,:,2])
 
-    if jderiv[2] != 0
-      # derivative : apply the recursive formula X.12b from de Boor
-      for j = 1:jderiv[2]
-        kmj = map.order[2] - j
+    end # get next element of map.aj[:,:,1]
+
+    if jderiv[1] != 0
+      # derivative: apply the recursive formula X.12b from de Boor
+      for j = 1:jderiv[1]
+        kmj = map.order[1] - j
         ilo = kmj
         for jj = 1:kmj
-          map.aj[:,jj,2] = ( map.aj[:,jj+1,2] - map.aj[:,jj,2] ) * kmj /
-                           ( map.dl[ilo,2] + map.dr[jj,2] )
-          ilo -= 1
-        end  # End for jj = 1:kmj
-      end  # End for j = 1:jderiv[2]
-    end  # End if jderiv[2] != 0
+          map.aj[:,jj,1] = (map.aj[:,jj+1,1] - map.aj[:,jj,1]) * kmj /
+                           (map.dl[ilo,1] + map.dr[jj,1])
+          ilo = ilo - 1
+        end
+      end
+    end
 
-    if jderiv[2] != map.order[2]-1
-      # if jderiv != order-1, apply recursive formula
-      for j = (jderiv[2]+1):(map.order[2]-1)
-        kmj = map.order[2] - j
+    if jderiv[1] != km1[1]
+      # if jderiv /= order - 1, we need to apply the recursive
+      # formula from de Boor
+      for j = jderiv[1]+1:km1[1]
+        kmj = map.order[1] - j
         ilo = kmj
         for jj = 1:kmj
-          map.aj[:,jj,2] = ( map.aj[:,jj+1,2]*map.dl[ilo,2] +
-                            map.aj[:,jj,2]*map.dr[jj,2] ) / ( map.dl[ilo,2] +
-                            map.dr[jj,2] )
-          ilo -= 1
-        end  # End for jj = 1:kmj
-      end  # End for j = (jderiv[2]+1):(map.order[2]-1)
-    end  # End if jderiv[2] != map.order[2]-1
+          map.aj[:,jj,1] = (map.aj[:,jj+1,1]*map.dl[ilo,1] + map.aj[:,jj,1]*
+                           map.dr[jj,1]) / (map.dl[ilo,1] + map.dr[jj,1])
+          ilo = ilo - 1
+        end
+      end
+    end
+    # println("map.aj[:,:,1] = \n", map.aj[:,:,2])
 
-    map.aj[:,jc1,1] = map.aj[:,1,2]
-  end  # End for jc1 = jcmin[1]:jcmax[1], get next element of map.aj[:,:,1]
-
-  if jderiv[1] != 0
-    # derivative : apply the recursive formula X.12b from de Boor
-    for j = 1:deriv[1]
-      kmj = map.order[1] - j
-      ilo = kmj
-      for jj = 1:kmj
-        map.aj[:,jj,1] = ( map.aj[jj+1,1] - map.aj[:,jj,1] ) * kmj /
-                         ( map.dl[ilo,1] + map.dr[jj,1] )
-        ilo -= 1
-      end  # End for jj = 1:kmj
-    end  # End for j = 1:deriv[1]
-  end  # End if jderiv[1] != 0
-
-  if jderiv[1] != map.order[1]-1
-    # Apply recursive formula as before
-    for j = (jderiv[1]+1):(map.order[1]-1)
-      kmj = map.order[1] - j
-      ilo = kmj
-      for jj = 1:kmj
-        map.aj[:,jj,1] = ( map.aj[:,jj+1,1]*map.dl[ilo,1] + map.aj[:,jj,1]*
-                          map.dr[jj,1] ) / ( map.dl[ilo,1] + map.dr[jj,1] )
-        ilo -= 1
-      end # End for jj = 1:kmj
-    end # End for j = (jderiv[1]+1):(map.order[1]-1)
-  end  # End if jderiv[1] != map.order[1]-1
-
-  dX[:] = map.aj[:,1,1]
+    dX[:] = map.aj[:,1,1]
 
   return nothing
 end  # End function calcdXdxi(map, xi, jderiv)

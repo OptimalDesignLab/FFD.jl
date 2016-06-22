@@ -17,7 +17,7 @@ function void()
   return nothing
 end
 =#
-
+include("calcdXdxi.jl")
 @doc """
 ### linearMap
 
@@ -68,18 +68,65 @@ function linearMap(map, box, X, pX)
   return nothing
 end
 
+@doc """
+### nonlinearMap
+
+Computes the (s,t,u) parametric coordinates of the a point in the geometry
+embedded in the FFD box of any aribitrary shape. This is done by doing a Newton
+solve.
+
+**Arguments**
+
+*  `map` : Object of Mapping type
+*  `box` : bounding box object. In this case the bounding box can be any shape
+*  `X`   : (x,y,z) coordinates of the point in geometry
+*  `pX`  : (s,t,u) coordinates of the point. An initial guess of pX must be
+           supplied. This is needed by the Newton's solve
+
+"""->
+
 function nonlinearMap(map, box, X, pX)
 
   origin = box.origin
 
-  # Initial guess
-  s = origin[1]
-  t = origin[2]
-  u = origin[3]
-  J = zeros(map.ndim, map.ndim)
+  # Compute the residual
+  res = zeros(map.ndim)
+  pointVal = zeros(map.ndim)
+  xi = zeros(map.ndim)
+  xi_new = zeros(xi)
+  xi[:] = pX
 
-  # Construct jacobian
-  calcdXdxi(map, )
+  # Do the newton solve to get the (s,t,u coordinates)
+  for itr = 1:50
+
+    # Compute residual
+    fill!(pointVal, 0.0)
+    evalVolumePoint(map, xi, pointVal)
+    # println("pointVal = $pointVal, X = $X")
+    res = X - pointVal
+
+    # Construct jacobian
+    J = zeros(map.ndim, map.ndim)
+    jderiv = zeros(Int, map.ndim)
+
+    for i = 1:map.ndim
+      fill!(jderiv, 0)
+      jderiv[i] = 1
+      Jrow = view(J,i,:)
+      calcdXdxi(map, xi, jderiv, Jrow)
+    end
+    xi_new = xi + J\res
+
+    if norm(xi_new - xi, 2) < 1e-14
+      pX[:] = xi_new[:]
+      break
+    else
+      xi[:] = xi_new[:]
+    end
+
+  end
+
+
 
   return nothing
 end
@@ -92,7 +139,7 @@ Creates a linear mapping for an array of nodes in the (x,y,z) space to the
 
 **Arguments**
 
-*  `map` : Objecto of Mapping type
+*  `map` : Object of Mapping type
 *  `box` : BoundingBox object
 *  `nodes_xyz` : (x,y,z) coordinates of the nodes of the mesh
 """->
@@ -112,3 +159,35 @@ function calcParametricMappingLinear(map, box, nodes_xyz)
 
   return nothing
 end  # End function calcParametricLinear
+
+@doc """
+### calcParametricMappingNonlinear
+
+Creates a non linear mapping for an array of nodes in the (x,y,z) space to the
+(s,t,u) space.
+
+**Arguments**
+
+*  `map` : Object of Mapping type
+*  `box` : BoundingBox object
+*  `nodes_xyz` : (x,y,z) coordinates of the points in the embedded geometry
+
+"""->
+
+function calcParametricMappingNonlinear(map, box, nodes_xyz)
+
+  X = zeros(map.ndim)
+  pX = zeros(map.ndim)
+  for k = 1:map.numnodes[3]
+    for j = 1:map.numnodes[2]
+      for i = 1:map.numnodes[1]
+        X[:] = nodes_xyz[i,j,k,:]
+        pX[:] = [0.,0.,0.]
+        nonlinearMap(map, box, X, pX)
+        map.xi[i,j,k,:] = pX[:]
+      end
+    end
+  end
+
+  return nothing
+end

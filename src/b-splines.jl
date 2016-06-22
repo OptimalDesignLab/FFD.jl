@@ -83,8 +83,8 @@ function derivBasisFunctions(map, N, Nderiv, di, u, span)
   if order > 1
     for k = 1:order-1
       kp1 = k + 1
-      dr[k,di] = map.knot[span+k,di] - u
-      dl[k,di] = u - map.knot[span+1-k, di]
+      dr[k,di] = map.edge_knot[di][span+k] - u
+      dl[k,di] = u - map.edge_knot[di][span+1-k]
       saved = 0.0
       dsaved = 0.0
       for i = 1:k

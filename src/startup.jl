@@ -8,8 +8,8 @@ include("mapping.jl")
 using ArrayViews
 
 ndim = 3
-order = [2,2,2]  # Order of B-splines in the 3 directions
-nControlPts = [3,3,3]
+order = [4,4,4]  # Order of B-splines in the 3 directions
+nControlPts = [4,4,4]
 nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
 
 map = LinearMapping(ndim, order, nControlPts, nnodes)
@@ -67,7 +67,19 @@ end
 =#
 #----------------------------------------
 
-calcParametricMappingLinear(map, box, nodes_xyz)
+# Define the control points
+controlPoint(map,box)
+#=
+for k = 1:map.nctl[3]
+  for j = 1:map.nctl[2]
+    for i = 1:map.nctl[1]
+      println("cp_xyz[$i,$j,$k,:] = ", round(map.cp_xyz[i,j,k,:],2) )
+    end
+    println('\n')
+  end
+end
+=#
+calcParametricMappingNonlinear(map, box, nodes_xyz)
 #=
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
@@ -77,31 +89,21 @@ for k = 1:nnodes[3]
   end
 end
 =#
-# Define the control points
-controlPoint(map,box)
 
-for k = 1:map.nctl[3]
-  for j = 1:map.nctl[2]
-    for i = 1:map.nctl[1]
-      println("cp_xyz[$i,$j,$k,:] = ", round(map.cp_xyz[i,j,k,:],2) )
-    end
-    println('\n')
-  end
-end
 
 Vol = zeros(nodes_xyz)
-# evalVolume(map, Vol)
-#=
+evalVolume(map, Vol)
+
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
-      println("nodes_xyz_err[$i,$j,$k,:] = ", nodes_xyz[i,j,k,:]-Vol[i,j,k,:])
+      println("nodes_xyz_err[$i,$j,$k,:] = ", round(Vol[i,j,k,:]-nodes_xyz[i,j,k,:],2))
     end
     println('\n')
   end
   println('\n')
 end
-=#
+
 
 # Check linear scaling (Translation)
 #=
