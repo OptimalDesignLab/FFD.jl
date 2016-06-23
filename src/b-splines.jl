@@ -71,32 +71,35 @@ particular point u.
 
 """->
 
-function derivBasisFunctions(map, N, Nderiv, di, u, span)
+function derivBasisFunctions(u, U, order, span, N, Nderiv)
 
-  order = map.order[di]
+  # order = map.order[di]
   N[1] = 1.0
   Nderiv[1] = 0.0
 
-  dr = view(map.dr, :, :)
-  dl = view(map.dl, :, :)
+  # dr = view(map.dr, :, :)
+  # dl = view(map.dl, :, :)
+
+  dr = zeros(AbstractFloat, order-1)
+  dl = zeros(AbstractFloat, order-1)
 
   if order > 1
     for k = 1:order-1
       kp1 = k + 1
-      dr[k,di] = map.edge_knot[di][span+k] - u
-      dl[k,di] = u - map.edge_knot[di][span+1-k]
+      dr[k] = U[span+k] - u
+      dl[k] = u - U[span+1-k]
       saved = 0.0
       dsaved = 0.0
       for i = 1:k
-        temp = 1/( dr[i, di] + dl[k+1-i, di] )
+        temp = 1/( dr[i] + dl[k+1-i] )
         dtemp = Nderiv[i]*temp
         temp = N[i]*temp
 
-        N[i] = saved + dr[i,di]*temp
-        Nderiv[i] = dsaved - temp + dr[i,di]*dtemp
+        N[i] = saved + dr[i]*temp
+        Nderiv[i] = dsaved - temp + dr[i]*dtemp
 
-        saved = dl[k+1-i,di]*temp
-        dsaved = temp + dl[k+1-i, di]*dtemp
+        saved = dl[k+1-i]*temp
+        dsaved = temp + dl[k+1-i]*dtemp
       end  # end for i = 1:k
       N[k+1] = saved
       Nderiv[k+1] = dsaved

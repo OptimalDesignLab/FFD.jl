@@ -43,7 +43,7 @@ end
 @doc """
 ### evalVolume
 
-Determine the the coordinates of a point in a 3D volume using B-splines. The
+Determine the the coordinates of all points in a 3D volume using B-splines. The
 symbol convention used in the function is from the book
 
 "The NURBS book 2nd Edition"

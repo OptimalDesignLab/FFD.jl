@@ -5,54 +5,37 @@ using FactCheck
 # Source file includes
 include("../src/mapping.jl")
 
-#Tests
+# Create Test mesh for tests
+nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
+nodes_xyz = zeros(nnodes[1], nnodes[2], nnodes[3], 3)
+origin = [1,1,1]
+incz = 0.0
+for k = 1:nnodes[3]
+  incy = 0.0
+  for j = 1:nnodes[2]
+    incx = 0.0
+    for i = 1:nnodes[1]
+      nodes_xyz[i,j,k,1] = origin[1] + incx
+      nodes_xyz[i,j,k,2] = origin[2] + incy
+      nodes_xyz[i,j,k,3] = origin[3] + incz
+      incx += 1
+    end
+    incy += 1
+  end
+  incz += 1
+end
+
+# Create Mapping Object
+ndim = 3
+order = [2,2,2]  # Order of B-splines in the 3 directions
+nControlPts = [3,3,3]
+map = LinearMapping(ndim, order, nControlPts, nnodes)
+
+# Create BoundingBox object
+offset = [0.5,0.5,0.5]  # offset for the bounding box
+geom_bounds = [1. 1. 1.;3. 3. 3.]
+box = BoundingBox(ndim, geom_bounds, offset)
+
+# Tests
 include("./test_bsplines.jl")
 include("./test_linearFFD.jl")
-
-#=
-# Testing functions based on Ex2.3 from the NURBS book. considering only one
-# value.
-# U = [0,0,0,0, 0.1,0.2,0.5,1.0,1.0,1.0,1.0]
-U = [0,0,0,0,2/5,3/5,3/5,1,1,1,1]
-println("U = $U")
-
-order = 4
-degree = order - 1
-n_control_pts = length(U) - order
-P = 0:1/(n_control_pts-1):1
-
-println("n_control_pts = $n_control_pts")
-println("P = $P\nlength(P) = ", length(P))
-# Analytical test
-# C_0 = ((order)/U[order+1]) *  (P[2] - P[1])
-C_1 = order*(P[n_control_pts] - P[n_control_pts-1])/(1-U[length(U)-order])
-
-u = 0.3
-
-jth_deriv = 1
-bvalue = derivValue(U, order, u, P, n_control_pts, jth_deriv)
-
-C = zeros(Float64,length(u))
-
-# evalCurve(u, U, order, P, C)
-@printf("P = [")
-for i = 1:length(P)
-  @printf("%f, ", P[i])
-end
-println("]\nC = $C")
-
-
-
-
-println("bvalue = $bvalue")
-println("C_1 = $C_1")
-
-
-include("../src/knot.jl")
-order = 3
-nctl = 7
-X = 0:0.1:1
-U = zeros(order+nctl)
-calcKnot(order, nctl, X, U)
-println("U = $U")
-=#
