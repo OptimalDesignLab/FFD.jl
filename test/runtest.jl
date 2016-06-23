@@ -37,5 +37,5 @@ geom_bounds = [1. 1. 1.;3. 3. 3.]
 box = BoundingBox(ndim, geom_bounds, offset)
 
 # Tests
-include("./test_bsplines.jl")
+include("./test_b-splines.jl")
 include("./test_linearFFD.jl")

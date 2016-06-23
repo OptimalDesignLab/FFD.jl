@@ -74,8 +74,8 @@ end
 @doc """
 ### evalVolumePoint
 
-Computes a pont in the FFD volume. The symbol convention used in this function
-is from "The NURBS book 2nd Edition"
+Computes a point in the FFD volume. The symbol convention used in this function
+is from "The NURBS book 2nd Edition".
 
 **Arguments**
 

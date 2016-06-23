@@ -7,14 +7,9 @@ Computes a uniform knot vector for the mapping object. It is assumed that the
 number of control points is known from before. It is user specified. The knot
 vector is computed in the parametric space [0,1] in all the 3 directions
 
-**Inputs**
+**Arguments**
 
 *  `map` : Object of mapping type
-*  `xi`  : Parametric coordinate values
-
-**Outputs**
-
-*  None
 
 """->
 

@@ -55,7 +55,6 @@ for k = 1:nnodes[3]
 end
 
 # Output the values to check for errors
-#=
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
@@ -64,12 +63,11 @@ for k = 1:nnodes[3]
     println('\n')
   end
 end
-=#
 #----------------------------------------
 
 # Define the control points
 controlPoint(map,box)
-#=
+
 for k = 1:map.nctl[3]
   for j = 1:map.nctl[2]
     for i = 1:map.nctl[1]
@@ -78,9 +76,10 @@ for k = 1:map.nctl[3]
     println('\n')
   end
 end
-=#
+
+# calcParametricMappingLinear(map, box, nodes_xyz)
 calcParametricMappingNonlinear(map, box, nodes_xyz)
-#=
+
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
@@ -88,12 +87,11 @@ for k = 1:nnodes[3]
     end
   end
 end
-=#
 
 
 Vol = zeros(nodes_xyz)
 evalVolume(map, Vol)
-#=
+
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
@@ -103,10 +101,9 @@ for k = 1:nnodes[3]
   end
   println('\n')
 end
-=#
+
 
 # Check linear scaling (Translation)
-#=
 fill!(Vol, 0.0)
 # move the x coordinates of all the control by 4 units
 map.cp_xyz[:,:,:,3] += 2
@@ -121,7 +118,6 @@ for k = 1:nnodes[3]
   end
   println('\n')
 end
-=#
 
 # Check angular rotation
 # Rotate control points by 90 degrees about Z axis
@@ -140,7 +136,7 @@ for k = 1:map.nctl[3]
 end
 
 
-println("Rotated coordinates\n")#=
+println("Rotated coordinates\n")
 for k = 1:map.nctl[3]
   for j = 1:map.nctl[2]
     for i = 1:map.nctl[1]
@@ -148,11 +144,10 @@ for k = 1:map.nctl[3]
     end
     println('\n')
   end
-end=#
+end
 
 evalVolume(map, Vol)
 # Check Output
-#=
 for k = 1:nnodes[3]
   for j = 1:nnodes[2]
     for i = 1:nnodes[1]
@@ -161,4 +156,4 @@ for k = 1:nnodes[3]
     println('\n')
   end
   println('\n')
-end=#
+end

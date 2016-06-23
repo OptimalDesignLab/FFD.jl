@@ -12,9 +12,18 @@ include("evaluations.jl")
 
 A type for creating mapping objects needed for creating. The mapping is intended
 for a uniform knot distribution along the 3 dimensions in the parametric space.
+An object of this type can be defined by calling an inner constructor with the
+following arguments in sequence
+
+* Number of dimensions (2 or 3)
+* Array of order of B-splines in all dimensions
+* Number of control points along every direction
+* Number of nodes (embedded geometry points) along every direction
+
 
 **Members**
 
+*  `ndim`    : Number of dimensions (2D or 3D)
 *  `nctl`    : Array of number of control points in each direction
 *  `numnodes`: Array of number of nodes in each direction
 *  `order`   : Array of order of B-splines in each direction
@@ -27,9 +36,7 @@ for a uniform knot distribution along the 3 dimensions in the parametric space.
 *  `edge_param`: 3D array to store edge spacing parameters. dim1 = A or b,
                  dim2 = edge number (1:4), dim3 = direction (di)
 *  `aj`   :
-*  `dl`   :
-*  `knot` : 2D Array of knot vectors. dim1 = knot vector, dim2 = direction
-            (xi, eta, zeta)
+*  `dl` and `dr`   : Working array for computing spline basis and its derivatives
 *  `work` :
 
 """->
@@ -112,10 +119,10 @@ It calculates the partial derivative of the mapping (including the 0th order)
 **Arguments**
 
 *  `map`    : Object of Mapping type
-*  `xi`     : Mapping coordinates to be evaluated
+*  `xi`     : Mapping parametric coordinates (s,t,u) to be evaluated
 *  `jderiv` : Derivative indices. jderi[mdi] = n means take the nth derivative
               in the xi[mdi] direction.
-*  `dX`     : Derivative of X w.r.t the 3 dimensions. length = 3
+*  `dX`     : Derivative of X w.r.t the 3 parametric variables. length = 3
 
 REFERENCE: Carl de Boor, 'Pratical Guide to Splines', pgs 138-149, function
            BVALUE

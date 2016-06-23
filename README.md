@@ -1,5 +1,10 @@
 # FFD.jl
 A Julia repository containing code for Free Form Deformation using B-splines.
+You only need to clone the repository to use it. There is no need to build
+anything. Please read the `README.md` file to understand how to use the
+repository. Within each of the files, there is detailed documentation of each
+and every function.
+
 The repository has the following structure
 
 * **`FFD.jl`**
@@ -52,7 +57,7 @@ parametric spaces are represented as follows:
 B-spline curve points and B-spline volume points, the parametric coordinates are
 represented as *(u,v,w)* taken from Ref[1].
 * The parametric coordinates are represented as *(ξ,η,ζ)* within the Mapping
-object. The notation is taken from Ref[4]
+object. The notation is taken from Ref[4].
 * Within the functions that compute the linear and non-linear mapping, the
 parametric coordinates are referred to as *(s,t,u)*
 
@@ -65,7 +70,7 @@ in which the a geometry is embedded. Its capabilities are restricted presently
 and will grow as complicated FFD volumes are considered in the future.
 
 Two types of mapping can be constructed between the physical and the parametric
-space, viz. *linear mapping* and *nonlinear mapping*. a linear mapping will
+space, viz. *linear mapping* and *nonlinear mapping*. A linear mapping will
 suffice if the FFD volume considered is a regular parallelepiped. However, if
 the FFD volume is an irregular shape, a nonlinear mapping is required which
 performs a Newton's solve to obtain the parametric coordinates.

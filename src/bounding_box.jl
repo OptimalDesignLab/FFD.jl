@@ -5,7 +5,22 @@
 ### BoundingBox
 
 Class that contains information necessary to create a bonding box of control
-points.
+points. Use the inner constructor to create an object of this type. The
+arguments to the constructor in sequence are as follows
+
+* Number of dimensions
+* Highest and lowest values of x,y,z coordinates along every dimension.
+  dim1 = highest and lowest values, dim2 = x,y or z direction
+* Offset from the geometry/mesh boundary for determining the size of the
+  bounding box
+
+The Definition of the function is subject to change in the future. Presently,
+the unit vectors that define the parametric coordinates of the box are assumed
+to be aligned with the physical coordinate system. They can be changed
+separately if needed. There is also an implicit assumption that the box is an
+othogonal parallelopiped, but, this assumption is not enforce anywhere. The
+final shape of the BoundingBox object will depend on the geometric location of
+the control points in the physical space. 
 
 **Members**
 
@@ -15,7 +30,7 @@ points.
 *  `unitVector`: Unit vectors that define the (s,t,u) coordinate axes expressed
                  in (x,y,z) coordinate system. dim1 = x,y,z values, dim2 = s,t
                  or u vector
-*  `geom_coord` : Highest and lowest values of x,y,z coordinates along every
+*  `geom_bound` : Highest and lowest values of x,y,z coordinates along every
                   dimension. dim1 = highest and lowest values, dim2 = x,y or z
                   direction
 *  `offset` : Offset from the geometry/mesh boundary for determining the size of
@@ -35,7 +50,7 @@ type BoundingBox
   ndim::Integer # 2D or 3D
   origin::Array{AbstractFloat, 1}
   unitVector::Array{AbstractFloat, 2}
-  geom_coord::Array{AbstractFloat, 2}  # highest and lowst values of x, y, z
+  geom_bound::Array{AbstractFloat, 2}  # highest and lowst values of x, y, z
                                        # coordinates along every dimension
                                        # in the physical space
   offset::Array{AbstractFloat, 1} # Offset from the mesh for the bounding box dimensions
@@ -50,26 +65,26 @@ type BoundingBox
     # Allocate members
     origin = Array(AbstractFloat, 3)
     unitVector = eye(ndim) # Create default a unit vector aligned with the physical space
-    geom_coord = Array(AbstractFloat, 2, ndim) # each row = x_min, x_max,  each column = ndim
+    geom_bound = Array(AbstractFloat, 2, ndim) # each row = x_min, x_max,  each column = ndim
     box_bound = Array(AbstractFloat, 2, ndim)  # same as above
     offset = Array(AbstractFloat, ndim) # offset for each dimenstion in the (x, y, z) space
     lengths = Array(AbstractFloat, ndim) # same as above
 
     # Populate members of BoundingBox
-    geom_coord[:,:] = coord[:,:]
+    geom_bound[:,:] = coord[:,:]
     offset[:] = spacing[:]
 
     # Get the boumding box coordinates and dimensions
-    for i = 1:size(geom_coord,2)  # TODO: Come up with a better definition of box_bound and lengths
-      box_bound[1,i] = geom_coord[1,i] - offset[i]
-      box_bound[2,i] = geom_coord[2,i] + offset[i]
+    for i = 1:size(geom_bound,2)  # TODO: Come up with a better definition of box_bound and lengths
+      box_bound[1,i] = geom_bound[1,i] - offset[i]
+      box_bound[2,i] = geom_bound[2,i] + offset[i]
       lengths[i] = box_bound[2,i] - box_bound[1,i]
     end
 
     origin[:] = box_bound[1,:] # Get the lower x,y,z ordinates to be defined as the
                             # origin
 
-    new(ndim, origin, unitVector, geom_coord, offset, box_bound, lengths)
+    new(ndim, origin, unitVector, geom_bound, offset, box_bound, lengths)
 
   end
 end

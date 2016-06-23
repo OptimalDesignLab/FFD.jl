@@ -27,7 +27,7 @@ facts("--- Checking BoundingBox ---") do
   @fact box.ndim --> 3
   @fact box.origin --> [0.5, 0.5, 0.5]
   @fact box.unitVector --> [1. 0. 0.;0. 1. 0.;0. 0. 1.]
-  @fact box.geom_coord --> [1. 1. 1.;3. 3. 3.]
+  @fact box.geom_bound --> [1. 1. 1.;3. 3. 3.]
   @fact box.offset --> [0.5,0.5,0.5]
   @fact box.box_bound --> [0.5 0.5 0.5;3.5 3.5 3.5]
 

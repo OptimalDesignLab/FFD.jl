@@ -56,14 +56,12 @@ particular point u.
 
 **Inputs**
 
-*  `map` : Object of mapping type
-*  `N`   : Basis functions
-*  `Nderiv` : First derivative of the basis functions at u
-*  `N2deriv`: Second derivative of the basis functions at u
-*  `U`   : Knot vector
-*  `di`  : Direction in which the derivative is to be evaluated
-*  `u`   : Location where the derivatives are to be calculated
-*  `span`: Knot span index of u
+*  `U`     : Knot vector
+*  `order` : Order of B-spline
+*  `u`     : Location where basis functions are to be evaluated
+*  `span`  : Knot span index
+*  `N`     : Basis Functions
+*  `Nderiv`: Derivative of the basis function
 
 **Outputs**
 
