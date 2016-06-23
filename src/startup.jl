@@ -12,7 +12,7 @@ order = [4,4,4]  # Order of B-splines in the 3 directions
 nControlPts = [4,4,4]
 nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
 
-map = LinearMapping(ndim, order, nControlPts, nnodes)
+map = Mapping(ndim, order, nControlPts, nnodes)
 calcKnot(map)  # Create knot vectors
 
 for i = 1:3

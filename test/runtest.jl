@@ -29,7 +29,7 @@ end
 ndim = 3
 order = [2,2,2]  # Order of B-splines in the 3 directions
 nControlPts = [3,3,3]
-map = LinearMapping(ndim, order, nControlPts, nnodes)
+map = Mapping(ndim, order, nControlPts, nnodes)
 
 # Create BoundingBox object
 offset = [0.5,0.5,0.5]  # offset for the bounding box

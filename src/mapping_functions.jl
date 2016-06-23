@@ -17,7 +17,6 @@ function void()
   return nothing
 end
 =#
-include("calcdXdxi.jl")
 @doc """
 ### linearMap
 
