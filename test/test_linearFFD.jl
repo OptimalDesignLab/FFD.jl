@@ -52,7 +52,7 @@ facts("--- Checking Mapping object ---") do
 
   end  # End context("--- Checking Knot calculations ---")
 
-end  # End facts("--- Checking Mapping object ---") do
+end  # End facts("--- Checking Mapping object ---")
 
 facts("--- Checking BoundingBox ---") do
 
@@ -63,7 +63,7 @@ facts("--- Checking BoundingBox ---") do
   @fact box.offset --> [0.5,0.5,0.5]
   @fact box.box_bound --> [0.5 0.5 0.5;3.5 3.5 3.5]
 
-end  # End facts("--- Checking BoundingBox ---") do
+end  # End facts("--- Checking BoundingBox ---")
 
 facts("--- Checking Linear Mapping ---") do
 
@@ -77,7 +77,7 @@ facts("--- Checking Linear Mapping ---") do
   @fact map.xi[1,2,3,2] --> roughly(0.5, atol = 1e-15)
   @fact map.xi[1,2,3,3] --> roughly(0.8333333333333334, atol = 1e-15)
 
-end # End facts("--- Checking Linear Mapping ---") do
+end # End facts("--- Checking Linear Mapping ---")
 
 facts("--- Checking Control Point Generation ---") do
 
@@ -93,7 +93,7 @@ facts("--- Checking Control Point Generation ---") do
 
 end # End facts("--- Checking Contol Point Generation ---")
 
-facts("--- Checking FFD Volume Evaluation ---") do
+facts("--- Checking FFD Volume Evaluation with Linear Mapping---") do
 
   Vol = zeros(nodes_xyz)
   evalVolume(map, Vol)
@@ -109,3 +109,33 @@ facts("--- Checking FFD Volume Evaluation ---") do
   end
 
 end  # facts("--- Checking FFD Volume Evaluation ---")
+
+facts("--- Checking Nonlinear Mapping ---") do
+
+  context("Checking calcParametricMappingNonlinear") do
+
+    calcParametricMappingNonlinear(map, box, nodes_xyz)
+    for i = 1:3
+      @fact map.xi[1,1,1,i] --> roughly(0.16666666666666666, atol = 1e-15)
+      @fact map.xi[2,2,2,i] --> roughly(0.5, atol = 1e-15)
+      @fact map.xi[3,3,3,i] --> roughly(0.8333333333333334, atol = 1e-15)
+    end
+    @fact map.xi[1,2,3,1] --> roughly(0.16666666666666666, atol = 1e-15)
+    @fact map.xi[1,2,3,2] --> roughly(0.5, atol = 1e-15)
+    @fact map.xi[1,2,3,3] --> roughly(0.8333333333333334, atol = 1e-15)
+
+  end  # End context ("Checking calcParametricMappingNonlinear")
+
+  context("Check nonlinearMap") do
+
+    X = ones(AbstractFloat, 3)
+    pX = zeros(X)
+
+    nonlinearMap(map, box, X, pX)
+    for i = 1:3
+      @fact pX[i] --> roughly(0.16666666666666666, atol = 1e-15)
+    end
+
+  end  # End context ("Check nonlinearMap")
+
+end # End facts("--- Checking Linear Mapping ---")
