@@ -61,6 +61,50 @@ facts("--- Checking Linear Mapping ---") do
 
 end # End facts("--- Checking Linear Mapping ---")
 
+facts("--- Checking Nonlinear Mapping ---") do
+
+  context("Checking Volume Derivative") do
+
+    xi = [0.5,0.5,0.5]
+    dX = zeros(AbstractFloat, 3)
+    jderiv = [1,0,0]
+    calcdXdxi(map, xi, jderiv, dX)
+    @fact dX[1] --> roughly(3.0, atol = 1e-15)
+    @fact dX[2] --> roughly(0.0, atol = 1e-15)
+    @fact dX[3] --> roughly(0.0, atol = 1e-15)
+
+  end  # End context("Checking Volume Derivative")
+
+  context("Checking nonlinearMap") do
+
+    X = ones(AbstractFloat, 3)
+    pX = zeros(X)
+
+    nonlinearMap(map, box, X, pX)
+    for i = 1:3
+      @fact pX[i] --> roughly(0.16666666666666666, atol = 1e-15)
+    end
+
+  end  # End context ("Check nonlinearMap")
+
+  context("Checking calcParametricMappingNonlinear") do
+
+    calcParametricMappingNonlinear(map, box, nodes_xyz)
+    for i = 1:3
+      @fact map.xi[1,1,1,i] --> roughly(0.16666666666666666, atol = 1e-15)
+      @fact map.xi[2,2,2,i] --> roughly(0.5, atol = 1e-15)
+      @fact map.xi[3,3,3,i] --> roughly(0.8333333333333334, atol = 1e-15)
+    end
+    @fact map.xi[1,2,3,1] --> roughly(0.16666666666666666, atol = 1e-15)
+    @fact map.xi[1,2,3,2] --> roughly(0.5, atol = 1e-15)
+    @fact map.xi[1,2,3,3] --> roughly(0.8333333333333334, atol = 1e-15)
+
+  end  # End context ("Checking calcParametricMappingNonlinear")
+
+
+end # End facts("--- Checking Linear Mapping ---")
+
+
 facts("--- Checking FFD Volume Evaluation ---") do
 
   context("Checking single point evaluation") do
@@ -91,45 +135,3 @@ facts("--- Checking FFD Volume Evaluation ---") do
   end # End context("Checking multiple point evaluation")
 
 end  # facts("--- Checking FFD Volume Evaluation ---")
-
-facts("--- Checking Nonlinear Mapping ---") do
-
-  context("Checking Volume Derivative") do
-
-    xi = [0.5,0.5,0.5]
-    dX = zeros(AbstractFloat, 3)
-    jderiv = [1,0,0]
-    calcdXdxi(map, xi, jderiv, dX)
-    @fact dX[1] --> roughly(3.0, atol = 1e-15)
-    @fact dX[2] --> roughly(0.0, atol = 1e-15)
-    @fact dX[3] --> roughly(0.0, atol = 1e-15)
-
-  end  # End context("Checking Volume Derivative")
-
-  context("Checking calcParametricMappingNonlinear") do
-
-    calcParametricMappingNonlinear(map, box, nodes_xyz)
-    for i = 1:3
-      @fact map.xi[1,1,1,i] --> roughly(0.16666666666666666, atol = 1e-15)
-      @fact map.xi[2,2,2,i] --> roughly(0.5, atol = 1e-15)
-      @fact map.xi[3,3,3,i] --> roughly(0.8333333333333334, atol = 1e-15)
-    end
-    @fact map.xi[1,2,3,1] --> roughly(0.16666666666666666, atol = 1e-15)
-    @fact map.xi[1,2,3,2] --> roughly(0.5, atol = 1e-15)
-    @fact map.xi[1,2,3,3] --> roughly(0.8333333333333334, atol = 1e-15)
-
-  end  # End context ("Checking calcParametricMappingNonlinear")
-
-  context("Check nonlinearMap") do
-
-    X = ones(AbstractFloat, 3)
-    pX = zeros(X)
-
-    nonlinearMap(map, box, X, pX)
-    for i = 1:3
-      @fact pX[i] --> roughly(0.16666666666666666, atol = 1e-15)
-    end
-
-  end  # End context ("Check nonlinearMap")
-
-end # End facts("--- Checking Linear Mapping ---")
