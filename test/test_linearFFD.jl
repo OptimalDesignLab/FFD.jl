@@ -68,7 +68,7 @@ facts("--- Checking Nonlinear Mapping ---") do
     xi = [0.5,0.5,0.5]
     dX = zeros(AbstractFloat, 3)
     jderiv = [1,0,0]
-    calcdXdxi(map, xi, jderiv, dX)
+    FreeFormDeformation.calcdXdxi(map, xi, jderiv, dX)
     @fact dX[1] --> roughly(3.0, atol = 1e-15)
     @fact dX[2] --> roughly(0.0, atol = 1e-15)
     @fact dX[3] --> roughly(0.0, atol = 1e-15)
@@ -80,7 +80,7 @@ facts("--- Checking Nonlinear Mapping ---") do
     X = ones(AbstractFloat, 3)
     pX = zeros(X)
 
-    nonlinearMap(map, box, X, pX)
+    FreeFormDeformation.nonlinearMap(map, box, X, pX)
     for i = 1:3
       @fact pX[i] --> roughly(0.16666666666666666, atol = 1e-15)
     end
@@ -111,7 +111,7 @@ facts("--- Checking FFD Volume Evaluation ---") do
 
     xyz = zeros(AbstractFloat, map.ndim)
     xi = 0.5*ones(AbstractFloat, map.ndim)
-    evalVolumePoint(map, xi, xyz)
+    FreeFormDeformation.evalVolumePoint(map, xi, xyz)
     for i = 1:map.ndim
       @fact xyz[i] --> roughly(2.0, atol = 1e-15)
     end
@@ -120,7 +120,7 @@ facts("--- Checking FFD Volume Evaluation ---") do
 
   context("Checking multiple point evaluation") do
     Vol = zeros(nodes_xyz)
-    evalVolume(map, Vol)
+    FreeFormDeformation.evalVolume(map, Vol)
     for idim = 1:3
       for k = 1:map.numnodes[3]
         for j = 1:map.numnodes[2]

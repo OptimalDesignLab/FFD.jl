@@ -3,7 +3,7 @@
 
 
 # Source file includes
-include("../src/")
+push!(LOAD_PATH, "../src/")
 
 using FactCheck
 using FreeFormDeformation

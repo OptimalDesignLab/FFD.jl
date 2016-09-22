@@ -21,7 +21,7 @@ facts("--- Checking B-spline Formulation ---") do
   context("Checking basis function evaluations") do
     N = zeros(order)
     span = findSpan(u, U, order, nctl)
-    basisFunctions(U, order, u, span, N)
+    FreeFormDeformation.basisFunctions(U, order, u, span, N)
     @fact N[1] --> roughly(0.081, atol = 1e-15)
     @fact N[2] --> roughly(0.405, atol = 1e-15)
     @fact N[3] --> roughly(0.5136666666666666, atol = 1e-15)
@@ -31,7 +31,7 @@ facts("--- Checking B-spline Formulation ---") do
   context("Checking curve point evaluation") do
     P = 0:1/(nctl-1):1
     C = [0.0]
-    evalCurve([u], U, order, P, C)
+    FreeFormDeformation.evalCurve([u], U, order, P, C)
     @fact C[1] --> roughly(0.40555555555555556, atol = 1e-16)
   end
 
@@ -49,7 +49,7 @@ facts("--- Checking B-spline Derivatives ---") do
     N = zeros(AbstractFloat, order)
     Nderiv = zeros(AbstractFloat, order)
     span = findSpan(u, U, order, nctl)
-    derivBasisFunctions(u, U, order, span, N, Nderiv)
+    FreeFormDeformation.derivBasisFunctions(u, U, order, span, N, Nderiv)
 
     @fact N[1] --> roughly(0.081, atol = 1e-15)
     @fact N[2] --> roughly(0.405, atol = 1e-15)
