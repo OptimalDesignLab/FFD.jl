@@ -1,3 +1,9 @@
+module FreeFormDeformation
+export Mapping, BoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
+export calcParametricMappingNonlinear, evalVolume
+
+using ArrayViews
+
 include("knot.jl")
 include("bounding_box.jl")
 include("mapping_functions.jl")
@@ -6,7 +12,8 @@ include("span.jl")
 include("b-splines.jl")
 include("evaluations.jl")
 
-# Type Mapping
+abstract AbstractMappingType # Abstract Mapping type for creating a different Mapping type
+
 @doc """
 ### Mapping
 
@@ -41,7 +48,7 @@ following arguments in sequence
 
 """->
 
-type Mapping
+type Mapping <: AbstractMappingType
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
   nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
@@ -398,3 +405,5 @@ function contractWithdGdB(map, dJdGrid)
 
   return nothing
 end  # End function contractWithdGdB(map, dJdGrid)
+
+end # End module FreeFormDeformation

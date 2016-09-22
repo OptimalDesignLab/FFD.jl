@@ -1,9 +1,12 @@
 # runtest.jl
-using ArrayViews
-using FactCheck
+# using ArrayViews
+
 
 # Source file includes
-include("../src/mapping.jl")
+include("../src/")
+
+using FactCheck
+using FreeFormDeformation
 
 # Create Test mesh for tests
 nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
