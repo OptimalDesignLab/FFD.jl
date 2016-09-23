@@ -3,15 +3,69 @@
 # Startup script for FFD. This will change as the code progresses
 
 # Includes
-include("mapping.jl")
+push!(LOAD_PATH, "../src/")
+push!(LOAD_PATH, joinpath(Pkg.dir("PumiInterface"), "src"))
+push!(LOAD_PATH, joinpath(Pkg.dir("SummationByParts"), "src"))
+push!(LOAD_PATH, joinpath(Pkg.dir("MeshMovement"), "src"))
 
+using PdePumiInterface
+using SummationByParts
+using ODLCommonTools
 using ArrayViews
+using MPI
+using MeshMovement
 
+using FreeFormDeformation
+
+opts = PdePumiInterface.get_defaults()
+# 2D mesh
+opts["numBC"] = 2
+opts["BC1"] = [8,11,14,17]
+opts["BC1_name"] = "FarField"
+opts["BC2"] = [5]
+opts["BC2_name"] = "Airfoil"
+opts["coloring_distance"] = 0 # For CG Mesh
+
+Tmsh = Float64
+dmg_name = "./mesh_files/2D_Airfoil.dmg"
+smb_name = "./mesh_files/2D_Airfoil.smb"
+order = 1
+dofpernode = 1
+
+# SBP & Mesh Parameters
+# For SBP Gamma
+reorder = true
+internal = false
+shape_type = 1
+
+# create linear sbp operator
+sbp = TriSBP{Float64}(degree=order, reorder=reorder, internal=internal)
+sbpface = TriFace{Float64}(order, sbp.cub, sbp.vtx)
+# create linear mesh with 4 dof per node
+
+println("constructing CG mesh")
+mesh = PumiMesh2{Tmsh}(dmg_name, smb_name, order, sbp, opts, sbpface;
+       dofpernode=dofpernode, coloring_distance=opts["coloring_distance"],
+       shape_type=shape_type)
+#
+#
+# Free Form deformation parameters
 ndim = 3
-order = [4,4,4]  # Order of B-splines in the 3 directions
-nControlPts = [4,4,4]
-nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
+order = [4,4,1]  # Order of B-splines in the 3 directions
+nControlPts = [4,4,1]
+mesh_info = Int[sbp.numnodes, mesh.numEl]
 
+ffd = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh_info)
+
+# Create Bounding box
+offset = [0.5, 0.5, 0.]
+geom_bounds = zeros(2,3)
+
+FreeFormDeformation.calcGeomBounds(mesh.coords, geom_bounds)
+
+println("geom_bounds = \n$geom_bounds")
+
+#=
 map = Mapping(ndim, order, nControlPts, nnodes)
 calcKnot(map)  # Create knot vectors
 
@@ -157,3 +211,4 @@ for k = 1:nnodes[3]
   end
   println('\n')
 end
+=#

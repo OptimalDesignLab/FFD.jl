@@ -1,18 +1,14 @@
 module FreeFormDeformation
-export Mapping, BoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
-export calcParametricMappingNonlinear, evalVolume
+export AbstractMappingType, Mapping, PumiMapping
+export BoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
+export calcParametricMappingNonlinear, evalVolume, findSpan
 
 using ArrayViews
 
-include("knot.jl")
-include("bounding_box.jl")
-include("mapping_functions.jl")
-include("control_point.jl")
-include("span.jl")
-include("b-splines.jl")
-include("evaluations.jl")
 
+# Abstract Type definition
 abstract AbstractMappingType # Abstract Mapping type for creating a different Mapping type
+abstract AbstractBoundingBox
 
 @doc """
 ### Mapping
@@ -65,6 +61,8 @@ type Mapping <: AbstractMappingType
   dr::AbstractArray{AbstractFloat, 2}
   work::AbstractArray{AbstractFloat, 4}
 
+  evalVolume::Function
+
   function Mapping(dim, k, ncpts, nnodes)
 
     # Assertion statements to prevent errors
@@ -115,6 +113,68 @@ type Mapping <: AbstractMappingType
   end  # End constructor
 
 end  # End Mapping
+
+type PumiMapping{Tffd} <: AbstractMappingType
+
+  ndim::Int                     # Mapping object to indicate 2D or 3D
+  nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
+  order::AbstractArray{Int, 1}  # Order of B-spline in each direction
+
+  xi::AbstractArray{Tffd, 3}
+  cp_xyz::AbstractArray{AbstractFloat, 4} # Cartesian coordinates of control points
+  edge_knot::AbstractArray{Vector{AbstractFloat}, 1}  # edge knot vectors
+
+  # Working arrays
+  aj::AbstractArray{AbstractFloat, 3}
+  dl::AbstractArray{AbstractFloat, 2}
+  dr::AbstractArray{AbstractFloat, 2}
+  work::AbstractArray{AbstractFloat, 4}
+
+  evalVolume::Function
+
+  function PumiMapping(ndim::Int, order::AbstractArray{Int,1},
+                       nctl::AbstractArray{Int,1}, mesh_info::AbstractArray{Int,1})
+
+    # Check if the input arguments are valid
+    @assert ndim == 3 "Only 3D is supported"
+    for i = 1:ndim
+      @assert order[i] > 0 "Order cannot be 0 in the $i direction"
+      @assert nctl[i] > 0 "number of control points cannot be 0 in $i direction"
+    end
+    @assert mesh_info[1] > 0 "Number of nodes per element can only be > 0"
+    @assert mesh_info[2] > 0 "Grid to be deofrmed must have > 0 elements"
+
+    # Define max_wrk = number of work elements at each control point
+    const max_work = 2*6  # 2*n_variables
+
+    xi = zeros(Tffd, ndim, mesh_info[1], mesh_info[2])
+    cp_xyz = zeros(nctl[1], nctl[2], nctl[3], 3)
+    edge_knot = Array(Vector{AbstractFloat}, 3)
+    for i = 1:3
+      edge_knot[i] = zeros(AbstractFloat, nctl[i]+order[i])
+    end
+
+    # Allocate and initialize mapping arrays
+    max_order = maximum(order)  # Highest order among 3 dimensions
+    max_knot = max_order + maximum(nctl) # Maximum number of knots among 3 dimensions
+
+    aj = zeros(3, max_order, 3)
+    dl = zeros(max_order-1, 3)
+    dr = zeros(max_order-1, 3)
+    work = zeros(nctl[1], nctl[2], nctl[3], max_work)
+
+    return new(ndim, nctl, order, xi, cp_xyz, edge_knot, aj, dl, dr, work,
+               evalVolume)
+  end
+end  # End type PumiMapping
+
+include("knot.jl")
+include("bounding_box.jl")
+include("mapping_functions.jl")
+include("control_point.jl")
+include("span.jl")
+include("b-splines.jl")
+include("evaluations.jl")
 
 @doc """
 ### calcdXdxi
@@ -336,7 +396,6 @@ function calcdXdxi(map, xi, jderiv, dX)
 
   return nothing
 end  # End function calcdXdxi(map, xi, jderiv)
-
 
 @doc """
 ### contractWithdGdB

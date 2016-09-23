@@ -55,7 +55,7 @@ symbol convention used in the function is from the book
 
 """->
 
-function evalVolume(map, Vol)
+function evalVolume{Tmsh}(map::Mapping, Vol::AbstractArray{Tmsh,4})
 
   fill!(Vol, 0.0) # Zero out all entries of Vol
 
@@ -67,6 +67,31 @@ function evalVolume(map, Vol)
       end  # End for i = 1:map.numnodes[3]
     end    # End for j = 1:map.numnodes[2]
   end      # End for k = 1:map.numnodes[1]
+
+  return nothing
+end
+
+function evalVolume{Tmsh}(map::PumiMapping, coords::AbstractArray{Tmsh,3})
+
+  fill!(coords, 0.0)
+
+  if size(coords,1) == 2 # If its a 2D PumiMesh
+    arr = zeros(Tmsh, 3)
+    for i = 1:size(coords,3)
+      for j = 1:size(coords,2)
+        arr[:] = coords[1:2,j,i]
+        evalVolumePoint(map, map.xi[:,j,i], arr)
+        coords[1:2,j,i] = arr[:]
+      end
+    end
+  else  # 3D pumi mesh
+    for i = 1:size(coords,3)
+      for j = 1:size(coords,2)
+        xyz = view(coords, :,j,i)
+        evalVolumePoint(map, map.xi[:,j,i], xyz)
+      end
+    end
+  end  # End If
 
   return nothing
 end

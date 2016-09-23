@@ -20,7 +20,7 @@ to be aligned with the physical coordinate system. They can be changed
 separately if needed. There is also an implicit assumption that the box is an
 othogonal parallelopiped, but, this assumption is not enforce anywhere. The
 final shape of the BoundingBox object will depend on the geometric location of
-the control points in the physical space. 
+the control points in the physical space.
 
 **Members**
 
@@ -44,18 +44,18 @@ orientation as the physical coordinate system.
 
 """->
 
-type BoundingBox
+type BoundingBox{Tffd} <: AbstractBoundingBox
 
   # Physical space
   ndim::Integer # 2D or 3D
-  origin::Array{AbstractFloat, 1}
-  unitVector::Array{AbstractFloat, 2}
-  geom_bound::Array{AbstractFloat, 2}  # highest and lowst values of x, y, z
+  origin::Array{Tffd, 1}
+  unitVector::Array{Tffd, 2}
+  geom_bound::Array{Tffd, 2}  # highest and lowst values of x, y, z
                                        # coordinates along every dimension
                                        # in the physical space
-  offset::Array{AbstractFloat, 1} # Offset from the mesh for the bounding box dimensions
-  box_bound::Array{AbstractFloat, 2}
-  lengths::Array{AbstractFloat, 1} # dimensions of the bounding box
+  offset::Array{Tffd, 1} # Offset from the mesh for the bounding box dimensions
+  box_bound::Array{Tffd, 2}
+  lengths::Array{Tffd, 1} # dimensions of the bounding box
 
   # Parametric space
   function BoundingBox(dim, coord, spacing) # 3D
@@ -87,4 +87,71 @@ type BoundingBox
     new(ndim, origin, unitVector, geom_bound, offset, box_bound, lengths)
 
   end
+end
+
+@doc """
+
+
+"""->
+
+function calcGeomBounds{Tffd}(coords::AbstractArray{Tffd,3},
+                              geom_bounds::AbstractArray{Tffd,2})
+
+  fill!(geom_bounds, 0.0)
+
+  xmin = zero(Tffd)
+  xmax = zero(Tffd)
+  ymin = zero(Tffd)
+  ymax = zero(Tffd)
+  zmin = zero(Tffd)
+  zmax = zero(Tffd)
+
+  if size(coords,1) == 2
+    for i = 1:size(coords,3)
+      for j = 1:size(coords,2)
+        if xmin > coords[1,j,i]
+          xmin = coords[1,j,i]
+        elseif xmax < coords[1,j,i]
+          xmax = coords[1,j,i]
+        end # End if
+
+        if ymin > coords[2,j,i]
+          ymin = coords[2,j,i]
+        elseif ymax < coords[2,j,i]
+          ymax = coords[2,j,i]
+        end # End if
+      end   # End for j = 1:size(coords,2)
+    end     # End for i = 1:size(coords,3)
+  elseif size(coords,1) == 3
+    for i = 1:size(coords,3)
+      for j = 1:size(coords,2)
+        if xmin > coords[1,j,i]
+          xmin = coords[1,j,i]
+        elseif xmax < coords[1,j,i]
+          xmax = coords[1,j,i]
+        end
+
+        if ymin > coords[2,j,i]
+          ymin = coords[2,j,i]
+        elseif ymax < coords[2,j,i]
+          ymax = coords[2,j,i]
+        end
+
+        if zmin > coords[3,j,i]
+          zmin = coords[3,j,i]
+        elseif zmax < coords[3,j,i]
+          zmax = coords[3,j,i]
+        end # End if
+      end   # End for j = 1:size(coords,2)
+    end     # End for i = 1:size(coords,3)
+  end
+
+  geom_bounds[1,1] = xmin
+  geom_bounds[2,1] = xmax
+  geom_bounds[1,2] = ymin
+  geom_bounds[2,2] = ymax
+  geom_bounds[1,3] = zmin
+  geom_bounds[2,3] = zmax
+
+  return nothing
 end
