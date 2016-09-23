@@ -1,9 +1,11 @@
 module FreeFormDeformation
 export AbstractMappingType, Mapping, PumiMapping
-export BoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
+export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
 export calcParametricMappingNonlinear, evalVolume, findSpan
 
 using ArrayViews
+using PdePumiInterface
+using ODLCommonTools
 
 
 # Abstract Type definition
@@ -121,14 +123,14 @@ type PumiMapping{Tffd} <: AbstractMappingType
   order::AbstractArray{Int, 1}  # Order of B-spline in each direction
 
   xi::AbstractArray{Tffd, 3}
-  cp_xyz::AbstractArray{AbstractFloat, 4} # Cartesian coordinates of control points
-  edge_knot::AbstractArray{Vector{AbstractFloat}, 1}  # edge knot vectors
+  cp_xyz::AbstractArray{Tffd, 4} # Cartesian coordinates of control points
+  edge_knot::AbstractArray{Vector{Tffd}, 1}  # edge knot vectors
 
   # Working arrays
-  aj::AbstractArray{AbstractFloat, 3}
-  dl::AbstractArray{AbstractFloat, 2}
-  dr::AbstractArray{AbstractFloat, 2}
-  work::AbstractArray{AbstractFloat, 4}
+  aj::AbstractArray{Tffd, 3}
+  dl::AbstractArray{Tffd, 2}
+  dr::AbstractArray{Tffd, 2}
+  work::AbstractArray{Tffd, 4}
 
   evalVolume::Function
 
@@ -149,9 +151,9 @@ type PumiMapping{Tffd} <: AbstractMappingType
 
     xi = zeros(Tffd, ndim, mesh_info[1], mesh_info[2])
     cp_xyz = zeros(nctl[1], nctl[2], nctl[3], 3)
-    edge_knot = Array(Vector{AbstractFloat}, 3)
+    edge_knot = Array(Vector{Tffd}, 3)
     for i = 1:3
-      edge_knot[i] = zeros(AbstractFloat, nctl[i]+order[i])
+      edge_knot[i] = zeros(Tffd, nctl[i]+order[i])
     end
 
     # Allocate and initialize mapping arrays

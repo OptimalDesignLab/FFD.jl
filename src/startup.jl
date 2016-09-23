@@ -55,15 +55,14 @@ order = [4,4,1]  # Order of B-splines in the 3 directions
 nControlPts = [4,4,1]
 mesh_info = Int[sbp.numnodes, mesh.numEl]
 
-ffd = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh_info)
+ffd_map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh_info)
 
 # Create Bounding box
 offset = [0.5, 0.5, 0.]
-geom_bounds = zeros(2,3)
+ffd_box = PumiBoundingBox{Tmsh}(mesh, offset)
 
-FreeFormDeformation.calcGeomBounds(mesh.coords, geom_bounds)
-
-println("geom_bounds = \n$geom_bounds")
+# geom_bounds = zeros(2,3)
+# FreeFormDeformation.calcGeomBounds(mesh.coords, geom_bounds)
 
 #=
 map = Mapping(ndim, order, nControlPts, nnodes)

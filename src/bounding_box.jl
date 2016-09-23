@@ -44,53 +44,64 @@ orientation as the physical coordinate system.
 
 """->
 
-type BoundingBox{Tffd} <: AbstractBoundingBox
+type PumiBoundingBox{Tffd} <: AbstractBoundingBox
 
   # Physical space
   ndim::Integer # 2D or 3D
   origin::Array{Tffd, 1}
   unitVector::Array{Tffd, 2}
-  geom_bound::Array{Tffd, 2}  # highest and lowst values of x, y, z
+  geom_bounds::Array{Tffd, 2}  # highest and lowst values of x, y, z
                                        # coordinates along every dimension
                                        # in the physical space
-  offset::Array{Tffd, 1} # Offset from the mesh for the bounding box dimensions
-  box_bound::Array{Tffd, 2}
+  offset::Array{Float64, 1} # Offset from the mesh for the bounding box dimensions
+  box_bounds::Array{Tffd, 2}
   lengths::Array{Tffd, 1} # dimensions of the bounding box
 
   # Parametric space
-  function BoundingBox(dim, coord, spacing) # 3D
+  function PumiBoundingBox(mesh::AbstractMesh, offset) # 3D
 
-    ndim = dim # Set dimensions
+    ndim = 3 # Set dimensions. Only 3D is supported currently
 
     # Allocate members
-    origin = Array(AbstractFloat, 3)
-    unitVector = eye(ndim) # Create default a unit vector aligned with the physical space
-    geom_bound = Array(AbstractFloat, 2, ndim) # each row = x_min, x_max,  each column = ndim
-    box_bound = Array(AbstractFloat, 2, ndim)  # same as above
-    offset = Array(AbstractFloat, ndim) # offset for each dimenstion in the (x, y, z) space
-    lengths = Array(AbstractFloat, ndim) # same as above
+    origin = zeros(Tffd, ndim)
+    unitVector = eye(Tffd, ndim) # Create default a unit vector aligned with the physical space
+    geom_bounds = zeros(Tffd, 2, ndim) # each row = x_min, x_max,  each column = ndim
+    box_bounds = zeros(Tffd, 2, ndim)  # same as above
+    lengths = zeros(Tffd, ndim) # same as above
 
     # Populate members of BoundingBox
-    geom_bound[:,:] = coord[:,:]
-    offset[:] = spacing[:]
+    calcGeomBounds(mesh.coords, geom_bounds)
 
     # Get the boumding box coordinates and dimensions
-    for i = 1:size(geom_bound,2)  # TODO: Come up with a better definition of box_bound and lengths
-      box_bound[1,i] = geom_bound[1,i] - offset[i]
-      box_bound[2,i] = geom_bound[2,i] + offset[i]
-      lengths[i] = box_bound[2,i] - box_bound[1,i]
+    for i = 1:size(geom_bounds,2)  # TODO: Come up with a better definition of box_bound and lengths
+      box_bounds[1,i] = geom_bounds[1,i] - offset[i]
+      box_bounds[2,i] = geom_bounds[2,i] + offset[i]
+      lengths[i] = box_bounds[2,i] - box_bounds[1,i]
     end
 
-    origin[:] = box_bound[1,:] # Get the lower x,y,z ordinates to be defined as the
-                            # origin
+    origin[:] = box_bounds[1,:] # Get the lower x,y,z ordinates to be defined as the
+                               # origin
 
-    new(ndim, origin, unitVector, geom_bound, offset, box_bound, lengths)
-
+    return new(ndim, origin, unitVector, geom_bounds, offset, box_bounds, lengths)
   end
 end
 
 @doc """
+### FreeFormDeformation.calcGeomBounds
 
+Gets the geometric bounds of a pumi mesh object from its mesh coordinates. This
+function works for both 2D and 3D pumi mesh objects
+
+**Arguments**
+
+* `coords` : Pumi Mesh coordinates
+* `geom_bounds` : Highest and lowest values of x,y,z coordinates along every
+                  dimension. dim1 = highest and lowest values, dim2 = x,y or z
+                  direction i.e.
+```
+[xmin ymin zmin
+ xmax ymax zmax]
+```
 
 """->
 
