@@ -78,10 +78,25 @@ end
 =#
 # Create Linear Mapping
 calcParametricMappingLinear(ffd_map, ffd_box, mesh)
-
+#=
 # Translate control points along x & y by  5 units
 ffd_map.cp_xyz[1,:,:,:] += 2
 ffd_map.cp_xyz[2,:,:,:] += 3
+=#
+# Check angular rotation
+# Rotate control points by 90 degrees about Z axis
+gamma = 0.5*pi # angle in radians by which ctls are rotated
+rotx = [1. 0. 0.;0. cos(gamma) -sin(gamma);0. sin(gamma) cos(gamma)]
+roty = [cos(gamma) 0. sin(gamma);0. 1. 0.;-sin(gamma) 0. cos(gamma)]
+rotz = [cos(gamma) -sin(gamma) 0;sin(gamma) cos(gamma) 0;0 0 1]
+# Perform the rotation
+for k = 1:ffd_map.nctl[3]
+  for j = 1:ffd_map.nctl[2]
+    for i = 1:ffd_map.nctl[1]
+      ffd_map.cp_xyz[:,i,j,k] = rotz*ffd_map.cp_xyz[:,i,j,k]
+    end
+  end
+end
 
 evalVolume(ffd_map, mesh)
 
