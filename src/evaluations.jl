@@ -71,27 +71,103 @@ function evalVolume{Tmsh}(map::Mapping, Vol::AbstractArray{Tmsh,4})
   return nothing
 end
 
-function evalVolume{Tmsh}(map::PumiMapping, coords::AbstractArray{Tmsh,3})
+function evalVolume{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractMesh)
 
-  fill!(coords, 0.0)
+  fill!(mesh.coords, 0.0)
 
-  if size(coords,1) == 2 # If its a 2D PumiMesh
-    arr = zeros(Tmsh, 3)
-    for i = 1:size(coords,3)
-      for j = 1:size(coords,2)
-        arr[:] = coords[1:2,j,i]
+  if mesh.dim == 2 # If its a 2D PumiMesh
+    arr = zeros(Tffd, 3)
+    for i = 1:mesh.numEl
+      for j = 1:mesh.numNodesPerElement
+        fill!(arr,0.0)
         evalVolumePoint(map, map.xi[:,j,i], arr)
-        coords[1:2,j,i] = arr[:]
+        mesh.coords[:,j,i] = arr[1:2]
       end
     end
   else  # 3D pumi mesh
-    for i = 1:size(coords,3)
-      for j = 1:size(coords,2)
-        xyz = view(coords, :,j,i)
+    for i = 1:mesh.numEl
+      for j = 1:mesh.numNodesPerElement
+        xyz = view(mesh.coords, :,j,i)
         evalVolumePoint(map, map.xi[:,j,i], xyz)
       end
     end
   end  # End If
+
+  return nothing
+end
+
+
+@doc """
+evalSurface
+
+Evaluate surface points (edge points for 2D) of a a pumi mesh object
+
+**Arguments**
+
+*  `map`  : PumiMapping object
+*  `mesh` : Pumi mesh object
+*  `sbp`  : Summation-By-Parts object
+
+"""->
+
+function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
+                           sbp::AbstractSBP)
+
+  if map.ndim == 2
+    arr = zeros(Tffd, 3)
+    for itr = 1:length(map.geom_faces)
+      geom_face_number = map.geom_faces[itr]
+      itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:end_index
+      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        for j = 1:sbp.numfacenodes
+          fill!(x, 0.0)
+          k = sbp.facenodes[j, bndry_i.face]
+          arr[1:2] = mesh.coords[:,k,bndry_i.elements]
+          evalVolumePoint(map, map.xi[:,j,i,itr], arr)
+          mesh.coords[:,k,bndry_i.elements] = arr[1:2]
+        end  # End for j = 1:sbp.numfacenodes
+      end    # End for i = 1:nfaces
+    end  # End for itr = 1:length(map.geom_faces)
+  else
+    for itr = 1:length(map.geom_faces)
+      geom_face_number = map.geom_faces[itr]
+      itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:end_index
+      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        for j = 1:sbp.numfacenodes
+          fill!(x, 0.0)
+          k = sbp.facenodes[j, bndry_i.face]
+          xyz = view(mesh.coords,:,k,bndry_i.elements)
+          evalVolumePoint(map, map.xi[:,j,i,itr], arr)
+        end  # End for j = 1:sbp.numfacenodes
+      end    # End for i = 1:nfaces
+    end  # End for itr = 1:length(map.geom_faces)
+  end    # End if map.ndim == 2
 
   return nothing
 end
@@ -134,9 +210,9 @@ function evalVolumePoint(map, xi, xyz)
   for ii = 1:map.order[1]
     for jj = 1:map.order[2]
       for kk = 1:map.order[3]
-        for idim = 1:map.ndim
+        for idim = 1:3
           xyz[idim] += Nu[ii]*Nv[jj]*Nw[kk]*
-                       map.cp_xyz[startu+ii, startv+jj, startw+kk, idim]
+                       map.cp_xyz[idim, startu+ii, startv+jj, startw+kk]
         end
       end  # End for kk = 1:map.order[3]
     end    # End for jj = 1:map.order[2]

@@ -27,8 +27,8 @@ opts["BC2_name"] = "Airfoil"
 opts["coloring_distance"] = 0 # For CG Mesh
 
 Tmsh = Float64
-dmg_name = "./mesh_files/2D_Airfoil.dmg"
-smb_name = "./mesh_files/2D_Airfoil.smb"
+dmg_name = ".null"
+smb_name = "./mesh_files/gvortex1.smb"
 order = 1
 dofpernode = 1
 
@@ -50,16 +50,46 @@ mesh = PumiMesh2{Tmsh}(dmg_name, smb_name, order, sbp, opts, sbpface;
 #
 #
 # Free Form deformation parameters
-ndim = 3
+ndim = 2
 order = [4,4,1]  # Order of B-splines in the 3 directions
-nControlPts = [4,4,1]
+nControlPts = [4,4,2]
 mesh_info = Int[sbp.numnodes, mesh.numEl]
 
 ffd_map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh_info)
 
 # Create Bounding box
-offset = [0.5, 0.5, 0.]
-ffd_box = PumiBoundingBox{Tmsh}(mesh, offset)
+offset = [0., 0., 0.5]
+ffd_box = PumiBoundingBox{Tmsh}(ffd_map, mesh, sbp, offset)
+
+println("ffd_box.origin = ", ffd_box.origin)
+
+calcKnot(ffd_map)
+println("ffd_map.edge_knot = \n", ffd_map.edge_knot)
+controlPoint(ffd_map, ffd_box)
+#=
+for k = 1:ffd_map.nctl[3]
+  for j = 1:ffd_map.nctl[2]
+    for i = 1:ffd_map.nctl[1]
+      println("cp_xyz[3,$i,$j,$k] = ", ffd_map.cp_xyz[3,i,j,k])
+    end
+    println('\n')
+  end
+end
+=#
+# Create Linear Mapping
+calcParametricMappingLinear(ffd_map, ffd_box, mesh)
+
+# Translate control points along x & y by  5 units
+ffd_map.cp_xyz[1,:,:,:] += 2
+ffd_map.cp_xyz[2,:,:,:] += 3
+
+evalVolume(ffd_map, mesh)
+
+for i = 1:mesh.numEl
+  update_coords(mesh, i, mesh.coords[:,:,i])
+end
+PumiInterface.writeVtkFiles("Translation", mesh.m_ptr)
+
 
 # geom_bounds = zeros(2,3)
 # FreeFormDeformation.calcGeomBounds(mesh.coords, geom_bounds)

@@ -24,7 +24,7 @@ function controlPoint(map, box)
   for k = 0:map.nctl[3]-1
     for j = 0:map.nctl[2]-1
       for i = 0:map.nctl[1]-1
-        map.cp_xyz[i+1,j+1,k+1,:] = box.origin + (i/(nctl[1]-1))*S +
+        map.cp_xyz[:,i+1,j+1,k+1] = box.origin + (i/(nctl[1]-1))*S +
                                     (j/(nctl[2]-1))*T + (k/(nctl[3]-1))*U
       end
     end

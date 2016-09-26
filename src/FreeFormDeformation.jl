@@ -6,6 +6,7 @@ export calcParametricMappingNonlinear, evalVolume, findSpan
 using ArrayViews
 using PdePumiInterface
 using ODLCommonTools
+using SummationByParts
 
 
 # Abstract Type definition
@@ -25,6 +26,26 @@ following arguments in sequence
 * Number of control points along every direction
 * Number of nodes (embedded geometry points) along every direction
 
+**Method 2 constructor**
+  function PumiMapping(ndim::Int, order::AbstractArray{Int,1},
+                       nctl::AbstractArray{Int,1}, mesh_info::AbstractArray{Int,1};
+                       full_geom=true, geom_faces=[0])
+
+*  `ndim` : Number of dimensions
+*  `order`: Aray of B-spline order in the 3 dimenstions
+*  `nctl` : number of control points along the 3 dimenstions
+*  `mesh_info` : information about the geometry being embedded. If the entire
+                 geometry is being embedded then
+```
+  mesh_info = [num_nodes_per_element, num_elements]
+```
+                 else,
+```
+  mesh_info = [sbp.facenodes, num_boundary_faces, num_geometric_faces]
+```
+*  `full_geom` : Bool. `true` for embedding the entire geometry. `false` if you
+                 want to embedded only certain faces of a geometry
+*  `geom_faces` : Array of geometric face numbers being embedded in the FFD box
 
 **Members**
 
@@ -99,7 +120,7 @@ type Mapping <: AbstractMappingType
     max_knot = max_order + maximum(nctl) # Maximum number of knots among 3 dimensions
 
     xi = zeros(numnodes[1], numnodes[2], numnodes[3], 3)
-    cp_xyz = zeros(nctl[1], nctl[2], nctl[3], 3)
+    cp_xyz = zeros(3,nctl[1], nctl[2], nctl[3])
     edge_knot = Array(Vector{AbstractFloat}, 3)
     for i = 1:3
       edge_knot[i] = zeros(AbstractFloat, nctl[i]+order[i])
@@ -119,12 +140,14 @@ end  # End Mapping
 type PumiMapping{Tffd} <: AbstractMappingType
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
+  full_geom::Bool               # Embed entire geometry or only certain faces
   nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
   order::AbstractArray{Int, 1}  # Order of B-spline in each direction
 
-  xi::AbstractArray{Tffd, 3}
+  xi::AbstractArray{Tffd}       # Paramaetric coordinates of input geometry
   cp_xyz::AbstractArray{Tffd, 4} # Cartesian coordinates of control points
   edge_knot::AbstractArray{Vector{Tffd}, 1}  # edge knot vectors
+  geom_faces::AbstractArray{Int,1}
 
   # Working arrays
   aj::AbstractArray{Tffd, 3}
@@ -135,11 +158,13 @@ type PumiMapping{Tffd} <: AbstractMappingType
   evalVolume::Function
 
   function PumiMapping(ndim::Int, order::AbstractArray{Int,1},
-                       nctl::AbstractArray{Int,1}, mesh_info::AbstractArray{Int,1})
+                       nctl::AbstractArray{Int,1}, mesh_info::AbstractArray{Int,1};
+                       full_geom=true, geom_faces::AbstractArray{Int,1}=[0])
 
+    map = new()
     # Check if the input arguments are valid
-    @assert ndim == 3 "Only 3D is supported"
-    for i = 1:ndim
+    @assert ndim >= 2 "Only 2D and 3D valid"
+    for i = 1:3
       @assert order[i] > 0 "Order cannot be 0 in the $i direction"
       @assert nctl[i] > 0 "number of control points cannot be 0 in $i direction"
     end
@@ -149,24 +174,34 @@ type PumiMapping{Tffd} <: AbstractMappingType
     # Define max_wrk = number of work elements at each control point
     const max_work = 2*6  # 2*n_variables
 
-    xi = zeros(Tffd, ndim, mesh_info[1], mesh_info[2])
-    cp_xyz = zeros(nctl[1], nctl[2], nctl[3], 3)
-    edge_knot = Array(Vector{Tffd}, 3)
+    map.ndim = ndim
+    map.full_geom = full_geom
+    map.order = order
+    map.nctl = nctl
+    map.cp_xyz = zeros(3, nctl[1], nctl[2], nctl[3])
+
+    map.edge_knot = Array(Vector{Tffd}, 3)
     for i = 1:3
-      edge_knot[i] = zeros(Tffd, nctl[i]+order[i])
+      map.edge_knot[i] = zeros(Tffd, nctl[i]+order[i])
+    end
+
+    if full_geom == true
+      map.xi = zeros(Tffd, 3, mesh_info[1], mesh_info[2])
+    else
+      map.xi = zeros(Tffd, 3, mesh_info[1], mesh_info[2], mesh_info[3])
+      map.geom_faces = geom_faces
     end
 
     # Allocate and initialize mapping arrays
     max_order = maximum(order)  # Highest order among 3 dimensions
     max_knot = max_order + maximum(nctl) # Maximum number of knots among 3 dimensions
 
-    aj = zeros(3, max_order, 3)
-    dl = zeros(max_order-1, 3)
-    dr = zeros(max_order-1, 3)
-    work = zeros(nctl[1], nctl[2], nctl[3], max_work)
+    map.aj = zeros(3, max_order, 3)
+    map.dl = zeros(max_order-1, 3)
+    map.dr = zeros(max_order-1, 3)
+    map.work = zeros(nctl[1], nctl[2], nctl[3], max_work)
 
-    return new(ndim, nctl, order, xi, cp_xyz, edge_knot, aj, dl, dr, work,
-               evalVolume)
+    return map
   end
 end  # End type PumiMapping
 

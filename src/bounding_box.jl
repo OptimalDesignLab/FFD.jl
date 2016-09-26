@@ -58,7 +58,16 @@ type PumiBoundingBox{Tffd} <: AbstractBoundingBox
   lengths::Array{Tffd, 1} # dimensions of the bounding box
 
   # Parametric space
-  function PumiBoundingBox(mesh::AbstractMesh, offset) # 3D
+  function PumiBoundingBox(map::PumiMapping, mesh::AbstractMesh,
+                           sbp::AbstractSBP, offset) # 3D
+
+    # Check Inputs
+    for i = 1:3
+      @assert offset[i] >= 0 "The bounding box offsets need to be >= 0 in every direction"
+    end
+    if mesh.dim == 2
+      @assert offset[3] > 0 "2D meshes requires offset along 3rd dimension > 0"
+    end
 
     ndim = 3 # Set dimensions. Only 3D is supported currently
 
@@ -70,7 +79,11 @@ type PumiBoundingBox{Tffd} <: AbstractBoundingBox
     lengths = zeros(Tffd, ndim) # same as above
 
     # Populate members of BoundingBox
-    calcGeomBounds(mesh.coords, geom_bounds)
+    if map.full_geom == true
+      calcEntireGeometryBounds(mesh.coords, geom_bounds)
+    else
+      calcSurfaceGeomBounds(mesh, sbp, geom_bounds,map.geom_faces)
+    end
 
     # Get the boumding box coordinates and dimensions
     for i = 1:size(geom_bounds,2)  # TODO: Come up with a better definition of box_bound and lengths
@@ -105,8 +118,8 @@ function works for both 2D and 3D pumi mesh objects
 
 """->
 
-function calcGeomBounds{Tffd}(coords::AbstractArray{Tffd,3},
-                              geom_bounds::AbstractArray{Tffd,2})
+function calcEntireGeometryBounds{Tffd}(coords::AbstractArray{Tffd,3},
+                                        geom_bounds::AbstractArray{Tffd,2})
 
   fill!(geom_bounds, 0.0)
 
@@ -155,6 +168,109 @@ function calcGeomBounds{Tffd}(coords::AbstractArray{Tffd,3},
         end # End if
       end   # End for j = 1:size(coords,2)
     end     # End for i = 1:size(coords,3)
+  end
+
+  geom_bounds[1,1] = xmin
+  geom_bounds[2,1] = xmax
+  geom_bounds[1,2] = ymin
+  geom_bounds[2,2] = ymax
+  geom_bounds[1,3] = zmin
+  geom_bounds[2,3] = zmax
+
+  return nothing
+end
+
+function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
+                                     geom_bounds::AbstractArray{Tffd,2},
+                                     geom_faces::AbstractArray{Int,1})
+
+  fill!(geom_bounds, 0.0)
+
+  xmin = zero(Tffd)
+  xmax = zero(Tffd)
+  ymin = zero(Tffd)
+  ymax = zero(Tffd)
+  zmin = zero(Tffd)
+  zmax = zero(Tffd)
+
+
+  if mesh.dim == 2
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:end_index
+      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        for j = 1:sbp.numfacenodes
+          k = sbp.facenodes[j, bndry_i.face]
+          coords = view(mesh.coords, :, k, bndry_i.elements)
+          if xmin > coords[1,j,i]
+            xmin = coords[1,j,i]
+          elseif xmax < coords[1,j,i]
+            xmax = coords[1,j,i]
+          end # End if
+
+          if ymin > coords[2,j,i]
+            ymin = coords[2,j,i]
+          elseif ymax < coords[2,j,i]
+            ymax = coords[2,j,i]
+          end # End if
+        end   # End for j = 1:sbp.facenode
+      end     # End for i = 1:nfaces
+    end       # End for itr = 1:length(geom_faces)
+  else
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:end_index
+      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        for j = 1:sbp.numfacenodes
+          k = sbp.facenodes[j, bndry_i.face]
+          coords = view(mesh.coords, :, k, bndry_i.elements)
+          if xmin > coords[1,j,i]
+            xmin = coords[1,j,i]
+          elseif xmax < coords[1,j,i]
+            xmax = coords[1,j,i]
+          end # End if
+
+          if ymin > coords[2,j,i]
+            ymin = coords[2,j,i]
+          elseif ymax < coords[2,j,i]
+            ymax = coords[2,j,i]
+          end # End if
+
+          if zmin > coords[3,j,i]
+            zmin = coords[3,j,i]
+          elseif zmax < coords[3,j,i]
+            zmax = coords[3,j,i]
+          end # End if
+        end   # End for j = 1:sbp.facenode
+      end     # End for i = 1:nfaces
+    end       # End for itr = 1:length(geom_faces)
   end
 
   geom_bounds[1,1] = xmin

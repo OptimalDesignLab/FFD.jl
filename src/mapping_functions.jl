@@ -34,7 +34,8 @@ may change at a later date
 
 """->
 
-function linearMap(map, box, X, pX)
+function linearMap(map::AbstractMappingType, box::AbstractBoundingBox,
+                   X, pX)
 
   # The assumption of the mapping for the bounding box presently is that
   # coordinate transformation from physical x,y,z coordinate transformation to
@@ -143,7 +144,8 @@ Creates a linear mapping for an array of nodes in the (x,y,z) space to the
 *  `nodes_xyz` : (x,y,z) coordinates of the nodes of the mesh
 """->
 
-function calcParametricMappingLinear(map, box, nodes_xyz)
+function calcParametricMappingLinear(map::Mapping, box,
+                                     nodes_xyz::AbstractArray{AbstractFloat,4})
 
   X = zeros(map.ndim)
   for k = 1:map.numnodes[3]
@@ -159,6 +161,98 @@ function calcParametricMappingLinear(map, box, nodes_xyz)
   return nothing
 end  # End function calcParametricLinear
 
+function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
+                                     box::PumiBoundingBox, mesh::AbstractCGMesh)
+
+  if mesh.dim == 2
+    X = zeros(Tffd,3)
+    for i = 1:mesh.numEl
+      for j = 1:mesh.numNodesPerElement
+        X[1:2] = mesh.coords[:,j,i]
+        pX = view(map.xi,:,j,i)
+        linearMap(map, box, X, pX)
+      end
+    end
+  else
+    for i = 1:mesh.numEl
+      for j = 1:mesh.numNodesPerElement
+        X = view(mesh.coords,:,j,i)
+        pX = view(map.xi,:,j,i)
+        linearMap(map, box, X, pX)
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+function calcParametricMappingLinear{Tffd}(mesh::AbstractCGMesh{Tffd},
+                                     sbp::AbstractSBP, box::PumiBoundingBox,
+                                     geom_faces::AbstractArray{Int,1})
+
+  if mesh.dim == 2
+    x = zeros(Tffd,3)
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:end_index
+      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        for j = 1:sbp.numfacenodes
+          fill!(x, 0.0)
+          k = sbp.facenodes[j, bndry_i.face]
+          x[1:2] = mesh.coords[:,k,bndry_i.elements]
+          pX = view(map.xi, :, j, i)
+          linearMap(map, box, x, pX)
+        end  # End for j = 1:sbp.numfacenodes
+      end    # End for i = 1:nfaces
+    end      # End for itr = 1:length(geomfaces)
+  else
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:end_index
+      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        for j = 1:sbp.numfacenodes
+          fill!(x, 0.0)
+          k = sbp.facenodes[j, bndry_i.face]
+          X = view(mesh.coords,:,k,bndry_i.elements)
+          pX = view(map.xi, :, j, i)
+          linearMap(map, box, X, pX)
+        end  # End for j = 1:sbp.numfacenodes
+      end    # End for i = 1:nfaces
+    end      # End for itr = 1:length(geomfaces)
+
+  end  # End if mesh.dim == 2
+
+  return nothing
+end
+
+
 @doc """
 ### calcParametricMappingNonlinear
 
@@ -173,7 +267,8 @@ Creates a non linear mapping for an array of nodes in the (x,y,z) space to the
 
 """->
 
-function calcParametricMappingNonlinear(map, box, nodes_xyz)
+function calcParametricMappingNonlinear(map::Mapping, box,
+                                        nodes_xyz::AbstractArray{AbstractFloat,4})
 
   X = zeros(map.ndim)
   pX = zeros(map.ndim)
@@ -185,6 +280,20 @@ function calcParametricMappingNonlinear(map, box, nodes_xyz)
         nonlinearMap(map, box, X, pX)
         map.xi[i,j,k,:] = pX[:]
       end
+    end
+  end
+
+  return nothing
+end
+
+function calcParametricMappingNonlinear{Tffd}(map::PumiMapping, box::PumiBoundingBox,
+                                        nodes_xyz::AbstractArray{Tffd,3})
+
+  for i = 1:size(nodes_xyz,3)
+    for j = 1:size(nodes_xyz,2)
+      X = view(nodes_xyz,:,j,i)
+      pX = view(map.xi,:,j,i)
+      nonlinearMap(map, box, X, pX)
     end
   end
 
