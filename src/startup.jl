@@ -88,7 +88,7 @@ end
 =#
 
 # Create Linear Mapping
-calcParametricMappingLinear(ffd_map, ffd_box, mesh)
+calcParametricMappingNonlinear(ffd_map, ffd_box, mesh)
 #println("ffd_map.xi = \n", ffd_map.xi)
 
 

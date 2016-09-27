@@ -410,6 +410,31 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
 end
 
 function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
+                                        box::PumiBoundingBox, mesh::AbstractDGMesh)
+
+  if mesh.dim == 2
+    X = zeros(Tffd,3)
+    for i = 1:mesh.numEl
+      for j = 1:mesh.numNodesPerElement
+        X[1:2] = mesh.vert_coords[:,j,i]
+        pX = view(map.xi,:,j,i)
+        nonlinearMap(map, box, X, pX)
+      end
+    end
+  else
+    for i = 1:mesh.numEl
+      for j = 1:mesh.numNodesPerElement
+        X = view(mesh.vert_coords,:,j,i)
+        pX = view(map.xi,:,j,i)
+        nonlinearMap(map, box, X, pX)
+      end
+    end
+  end
+
+  return nothing
+end
+
+function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractCGMesh,
                                      sbp::AbstractSBP,
                                      geom_faces::AbstractArray{Int,1})
