@@ -35,23 +35,25 @@ opts["coloring_distance"] = 0 # For CG Mesh
 
 Tmsh = Float64
 dmg_name = ".null"
-smb_name = "./mesh_files/gvortex1np2.smb"
+smb_name = "./mesh_files/gvortex1.smb"
 order = 1
 dofpernode = 1
 
 # SBP & Mesh Parameters
 # For SBP Gamma
-reorder = true
-internal = false
-shape_type = 1
+reorder = false
+internal = true
+shape_type = 2
 
 # create linear sbp operator
 sbp = TriSBP{Float64}(degree=order, reorder=reorder, internal=internal)
-sbpface = TriFace{Float64}(order, sbp.cub, sbp.vtx)
+ref_verts = [-1. 1 -1; -1 -1 1]
+interp_op = SummationByParts.buildinterpolation(sbp, ref_verts)
+sbpface = TriFace{Float64}(order, sbp.cub, ref_verts.')
 # create linear mesh with 4 dof per node
 
-println("constructing CG mesh")
-mesh = PumiMesh2{Tmsh}(dmg_name, smb_name, order, sbp, opts, sbpface;
+println("constructing DG mesh")
+mesh = PumiMeshDG2{Tmsh}(dmg_name, smb_name, order, sbp, opts, interp_op, sbpface;
        dofpernode=dofpernode, coloring_distance=opts["coloring_distance"],
        shape_type=shape_type)
 #
@@ -86,7 +88,7 @@ end
 =#
 
 # Create Linear Mapping
-calcParametricMappingNonlinear(ffd_map, ffd_box, mesh)
+calcParametricMappingLinear(ffd_map, ffd_box, mesh)
 #println("ffd_map.xi = \n", ffd_map.xi)
 
 
@@ -117,7 +119,7 @@ evalVolume(ffd_map, mesh)
 for i = 1:mesh.numEl
   update_coords(mesh, i, mesh.coords[:,:,i])
 end
-PumiInterface.writeVtkFiles("Translation", mesh.m_ptr)
+PumiInterface.writeVtkFiles("Rotation", mesh.m_ptr)
 
 
 # geom_bounds = zeros(2,3)
