@@ -68,7 +68,7 @@ type PumiBoundingBox{Tffd} <: AbstractBoundingBox
     if mesh.dim == 2
       @assert offset[3] > 0 "2D meshes requires offset along 3rd dimension > 0"
     end
-    
+
     ndim = 3 # The Bounding box is 3D
 
     # Allocate members
@@ -80,10 +80,14 @@ type PumiBoundingBox{Tffd} <: AbstractBoundingBox
 
     # Populate members of BoundingBox
     if map.full_geom == true
-      calcEntireGeometryBounds(mesh.coords, geom_bounds)
+      if mesh.isDG == true
+        calcEntireGeometryBounds(mesh.vert_coords, geom_bounds)
+      else
+        calcEntireGeometryBounds(mesh.coords, geom_bounds)
+      end  # End if mesh.isDG == true
     else
       calcSurfaceGeomBounds(mesh, sbp, geom_bounds,map.geom_faces)
-    end
+    end  # End if map.full_geom == true
 
     # Get the boumding box coordinates and dimensions
     for i = 1:size(geom_bounds,2)  # TODO: Come up with a better definition of box_bound and lengths
@@ -180,11 +184,27 @@ function calcEntireGeometryBounds{Tffd}(coords::AbstractArray{Tffd,3},
   if !MPI.Initialized()
     MPI.Init()
   end
-
-  comm = MPI.COMM_WORLD
   recv_buffer = MPI.Allgather(geom_bounds, MPI.COMM_WORLD)
-
-  println("recv_buffer = $(typeof(recv_buffer))")
+  for i = 1:6:length(recv_buffer)
+    if recv_buffer[i] < geom_bounds[1,1]
+      geom_bounds[1,1] = recv_buffer[i]
+    end
+    if recv_buffer[i+1] > geom_bounds[2,1]
+      geom_bounds[2,1] = recv_buffer[i+1]
+    end
+    if recv_buffer[i+2] < geom_bounds[1,2]
+      geom_bounds[1,2] = recv_buffer[i+2]
+    end
+    if recv_buffer[i+3] > geom_bounds[2,2]
+      geom_bounds[2,2] = recv_buffer[i+3]
+    end
+    if recv_buffer[i+4] < geom_bounds[1,3]
+      geom_bounds[1,3] = recv_buffer[i+4]
+    end
+    if recv_buffer[i+5] > geom_bounds[2,3]
+      geom_bounds[2,3] = recv_buffer[i]
+    end
+  end
 
   return nothing
 end
@@ -288,6 +308,160 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
   geom_bounds[2,2] = ymax
   geom_bounds[1,3] = zmin
   geom_bounds[2,3] = zmax
+
+  if !MPI.Initialized()
+    MPI.Init()
+  end
+  recv_buffer = MPI.Allgather(geom_bounds, MPI.COMM_WORLD)
+  for i = 1:6:length(recv_buffer)
+    if recv_buffer[i] < geom_bounds[1,1]
+      geom_bounds[1,1] = recv_buffer[i]
+    end
+    if recv_buffer[i+1] > geom_bounds[2,1]
+      geom_bounds[2,1] = recv_buffer[i+1]
+    end
+    if recv_buffer[i+2] < geom_bounds[1,2]
+      geom_bounds[1,2] = recv_buffer[i+2]
+    end
+    if recv_buffer[i+3] > geom_bounds[2,2]
+      geom_bounds[2,2] = recv_buffer[i+3]
+    end
+    if recv_buffer[i+4] < geom_bounds[1,3]
+      geom_bounds[1,3] = recv_buffer[i+4]
+    end
+    if recv_buffer[i+5] > geom_bounds[2,3]
+      geom_bounds[2,3] = recv_buffer[i]
+    end
+  end
+
+  return nothing
+end
+
+function calcSurfaceGeomBounds{Tffd}(mesh::AbstractDGMesh, sbp::AbstractSBP,
+                                     geom_bounds::AbstractArray{Tffd,2},
+                                     geom_faces::AbstractArray{Int,1})
+
+  fill!(geom_bounds, 0.0)
+
+  xmin = zero(Tffd)
+  xmax = zero(Tffd)
+  ymin = zero(Tffd)
+  ymax = zero(Tffd)
+  zmin = zero(Tffd)
+  zmax = zero(Tffd)
+
+
+  if mesh.dim == 2
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices on the boundary face (local face number)
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          coords = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.elements)
+          if xmin > coords[1,j,i]
+            xmin = coords[1,j,i]
+          elseif xmax < coords[1,j,i]
+            xmax = coords[1,j,i]
+          end # End if
+
+          if ymin > coords[2,j,i]
+            ymin = coords[2,j,i]
+          elseif ymax < coords[2,j,i]
+            ymax = coords[2,j,i]
+          end # End if
+        end   # End for j = 1:sbp.facenode
+      end     # End for i = 1:nfaces
+    end       # End for itr = 1:length(geom_faces)
+  else
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices on the boundary face (local face number)
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          coords = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.elements)
+          if xmin > coords[1,j,i]
+            xmin = coords[1,j,i]
+          elseif xmax < coords[1,j,i]
+            xmax = coords[1,j,i]
+          end # End if
+
+          if ymin > coords[2,j,i]
+            ymin = coords[2,j,i]
+          elseif ymax < coords[2,j,i]
+            ymax = coords[2,j,i]
+          end # End if
+
+          if zmin > coords[3,j,i]
+            zmin = coords[3,j,i]
+          elseif zmax < coords[3,j,i]
+            zmax = coords[3,j,i]
+          end # End if
+        end   # End for j = 1:sbp.facenode
+      end     # End for i = 1:nfaces
+    end       # End for itr = 1:length(geom_faces)
+  end
+
+  geom_bounds[1,1] = xmin
+  geom_bounds[2,1] = xmax
+  geom_bounds[1,2] = ymin
+  geom_bounds[2,2] = ymax
+  geom_bounds[1,3] = zmin
+  geom_bounds[2,3] = zmax
+
+  if !MPI.Initialized()
+    MPI.Init()
+  end
+  recv_buffer = MPI.Allgather(geom_bounds, MPI.COMM_WORLD)
+  for i = 1:6:length(recv_buffer)
+    if recv_buffer[i] < geom_bounds[1,1]
+      geom_bounds[1,1] = recv_buffer[i]
+    end
+    if recv_buffer[i+1] > geom_bounds[2,1]
+      geom_bounds[2,1] = recv_buffer[i+1]
+    end
+    if recv_buffer[i+2] < geom_bounds[1,2]
+      geom_bounds[1,2] = recv_buffer[i+2]
+    end
+    if recv_buffer[i+3] > geom_bounds[2,2]
+      geom_bounds[2,2] = recv_buffer[i+3]
+    end
+    if recv_buffer[i+4] < geom_bounds[1,3]
+      geom_bounds[1,3] = recv_buffer[i+4]
+    end
+    if recv_buffer[i+5] > geom_bounds[2,3]
+      geom_bounds[2,3] = recv_buffer[i]
+    end
+  end
 
   return nothing
 end

@@ -495,7 +495,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
-        # get the local index of the vertices
+        # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
           fill!(x, 0.0)
@@ -523,6 +523,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
+        # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
           k = sbp.facenodes[j, bndry_i.face]

@@ -35,7 +35,7 @@ opts["coloring_distance"] = 0 # For CG Mesh
 
 Tmsh = Float64
 dmg_name = ".null"
-smb_name = "./mesh_files/gvortex1.smb"
+smb_name = "./mesh_files/gvortex1np2.smb"
 order = 1
 dofpernode = 1
 
@@ -66,7 +66,7 @@ mesh_info = Int[sbp.numnodes, mesh.numEl]
 
 ffd_map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh_info)
 calcKnot(ffd_map)
-println("ffd_map.edge_knot = \n", ffd_map.edge_knot)
+# println("ffd_map.edge_knot = \n", ffd_map.edge_knot)
 
 # Create Bounding box
 offset = [0., 0., 0.5]
