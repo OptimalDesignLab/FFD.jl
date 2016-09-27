@@ -258,7 +258,7 @@ function calcdXdxi(map, xi, jderiv, dX)
   end
 
   # find the spatially varying knot vector
-  calcKnot(map)
+  # calcKnot(map)
 
   # find the left(3) array such that
   #   knot(mdi,left(mdi)) <= xi(mdi) <= knot(mdi,left(mdi)+1)

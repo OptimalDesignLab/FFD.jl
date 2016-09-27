@@ -14,8 +14,15 @@ using ODLCommonTools
 using ArrayViews
 using MPI
 using MeshMovement
-
 using FreeFormDeformation
+
+# MPI Declarations
+MPI.Init()
+comm = MPI.COMM_WORLD
+comm_world = MPI.MPI_COMM_WORLD
+comm_self = MPI.COMM_SELF
+my_rank = MPI.Comm_rank(comm)
+comm_size = MPI.Comm_size(comm)
 
 opts = PdePumiInterface.get_defaults()
 # 2D mesh
@@ -77,9 +84,12 @@ for k = 1:ffd_map.nctl[3]
   end
 end
 =#
+
 # Create Linear Mapping
 calcParametricMappingNonlinear(ffd_map, ffd_box, mesh)
 #println("ffd_map.xi = \n", ffd_map.xi)
+
+
 #=
 # Translate control points along x & y by  5 units
 ffd_map.cp_xyz[1,:,:,:] += 2
