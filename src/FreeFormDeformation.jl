@@ -4,6 +4,7 @@ export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
 export calcParametricMappingNonlinear, evalVolume, findSpan
 
 using ArrayViews
+using MPI
 using PdePumiInterface
 using ODLCommonTools
 using SummationByParts

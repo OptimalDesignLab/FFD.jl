@@ -35,7 +35,7 @@ opts["coloring_distance"] = 0 # For CG Mesh
 
 Tmsh = Float64
 dmg_name = ".null"
-smb_name = "./mesh_files/gvortex1.smb"
+smb_name = "./mesh_files/gvortex1np2.smb"
 order = 1
 dofpernode = 1
 

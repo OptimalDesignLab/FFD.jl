@@ -177,6 +177,15 @@ function calcEntireGeometryBounds{Tffd}(coords::AbstractArray{Tffd,3},
   geom_bounds[1,3] = zmin
   geom_bounds[2,3] = zmax
 
+  if !MPI.Initialized()
+    MPI.Init()
+  end
+
+  comm = MPI.COMM_WORLD
+  recv_buffer = MPI.Allgather(geom_bounds, MPI.COMM_WORLD)
+
+  println("recv_buffer = $(typeof(recv_buffer))")
+
   return nothing
 end
 
