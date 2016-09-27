@@ -68,8 +68,8 @@ type PumiBoundingBox{Tffd} <: AbstractBoundingBox
     if mesh.dim == 2
       @assert offset[3] > 0 "2D meshes requires offset along 3rd dimension > 0"
     end
-
-    ndim = 3 # Set dimensions. Only 3D is supported currently
+    
+    ndim = 3 # The Bounding box is 3D
 
     # Allocate members
     origin = zeros(Tffd, ndim)

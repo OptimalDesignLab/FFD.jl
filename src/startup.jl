@@ -51,20 +51,21 @@ mesh = PumiMesh2{Tmsh}(dmg_name, smb_name, order, sbp, opts, sbpface;
 #
 # Free Form deformation parameters
 ndim = 2
-order = [4,4,1]  # Order of B-splines in the 3 directions
+order = [4,4,2]  # Order of B-splines in the 3 directions
 nControlPts = [4,4,2]
 mesh_info = Int[sbp.numnodes, mesh.numEl]
 
 ffd_map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh_info)
+calcKnot(ffd_map)
+println("ffd_map.edge_knot = \n", ffd_map.edge_knot)
 
 # Create Bounding box
 offset = [0., 0., 0.5]
 ffd_box = PumiBoundingBox{Tmsh}(ffd_map, mesh, sbp, offset)
 
-println("ffd_box.origin = ", ffd_box.origin)
+# println("ffd_box.origin = ", ffd_box.origin)
 
-calcKnot(ffd_map)
-println("ffd_map.edge_knot = \n", ffd_map.edge_knot)
+
 controlPoint(ffd_map, ffd_box)
 #=
 for k = 1:ffd_map.nctl[3]
@@ -77,7 +78,8 @@ for k = 1:ffd_map.nctl[3]
 end
 =#
 # Create Linear Mapping
-calcParametricMappingLinear(ffd_map, ffd_box, mesh)
+calcParametricMappingNonlinear(ffd_map, ffd_box, mesh)
+#println("ffd_map.xi = \n", ffd_map.xi)
 #=
 # Translate control points along x & y by  5 units
 ffd_map.cp_xyz[1,:,:,:] += 2
@@ -99,6 +101,8 @@ for k = 1:ffd_map.nctl[3]
 end
 
 evalVolume(ffd_map, mesh)
+
+# println("mesh.coords = \n", mesh.coords)
 
 for i = 1:mesh.numEl
   update_coords(mesh, i, mesh.coords[:,:,i])

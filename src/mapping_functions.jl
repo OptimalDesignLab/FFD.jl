@@ -85,14 +85,15 @@ solve.
 
 """->
 
-function nonlinearMap(map, box, X, pX)
+function nonlinearMap(map::AbstractMappingType, box::AbstractBoundingBox,
+                      X, pX)
 
   origin = box.origin
 
   # Compute the residual
-  res = zeros(map.ndim)
-  pointVal = zeros(map.ndim)
-  xi = zeros(map.ndim)
+  res = zeros(box.ndim)
+  pointVal = zeros(box.ndim)
+  xi = zeros(box.ndim)
   xi_new = zeros(xi)
   xi[:] = pX
 
@@ -106,17 +107,17 @@ function nonlinearMap(map, box, X, pX)
     res = X - pointVal
 
     # Construct jacobian
-    J = zeros(map.ndim, map.ndim)
-    jderiv = zeros(Int, map.ndim)
+    J = zeros(box.ndim, box.ndim)
+    jderiv = zeros(Int, box.ndim)
 
-    for i = 1:map.ndim
+    for i = 1:box.ndim
       fill!(jderiv, 0)
       jderiv[i] = 1
       Jrow = view(J,i,:)
       calcdXdxi(map, xi, jderiv, Jrow)
     end
     xi_new = xi + J\res
-
+    #println("xi_new = $xi_new")
     if norm(xi_new - xi, 2) < 1e-14
       pX[:] = xi_new[:]
       break
@@ -125,8 +126,6 @@ function nonlinearMap(map, box, X, pX)
     end
 
   end
-
-
 
   return nothing
 end
@@ -187,8 +186,9 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
 end
 
 
-function calcParametricMappingLinear{Tffd}(mesh::AbstractCGMesh{Tffd},
-                                     sbp::AbstractSBP, box::PumiBoundingBox,
+function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
+                                     box::PumiBoundingBox, mesh::AbstractCGMesh,
+                                     sbp::AbstractSBP,
                                      geom_faces::AbstractArray{Int,1})
 
   if mesh.dim == 2
@@ -286,16 +286,93 @@ function calcParametricMappingNonlinear(map::Mapping, box,
   return nothing
 end
 
-function calcParametricMappingNonlinear{Tffd}(map::PumiMapping, box::PumiBoundingBox,
-                                        nodes_xyz::AbstractArray{Tffd,3})
+function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
+                                        box::PumiBoundingBox, mesh::AbstractCGMesh)
 
-  for i = 1:size(nodes_xyz,3)
-    for j = 1:size(nodes_xyz,2)
-      X = view(nodes_xyz,:,j,i)
-      pX = view(map.xi,:,j,i)
-      nonlinearMap(map, box, X, pX)
+  if mesh.dim == 2
+    X = zeros(Tffd,3)
+    for i = 1:mesh.numEl
+      for j = 1:mesh.numNodesPerElement
+        X[1:2] = mesh.coords[:,j,i]
+        pX = view(map.xi,:,j,i)
+        nonlinearMap(map, box, X, pX)
+      end
+    end
+  else
+    for i = 1:mesh.numEl
+      for j = 1:mesh.numNodesPerElement
+        X = view(mesh.coords,:,j,i)
+        pX = view(map.xi,:,j,i)
+        nonlinearMap(map, box, X, pX)
+      end
     end
   end
+
+  return nothing
+end
+
+function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
+                                     box::PumiBoundingBox, mesh::AbstractCGMesh,
+                                     sbp::AbstractSBP,
+                                     geom_faces::AbstractArray{Int,1})
+
+  if mesh.dim == 2
+    x = zeros(Tffd,3)
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:end_index
+      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        for j = 1:sbp.numfacenodes
+          fill!(x, 0.0)
+          k = sbp.facenodes[j, bndry_i.face]
+          x[1:2] = mesh.coords[:,k,bndry_i.elements]
+          pX = view(map.xi, :, j, i)
+          nonlinearMap(map, box, x, pX)
+        end  # End for j = 1:sbp.numfacenodes
+      end    # End for i = 1:nfaces
+    end      # End for itr = 1:length(geomfaces)
+  else
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:end_index
+      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        for j = 1:sbp.numfacenodes
+          fill!(x, 0.0)
+          k = sbp.facenodes[j, bndry_i.face]
+          X = view(mesh.coords,:,k,bndry_i.elements)
+          pX = view(map.xi, :, j, i)
+          nonlinearMap(map, box, X, pX)
+        end  # End for j = 1:sbp.numfacenodes
+      end    # End for i = 1:nfaces
+    end      # End for itr = 1:length(geomfaces)
+
+  end  # End if mesh.dim == 2
 
   return nothing
 end

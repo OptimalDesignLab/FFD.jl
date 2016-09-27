@@ -16,13 +16,13 @@ vector is computed in the parametric space [0,1] in all the 3 directions
 function calcKnot(map)
 
   # Assertions
-  for i = 1:map.ndim
+  for i = 1:3
     @assert length(map.edge_knot[i]) >= 2*map.order[i] "Length of knot vector
     not sufficient to ensure nonperiodic/clamped/open knot vector in $i
     direction"
   end
 
-  for di = 1:map.ndim
+  for di = 1:3
     order = map.order[di]
     nctl = map.nctl[di]
     # Zero out the knot vector

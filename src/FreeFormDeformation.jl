@@ -251,22 +251,22 @@ function calcdXdxi(map, xi, jderiv, dX)
   left = zeros(Int, 3)
 
   # the derivative is zero if any of jderiv(mdi) >= order(mdi)
-    for mdi = 1:3
-      if jderiv[mdi] >= map.order[mdi]
-        return
-      end
+  for mdi = 1:3
+    if jderiv[mdi] >= map.order[mdi]
+      return
     end
+  end
 
-    # find the spatially varying knot vector
-    calcKnot(map)
+  # find the spatially varying knot vector
+  calcKnot(map)
 
-    # find the left(3) array such that
-    #   knot(mdi,left(mdi)) <= xi(mdi) <= knot(mdi,left(mdi)+1)
-    for mdi = 1:3
-      left[mdi] = findSpan(xi[mdi], map.edge_knot[mdi], map.order[mdi], map.nctl[mdi])
-    end
-    # the calculations involving the knot vectors are independent,
-    # so loop through them sequentially
+  # find the left(3) array such that
+  #   knot(mdi,left(mdi)) <= xi(mdi) <= knot(mdi,left(mdi)+1)
+  for mdi = 1:3
+    left[mdi] = findSpan(xi[mdi], map.edge_knot[mdi], map.order[mdi], map.nctl[mdi])
+  end
+  # the calculations involving the knot vectors are independent,
+  # so loop through them sequentially
 
 
     for mdi = 1:3
@@ -335,7 +335,7 @@ function calcdXdxi(map, xi, jderiv, dX)
         map.aj[:,:,3] = 0.0
 
         for jc3 = jcmin[3]:jcmax[3]
-          map.aj[:,jc3,3] = map.cp_xyz[p,q,imk[3]+jc3,:]
+          map.aj[:,jc3,3] = map.cp_xyz[:,p,q,imk[3]+jc3]
         end
 
         if jderiv[3] != 0
