@@ -145,7 +145,7 @@ type PumiMapping{Tffd} <: AbstractMappingType
   nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
   order::AbstractArray{Int, 1}  # Order of B-spline in each direction
 
-  xi::AbstractArray{Tffd}       # Paramaetric coordinates of input geometry
+  xi::AbstractArray       # Paramaetric coordinates of input geometry
   cp_xyz::AbstractArray{Tffd, 4} # Cartesian coordinates of control points
   edge_knot::AbstractArray{Vector{Tffd}, 1}  # edge knot vectors
   geom_faces::AbstractArray{Int,1}
@@ -159,7 +159,7 @@ type PumiMapping{Tffd} <: AbstractMappingType
   evalVolume::Function
 
   function PumiMapping(ndim::Int, order::AbstractArray{Int,1},
-                       nctl::AbstractArray{Int,1}, mesh_info::AbstractArray{Int,1};
+                       nctl::AbstractArray{Int,1}, mesh::AbstractMesh;
                        full_geom=true, geom_faces::AbstractArray{Int,1}=[0])
 
     map = new()
@@ -169,13 +169,11 @@ type PumiMapping{Tffd} <: AbstractMappingType
       @assert order[i] > 0 "Order cannot be 0 in the $i direction"
       @assert nctl[i] > 0 "number of control points cannot be 0 in $i direction"
     end
-    @assert mesh_info[1] > 0 "Number of nodes per element can only be > 0"
-    @assert mesh_info[2] > 0 "Grid to be deofrmed must have > 0 elements"
 
     # Define max_wrk = number of work elements at each control point
     const max_work = 2*6  # 2*n_variables
 
-    map.ndim = ndim
+    map.ndim = mesh.dim
     map.full_geom = full_geom
     map.order = order
     map.nctl = nctl
@@ -187,10 +185,18 @@ type PumiMapping{Tffd} <: AbstractMappingType
     end
 
     if full_geom == true
-      map.xi = zeros(Tffd, 3, mesh_info[1], mesh_info[2])
+      map.xi = zeros(Tffd, 3, mesh.dim+1, mesh.numEl) # Only valid for simplex elements
+      #=
+      if mesh.dim == 2
+        map.xi = zeros(Tffd, 3, 3, mesh.numEl)
+      else
+        map.xi = zeros(Tffd, 3, 4, mesh.numEl)
+      end
+      =#
     else
-      map.xi = zeros(Tffd, 3, mesh_info[1], mesh_info[2], mesh_info[3])
       map.geom_faces = geom_faces
+      map.xi = Array(Array{Tffd,3}, length(geom_faces))
+      defineMapXi(mesh, geom_faces, map.xi)
     end
 
     # Allocate and initialize mapping arrays
@@ -213,6 +219,31 @@ include("control_point.jl")
 include("span.jl")
 include("b-splines.jl")
 include("evaluations.jl")
+
+function defineMapXi(mesh::AbstractMesh, geom_faces::AbstractArray{Int,1},
+                     xi::AbstractArray)
+
+  for itr = 1:length(geom_faces)
+    geom_face_number = geom_faces[itr]
+    itr2 = 0
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range)
+      nfaces = length(bndry_facenums)
+      xi[itr] = zeros(3,mesh.dim,nfaces)
+  end
+
+  return nothing
+end
+
 
 @doc """
 ### calcdXdxi

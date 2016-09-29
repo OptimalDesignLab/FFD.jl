@@ -31,7 +31,7 @@ opts["BC1"] = [8,11,14,17]
 opts["BC1_name"] = "FarField"
 opts["BC2"] = [5]
 opts["BC2_name"] = "Airfoil"
-opts["coloring_distance"] = 0 # For CG Mesh
+opts["coloring_distance"] = 2 # 0 For CG Mesh, 2 for DG Mesh
 
 Tmsh = Float64
 dmg_name = ".null"
@@ -64,7 +64,7 @@ order = [4,4,2]  # Order of B-splines in the 3 directions
 nControlPts = [4,4,2]
 mesh_info = Int[sbp.numnodes, mesh.numEl]
 
-ffd_map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh_info)
+ffd_map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh)
 calcKnot(ffd_map)
 # println("ffd_map.edge_knot = \n", ffd_map.edge_knot)
 
@@ -92,11 +92,11 @@ calcParametricMappingNonlinear(ffd_map, ffd_box, mesh)
 #println("ffd_map.xi = \n", ffd_map.xi)
 
 
-#=
+
 # Translate control points along x & y by  5 units
 ffd_map.cp_xyz[1,:,:,:] += 2
 ffd_map.cp_xyz[2,:,:,:] += 3
-=#
+#=
 # Check angular rotation
 # Rotate control points by 90 degrees about Z axis
 gamma = 0.5*pi # angle in radians by which ctls are rotated
@@ -111,7 +111,7 @@ for k = 1:ffd_map.nctl[3]
     end
   end
 end
-
+=#
 evalVolume(ffd_map, mesh)
 
 # println("mesh.coords = \n", mesh.coords)
@@ -119,7 +119,7 @@ evalVolume(ffd_map, mesh)
 for i = 1:mesh.numEl
   update_coords(mesh, i, mesh.coords[:,:,i])
 end
-PumiInterface.writeVtkFiles("Rotation", mesh.m_ptr)
+PumiInterface.writeVtkFiles("Translation", mesh.m_ptr)
 
 
 # geom_bounds = zeros(2,3)

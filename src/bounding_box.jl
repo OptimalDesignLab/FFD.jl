@@ -226,11 +226,10 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
   if mesh.dim == 2
     for itr = 1:length(geom_faces)
       geom_face_number = geom_faces[itr]
-      itr2 = 0
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
           break
         end
       end
@@ -238,7 +237,7 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
       start_index = mesh.bndry_offsets[itr]
       end_index = mesh.bndry_offsets[itr+1]
       idx_range = start_index:end_index
-      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -262,11 +261,10 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
   else
     for itr = 1:length(geom_faces)
       geom_face_number = geom_faces[itr]
-      itr2 = 0
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
           break
         end
       end
@@ -274,7 +272,7 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
       start_index = mesh.bndry_offsets[itr]
       end_index = mesh.bndry_offsets[itr+1]
       idx_range = start_index:end_index
-      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
         for j = 1:sbp.numfacenodes
@@ -354,35 +352,34 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractDGMesh, sbp::AbstractSBP,
   if mesh.dim == 2
     for itr = 1:length(geom_faces)
       geom_face_number = geom_faces[itr]
-      itr2 = 0
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
           break
         end
       end
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:(end_index-1)
-      bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
         # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
-          coords = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.elements)
-          if xmin > coords[1,j,i]
-            xmin = coords[1,j,i]
-          elseif xmax < coords[1,j,i]
-            xmax = coords[1,j,i]
+          coords = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.element)
+          if xmin > coords[1]
+            xmin = coords[1]
+          elseif xmax < coords[1]
+            xmax = coords[1]
           end # End if
 
-          if ymin > coords[2,j,i]
-            ymin = coords[2,j,i]
-          elseif ymax < coords[2,j,i]
-            ymax = coords[2,j,i]
+          if ymin > coords[2]
+            ymin = coords[2]
+          elseif ymax < coords[2]
+            ymax = coords[2]
           end # End if
         end   # End for j = 1:sbp.facenode
       end     # End for i = 1:nfaces
@@ -394,37 +391,37 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractDGMesh, sbp::AbstractSBP,
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
           break
         end
       end
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:(end_index-1)
-      bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
         # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
-          coords = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.elements)
-          if xmin > coords[1,j,i]
-            xmin = coords[1,j,i]
-          elseif xmax < coords[1,j,i]
-            xmax = coords[1,j,i]
+          coords = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.element)
+          if xmin > coords[1]
+            xmin = coords[1]
+          elseif xmax < coords[1]
+            xmax = coords[1]
           end # End if
 
-          if ymin > coords[2,j,i]
-            ymin = coords[2,j,i]
-          elseif ymax < coords[2,j,i]
-            ymax = coords[2,j,i]
+          if ymin > coords[2]
+            ymin = coords[2]
+          elseif ymax < coords[2]
+            ymax = coords[2]
           end # End if
 
-          if zmin > coords[3,j,i]
-            zmin = coords[3,j,i]
-          elseif zmax < coords[3,j,i]
-            zmax = coords[3,j,i]
+          if zmin > coords[3]
+            zmin = coords[3]
+          elseif zmax < coords[3]
+            zmax = coords[3]
           end # End if
         end   # End for j = 1:sbp.facenode
       end     # End for i = 1:nfaces
