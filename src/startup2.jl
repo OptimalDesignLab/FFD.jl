@@ -1,4 +1,4 @@
-# Startup2.jl
+# startup2.jl
 # Merging mesh movement and FreeFormDeformation
 
 push!(LOAD_PATH, "../src/")
@@ -61,3 +61,150 @@ ffd_box = PumiBoundingBox{Tmsh}(ffd_map, mesh, sbp, offset)
 
 # Control points
 controlPoint(ffd_map, ffd_box)
+
+# Populat map.xi
+calcParametricMappingLinear(ffd_map, ffd_box, mesh, geom_faces)
+
+# Translate control points along x & y by  5 units
+ffd_map.cp_xyz[1,:,:,:] += 0.02
+ffd_map.cp_xyz[2,:,:,:] += 0.03
+
+println("mesh.element_vertnums = \n", mesh.element_vertnums[:,1:10])
+
+# Prep MeshWarping
+volNodes = zeros(Tmsh, 3, mesh.numVert)
+for i = 1:mesh.numEl
+  for j = 1:size(mesh.vert_coords,1)
+    local_vertnum = mesh.element_vertnums[j,i]
+    volNodes[:,local_vertnum] = mesh.vert_coords[j,i]# mesh.element_vertnus
+  end
+end
+
+# Get the bool array of all the surface vertex coordinates
+surfaceVtx = zeros(Int32, mesh.numVert)
+for (bindex, bndry) in enumerate(mesh.bndryfaces)
+  vtx_arr = mesh.topo.face_verts[:, bndry.face]
+  for j = 1:length(vtx_arr)
+    local_vertnum = mesh.element_vertnums[vtx_arr[j], bndry.element]
+    surfaceVtx[local_vertnum] = 1
+  end
+end
+
+# Prepare the wall coordinates array for mesh warping
+nwall_faces = zeros(Int,length(geom_faces))
+vtx_per_face = mesh.dim # only true for simplex elements
+for itr = 1:length(geom_faces)
+  geom_face_number = geom_faces[itr]
+  # get the boundary array associated with the geometric edge
+  itr2 = 0
+  for itr2 = 1:mesh.numBC
+    if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+      break
+    end
+  end
+  start_index = mesh.bndry_offsets[itr2]
+  end_index = mesh.bndry_offsets[itr2+1]
+  idx_range = start_index:(end_index-1)
+  bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+  nfaces = length(bndry_facenums)
+  nwall_faces[itr] = nfaces
+end      # End for itr = 1:length(geomfaces)
+
+
+wallCoords = zeros(3, sum(nwall_faces)*vtx_per_face)
+# Populate wallCoords
+ctr = 1 # Counter for wall coordinates
+for itr = 1:length(geom_faces)
+  geom_face_number = geom_faces[itr]
+  # get the boundary array associated with the geometric edge
+  itr2 = 0
+  for itr2 = 1:mesh.numBC
+    if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+      break
+    end
+  end
+  start_index = mesh.bndry_offsets[itr2]
+  end_index = mesh.bndry_offsets[itr2+1]
+  idx_range = start_index:(end_index-1)
+  bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+  nfaces = length(bndry_facenums)
+  nwall_faces[itr] = nfaces
+  for i = 1:nfaces
+    bndry_i = bndry_facenums[i]
+    # get the local index of the vertices
+    vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+    for j = 1:length(vtx_arr)
+      wallCoords[1:2,ctr] = mesh.vert_coords[:,vtx_arr[j],bndry_i.element]
+      ctr += 1
+    end  # End for j = 1:length(vtx_arr)
+  end    # End for i = 1:nfaces
+end
+
+
+
+# Warp parameters
+nFaceConnectivity = sum(nwall_faces)*vtx_per_face
+param = WarpParam(nLocalNodes=mesh.numVert, nFaceConnLocal=nFaceConnectivity,
+                  nFaceSizesLocal=sum(nwall_faces))
+# MPI Information for warping
+mpiVar = MPIInfo(warp_comm_world=comm_world, myID=my_rank, nProc=comm_size)
+
+# Populate entries of param
+param.aExp = 2.
+param.bExp = 2.
+param.LdefFact = 4.1
+param.alpha = 0.2
+param.symmTol = 1e-4
+param.errTol = 1e-4
+param.cornerAngle = 30.
+param.zeroCornerRotations = false
+param.useRotations = false
+param.evalMode = 5
+
+# Symmetry Information
+# A symmetry plane is defined a point and normal. It is necessary to ensure that
+# Each eplane is independent of the other. Look at checkPlane by Gaetan in
+# UnstructuredMesh.Py. The way this is done in the data structure is that, every
+# plane is defined by a (3,2) array. [:,1] defines the point and [:,2] defines
+# the unit normal vector.
+symmetryPlanes = zeros(Float64,3,2)
+faceConn = collect(Int32, 0:nFaceConnectivity-1)
+flatWarpSurfPts = reshape(wallCoords, 3*size(wallCoords,2))
+faceSizes = mesh.dim*ones(Int32,sum(nwall_faces))
+# warp the mesh
+
+# Initialize warping
+initializeWarping(param, mpiVar, symmetryPlanes, volNodes, surfaceVtx,
+                      flatWarpSurfPts, faceConn, faceSizes)
+# New Surface Coordinates
+# Rotation matrix
+theta = 10*pi/180  # Rotate wall coordinates by 10 degrees
+rotMat = [cos(theta) -sin(theta) 0
+          sin(theta) cos(theta)  0
+          0          0           1] # Rotation matrix
+# Rotate the control points
+for k = 1:ffd_map.nctl[3]
+  for j = 1:ffd_map.nctl[2]
+    for i = 1:ffd_map.nctl[1]
+      ffd_map.cp_xyz[:,i,j,k] = rotMat*ffd_map.cp_xyz[:,i,j,k]
+    end
+  end
+end
+
+evalSurface(ffd_map, mesh)
+
+# Warp The mesh
+warpMesh(param, volNodes, flatWarpSurfPts)
+
+# Update all the mesh coordinates
+for i = 1:mesh.numEl
+  for j = 1:size(mesh.vert_coords,1)
+    local_vertnum = mesh.element_vertnums[j,i]
+    mesh.vert_coords[j,i] = volNodes[:,local_vertnum] # mesh.element_vertnus
+  end
+end
+
+for i = 1:mesh.numEl
+  update_coords(mesh, i, mesh.coords[:,:,i])
+end
+PumiInterface.writeVtkFiles("Rotation_$theta", mesh.m_ptr)

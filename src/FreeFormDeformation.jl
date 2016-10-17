@@ -1,7 +1,7 @@
 module FreeFormDeformation
 export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
-export calcParametricMappingNonlinear, evalVolume, findSpan
+export calcParametricMappingNonlinear, evalVolume, evalSurface, findSpan
 
 using ArrayViews
 using MPI
@@ -225,20 +225,19 @@ function defineMapXi(mesh::AbstractMesh, geom_faces::AbstractArray{Int,1},
 
   for itr = 1:length(geom_faces)
     geom_face_number = geom_faces[itr]
+    # get the boundary array associated with the geometric edge
     itr2 = 0
-      # get the boundary array associated with the geometric edge
-      itr2 = 0
-      for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-          break
-        end
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
       end
-      start_index = mesh.bndry_offsets[itr]
-      end_index = mesh.bndry_offsets[itr+1]
-      idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range)
-      nfaces = length(bndry_facenums)
-      xi[itr] = zeros(3,mesh.dim,nfaces)
+    end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range)
+    nfaces = length(bndry_facenums)
+    xi[itr] = zeros(3,mesh.dim,nfaces)
   end
 
   return nothing

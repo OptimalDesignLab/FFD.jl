@@ -114,10 +114,9 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
                            sbp::AbstractSBP)
 
   if map.ndim == 2
-    arr = zeros(Tffd, 3)
+    x = zeros(Tffd, 3)
     for itr = 1:length(map.geom_faces)
       geom_face_number = map.geom_faces[itr]
-      itr2 = 0
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC
@@ -132,19 +131,18 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
-        for j = 1:sbp.numfacenodes
+        # get the local index of the vertices on the boundary face (local face number)
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
           fill!(x, 0.0)
-          k = sbp.facenodes[j, bndry_i.face]
-          arr[1:2] = mesh.coords[:,k,bndry_i.elements]
-          evalVolumePoint(map, map.xi[:,j,i,itr], arr)
-          mesh.coords[:,k,bndry_i.elements] = arr[1:2]
-        end  # End for j = 1:sbp.numfacenodes
+          evalVolumePoint(map, map.xi[itr][:,j,i], x)
+          mesh.coords[:,vtx_arr[j],bndry_i.element] = x[1:2]
+        end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
     end  # End for itr = 1:length(map.geom_faces)
   else
     for itr = 1:length(map.geom_faces)
       geom_face_number = map.geom_faces[itr]
-      itr2 = 0
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC
@@ -159,11 +157,71 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
+        # get the local index of the vertices on the boundary face (local face number)
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          xyz = view(mesh.coords,:,vtx_arr[j],bndry_i.element)
+          evalVolumePoint(map, map.xi[:,j,i,itr], arr)
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nfaces
+    end  # End for itr = 1:length(map.geom_faces)
+  end    # End if map.ndim == 2
+
+  return nothing
+end
+
+function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
+
+  if map.ndim == 2
+    x = zeros(Tffd, 3)
+    for itr = 1:length(map.geom_faces)
+      geom_face_number = map.geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices on the boundary face (local face number)
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          fill!(x, 0.0)
+          evalVolumePoint(map, map.xi[itr][:,j,i], x)
+          mesh.vert_coords[:,vtx_arr[j],bndry_i.element] = x[1:2]
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nfaces
+    end  # End for itr = 1:length(map.geom_faces)
+  else
+    for itr = 1:length(map.geom_faces)
+      geom_face_number = map.geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices on the boundary face (local face number)
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:sbp.numfacenodes
           fill!(x, 0.0)
-          k = sbp.facenodes[j, bndry_i.face]
-          xyz = view(mesh.coords,:,k,bndry_i.elements)
-          evalVolumePoint(map, map.xi[:,j,i,itr], arr)
+          xyz = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.element)
+          evalVolumePoint(map, map.xi[itr][:,j,i], xyz)
         end  # End for j = 1:sbp.numfacenodes
       end    # End for i = 1:nfaces
     end  # End for itr = 1:length(map.geom_faces)
