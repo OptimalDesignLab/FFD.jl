@@ -197,10 +197,12 @@ evalSurface(ffd_map, mesh)
 warpMesh(param, volNodes, flatWarpSurfPts)
 
 # Update all the mesh coordinates
+println("type of volNodes = ", typeof(volNodes), " size = ", size(volNodes))
+println("type of mesh.vert_coords = ", typeof(mesh.vert_coords), " size = ", size(mesh.vert_coords))
 for i = 1:mesh.numEl
   for j = 1:size(mesh.vert_coords,1)
     local_vertnum = mesh.element_vertnums[j,i]
-    mesh.vert_coords[j,i] = volNodes[:,local_vertnum] # mesh.element_vertnus
+    mesh.vert_coords[:,j,i] = volNodes[1:2,local_vertnum] # mesh.element_vertnus
   end
 end
 

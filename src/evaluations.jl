@@ -120,7 +120,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
           break
         end
       end
@@ -146,7 +146,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
           break
         end
       end
@@ -179,7 +179,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
           break
         end
       end
@@ -205,7 +205,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],g_edge_number) > 0
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
           break
         end
       end
