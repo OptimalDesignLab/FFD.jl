@@ -13,7 +13,7 @@ vector is computed in the parametric space [0,1] in all the 3 directions
 
 """->
 
-function calcKnot(map)
+function calcKnot(map::AbstractMappingType)
 
   # Assertions
   for i = 1:3

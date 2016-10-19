@@ -12,7 +12,7 @@ Intended only for initializing of Mapping object as of this commit.
 
 """->
 
-function controlPoint(map, box)
+function controlPoint(map::AbstractMappingType, box::AbstractBoundingBox)
 
   # Remember B-spline control points also lie on the interior of the volume
   nctl = view(map.nctl, :)

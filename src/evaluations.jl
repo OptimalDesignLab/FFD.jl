@@ -124,8 +124,8 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
           break
         end
       end
-      start_index = mesh.bndry_offsets[itr]
-      end_index = mesh.bndry_offsets[itr+1]
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
       bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
@@ -150,8 +150,8 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
           break
         end
       end
-      start_index = mesh.bndry_offsets[itr]
-      end_index = mesh.bndry_offsets[itr+1]
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
       bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
@@ -161,7 +161,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
           xyz = view(mesh.coords,:,vtx_arr[j],bndry_i.element)
-          evalVolumePoint(map, map.xi[:,j,i,itr], arr)
+          evalVolumePoint(map, map.xi[itr][:,j,i], arr)
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
     end  # End for itr = 1:length(map.geom_faces)
@@ -183,8 +183,8 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
           break
         end
       end
-      start_index = mesh.bndry_offsets[itr]
-      end_index = mesh.bndry_offsets[itr+1]
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:(end_index-1)
       bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
       nfaces = length(bndry_facenums)
@@ -195,7 +195,9 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
         for j = 1:length(vtx_arr)
           fill!(x, 0.0)
           evalVolumePoint(map, map.xi[itr][:,j,i], x)
+          #println("original = $(mesh.vert_coords[2,vtx_arr[j],bndry_i.element]), x = $(x[2]), vtx_arr[$j] = $(vtx_arr[j])")
           mesh.vert_coords[:,vtx_arr[j],bndry_i.element] = x[1:2]
+          #println("x[1:2] = $(x[1:2]), vert_coords = $(mesh.vert_coords[:,vtx_arr[j],bndry_i.element])")
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
     end  # End for itr = 1:length(map.geom_faces)
@@ -209,8 +211,8 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
           break
         end
       end
-      start_index = mesh.bndry_offsets[itr]
-      end_index = mesh.bndry_offsets[itr+1]
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:(end_index-1)
       bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
       nfaces = length(bndry_facenums)
@@ -218,8 +220,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
         bndry_i = bndry_facenums[i]
         # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-        for j = 1:sbp.numfacenodes
-          fill!(x, 0.0)
+        for j = 1:length(vtx_arr)
           xyz = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.element)
           evalVolumePoint(map, map.xi[itr][:,j,i], xyz)
         end  # End for j = 1:sbp.numfacenodes
@@ -244,7 +245,9 @@ is from "The NURBS book 2nd Edition".
 *  `xyz` : (x,y,z) coordinates of the parametric point in the FFD volume
 """->
 
-function evalVolumePoint(map, xi, xyz)
+function evalVolumePoint(map::AbstractMappingType, xi, xyz)
+
+  fill!(xyz, 0.0)
 
   Nu = zeros(map.order[1])
   Nv = zeros(map.order[2])

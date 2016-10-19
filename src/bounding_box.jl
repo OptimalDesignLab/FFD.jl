@@ -69,7 +69,7 @@ type PumiBoundingBox{Tffd} <: AbstractBoundingBox
       @assert offset[3] > 0 "2D meshes requires offset along 3rd dimension > 0"
     end
 
-    ndim = 3 # The Bounding box is 3D
+    ndim = 3 # The Bounding box is always 3D
 
     # Allocate members
     origin = zeros(Tffd, ndim)
@@ -381,7 +381,7 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractDGMesh, sbp::AbstractSBP,
           elseif ymax < coords[2]
             ymax = coords[2]
           end # End if
-        end   # End for j = 1:sbp.facenode
+        end   # End for j = 1:length(vtx_arr)
       end     # End for i = 1:nfaces
     end       # End for itr = 1:length(geom_faces)
   else
@@ -423,7 +423,7 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractDGMesh, sbp::AbstractSBP,
           elseif zmax < coords[3]
             zmax = coords[3]
           end # End if
-        end   # End for j = 1:sbp.facenode
+        end   # End for j = 1:length(vtx_arr)
       end     # End for i = 1:nfaces
     end       # End for itr = 1:length(geom_faces)
   end

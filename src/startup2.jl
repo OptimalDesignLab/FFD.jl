@@ -48,34 +48,142 @@ println("geom_faces = $geom_faces")
 ndim = 2
 order = [4,4,2]  # Order of B-splines in the 3 directions
 nControlPts = [4,4,2]
-# mesh_info = Int[sbp.numnodes, mesh.numEl, length(geom_faces)]
+
+# Copy the original vertex coordinates
+orig_vert_coords = deepcopy(mesh.vert_coords)
+
 
 ffd_map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false,
 geom_faces=[5])
+println("ffd_map.geom_faces = $(ffd_map.geom_faces)")
+println("ffd_map.xi[1] = $(size(ffd_map.xi[1]))")
+println("size_mesh.vert_coords = $(size(mesh.vert_coords))")
 calcKnot(ffd_map)
-# println("ffd_map.edge_knot = \n", ffd_map.edge_knot)
+println("knot vectors = \n", ffd_map.edge_knot)
 
 # Create Bounding box
-offset = [0., 0., 0.5]
+offset = [0., 0., 0.5] # No offset in the X & Y direction
 ffd_box = PumiBoundingBox{Tmsh}(ffd_map, mesh, sbp, offset)
+println("box origin = $(ffd_box.origin)")
+println("box bounds = \n", ffd_box.box_bounds)
 
 # Control points
 controlPoint(ffd_map, ffd_box)
 
-# Populat map.xi
+# Populate map.xi
 calcParametricMappingLinear(ffd_map, ffd_box, mesh, geom_faces)
 
+#=
+# Check if xi is being computed correctly
+err_ctr = 0
+for itr = 1:length(geom_faces)
+  geom_face_number = geom_faces[itr]
+  # get the boundary array associated with the geometric edge
+  itr2 = 0
+  for itr2 = 1:mesh.numBC
+    if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+      break
+    end
+  end
+  start_index = mesh.bndry_offsets[itr2]
+  end_index = mesh.bndry_offsets[itr2+1]
+  idx_range = start_index:(end_index-1)
+  bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+  nfaces = length(bndry_facenums)
+  for i = 1:nfaces
+    bndry_i = bndry_facenums[i]
+    # get the local index of the vertices
+    vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+    for j = 1:length(vtx_arr)
+      x = zeros(3)
+      x[1:2] = mesh.vert_coords[:,vtx_arr[j],bndry_i.element]
+      xi = x - ffd_box.origin
+      for k = 1:3
+        xi[k] = xi[k]/(ffd_box.box_bounds[2,k]-ffd_box.box_bounds[1,k])
+      end
+      err = xi - ffd_map.xi[itr][:,j,i]
+      if norm(err) > 1e-14
+        err_ctr += 1
+      end
+    end  # End for j = 1:length(vtx_arr)
+  end    # End for i = 1:nfaces
+end      # End for itr = 1:length(geomfaces)
+if err_ctr > 0
+  error("Counter > 0")
+end
+=#
+
+orig_cp_xyz = deepcopy(ffd_map.cp_xyz)
 # Translate control points along x & y by  5 units
 ffd_map.cp_xyz[1,:,:,:] += 0.02
-ffd_map.cp_xyz[2,:,:,:] += 0.03
 
-println("mesh.element_vertnums = \n", mesh.element_vertnums[:,1:10])
+#= # Check if cp_xyz is updated correctly
+err_ctr = 0
+for i = 1:size(ffd_map.cp_xyz,2)
+  for j = 1:size(ffd_map.cp_xyz,3)
+    for k = 1:size(ffd_map.cp_xyz, 4)
+      err = ffd_map.cp_xyz[1,i,j,k] - orig_cp_xyz[1,i,j,k]
+      if norm(err - 0.02) > 1e-14
+        err_ctr += 1
+      end
+    end
+  end
+end
+if err_ctr > 0
+  println("cp_xyz not updated")
+end
+=#
 
+# ffd_map.cp_xyz[2,:,:,:] += 0.03
+
+evalSurface(ffd_map, mesh)
+
+err_ctr = 0
+ctr2 = 0
+for itr = 1:length(geom_faces)
+  geom_face_number = geom_faces[itr]
+  # get the boundary array associated with the geometric edge
+  itr2 = 0
+  for itr2 = 1:mesh.numBC
+    if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+      break
+    end
+  end
+  start_index = mesh.bndry_offsets[itr2]
+  end_index = mesh.bndry_offsets[itr2+1]
+  idx_range = start_index:(end_index-1)
+  bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+  nfaces = length(bndry_facenums)
+  for i = 1:nfaces
+    bndry_i = bndry_facenums[i]
+    # get the local index of the vertices
+    vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+    for j = 1:length(vtx_arr)
+      # fill!(x, 0.0)
+      #println("original = $(orig_vert_coords[:,vtx_arr[j],bndry_i.element]), new = $(mesh.vert_coords[:,vtx_arr[j],bndry_i.element])")
+      err = orig_vert_coords[:,vtx_arr[j],bndry_i.element] -
+            mesh.vert_coords[:,vtx_arr[j],bndry_i.element] + [0.02,0.0]
+      #println("err = $err")
+      if norm(err) > 1e-14
+        err_ctr += 1
+      end
+      ctr2 += 1
+    end  # End for j = 1:length(vtx_arr)
+  end    # End for i = 1:nfaces
+end      # End for itr = 1:length(geomfaces)
+
+println("ctr2 = $ctr2")
+if err_ctr > 0
+  println("Something wrong")
+else
+  println("err_ctr = $err_ctr")
+end
+#=
 # Prep MeshWarping
 volNodes = zeros(Tmsh, 3, mesh.numVert)
 for i = 1:mesh.numEl
   for j = 1:size(mesh.vert_coords,1)
-    local_vertnum = mesh.element_vertnums[j,i]
+    local_vertnum = mesh.element_vertnums[j,i] # Gets the vertex numbering on the portion of mesh owned by the processor
     volNodes[:,local_vertnum] = mesh.vert_coords[j,i]# mesh.element_vertnus
   end
 end
@@ -109,8 +217,10 @@ for itr = 1:length(geom_faces)
   nfaces = length(bndry_facenums)
   nwall_faces[itr] = nfaces
 end      # End for itr = 1:length(geomfaces)
-
-
+println("nwall_faces = $nwall_faces")
+println("total surface vtx = ", sum(surfaceVtx))
+=#
+#=
 wallCoords = zeros(3, sum(nwall_faces)*vtx_per_face)
 # Populate wallCoords
 ctr = 1 # Counter for wall coordinates
@@ -177,6 +287,7 @@ faceSizes = mesh.dim*ones(Int32,sum(nwall_faces))
 initializeWarping(param, mpiVar, symmetryPlanes, volNodes, surfaceVtx,
                       flatWarpSurfPts, faceConn, faceSizes)
 # New Surface Coordinates
+#=
 # Rotation matrix
 theta = 10*pi/180  # Rotate wall coordinates by 10 degrees
 rotMat = [cos(theta) -sin(theta) 0
@@ -190,7 +301,7 @@ for k = 1:ffd_map.nctl[3]
     end
   end
 end
-
+=#
 evalSurface(ffd_map, mesh)
 
 # Warp The mesh
@@ -209,4 +320,5 @@ end
 for i = 1:mesh.numEl
   update_coords(mesh, i, mesh.coords[:,:,i])
 end
-PumiInterface.writeVtkFiles("Rotation_$theta", mesh.m_ptr)
+PumiInterface.writeVtkFiles("translation", mesh.m_ptr)
+=#

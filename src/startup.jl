@@ -35,7 +35,7 @@ opts["coloring_distance"] = 2 # 0 For CG Mesh, 2 for DG Mesh
 
 Tmsh = Float64
 dmg_name = ".null"
-smb_name = "./mesh_files/gvortex1np2.smb"
+smb_name = "./mesh_files/gvortex1.smb"
 order = 1
 dofpernode = 1
 
@@ -62,7 +62,6 @@ mesh = PumiMeshDG2{Tmsh}(dmg_name, smb_name, order, sbp, opts, interp_op, sbpfac
 ndim = 2
 order = [4,4,2]  # Order of B-splines in the 3 directions
 nControlPts = [4,4,2]
-mesh_info = Int[sbp.numnodes, mesh.numEl]
 
 ffd_map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh)
 calcKnot(ffd_map)

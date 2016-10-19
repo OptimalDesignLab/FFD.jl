@@ -138,6 +138,11 @@ type Mapping <: AbstractMappingType
 
 end  # End Mapping
 
+@doc """
+### PumiMapping
+
+"""->
+
 type PumiMapping{Tffd} <: AbstractMappingType
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
