@@ -290,7 +290,7 @@ faceSizes = mesh.dim*ones(Int32,sum(nwall_faces))
 initializeWarping(param, mpiVar, symmetryPlanes, volNodes, surfaceVtx,
                       flatWarpSurfPts, faceConn, faceSizes)
 # New Surface Coordinates
-#=
+
 # Rotation matrix
 theta = 10*pi/180  # Rotate wall coordinates by 10 degrees
 rotMat = [cos(theta) -sin(theta) 0
@@ -304,11 +304,11 @@ for k = 1:ffd_map.nctl[3]
     end
   end
 end
-=#
 
 
 # Translate control points along x & y by  5 units
-ffd_map.cp_xyz[1,:,:,:] += 0.02
+# ffd_map.cp_xyz[1,:,:,:] += 0.02
+
 evalSurface(ffd_map, mesh)
 #=
 # Check if evalSurface works correctly
@@ -404,5 +404,5 @@ end
 for i = 1:mesh.numEl
   update_coords(mesh, i, mesh.vert_coords[:,:,i])
 end
-
-PumiInterface.writeVtkFiles("translation", mesh.m_ptr)
+commit_coords(mesh)
+PumiInterface.writeVtkFiles("rotation10", mesh.m_ptr)
