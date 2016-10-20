@@ -280,7 +280,6 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
                                      geom_faces::AbstractArray{Int,1})
 
   if mesh.dim == 2
-    f = open("xi_values.dat", "w")
     x = zeros(Tffd,3)
     for itr = 1:length(geom_faces)
       geom_face_number = geom_faces[itr]
@@ -305,11 +304,9 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
           x[1:2] = mesh.vert_coords[:,vtx_arr[j],bndry_i.element]
           pX = view(map.xi[itr], :, j, i)
           linearMap(map, box, x, pX)
-          println(f, pX)
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
     end      # End for itr = 1:length(geomfaces)
-    close(f)
   else
     for itr = 1:length(geom_faces)
       geom_face_number = geom_faces[itr]

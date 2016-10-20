@@ -81,13 +81,13 @@ function evalVolume{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractMesh)
       for j = 1:mesh.numNodesPerElement
         fill!(arr,0.0)
         evalVolumePoint(map, map.xi[:,j,i], arr)
-        mesh.coords[:,j,i] = arr[1:2]
+        mesh.vert_coords[:,j,i] = arr[1:2]
       end
     end
   else  # 3D pumi mesh
     for i = 1:mesh.numEl
       for j = 1:mesh.numNodesPerElement
-        xyz = view(mesh.coords, :,j,i)
+        xyz = view(mesh.vert_coords, :,j,i)
         evalVolumePoint(map, map.xi[:,j,i], xyz)
       end
     end

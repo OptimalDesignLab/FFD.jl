@@ -234,8 +234,8 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
         end
       end
 
-      start_index = mesh.bndry_offsets[itr]
-      end_index = mesh.bndry_offsets[itr+1]
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
       bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
@@ -269,8 +269,8 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
         end
       end
 
-      start_index = mesh.bndry_offsets[itr]
-      end_index = mesh.bndry_offsets[itr+1]
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
       bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
       for i = 1:nfaces

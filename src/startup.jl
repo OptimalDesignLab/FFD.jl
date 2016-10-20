@@ -116,9 +116,10 @@ evalVolume(ffd_map, mesh)
 # println("mesh.coords = \n", mesh.coords)
 
 for i = 1:mesh.numEl
-  update_coords(mesh, i, mesh.coords[:,:,i])
+  update_coords(mesh, i, mesh.vert_coords[:,:,i])
 end
-PumiInterface.writeVtkFiles("Translation", mesh.m_ptr)
+commit_coords(mesh)
+PumiInterface.writeVtkFiles("Translation_noUpdate", mesh.m_ptr)
 
 
 # geom_bounds = zeros(2,3)
