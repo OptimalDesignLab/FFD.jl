@@ -267,12 +267,7 @@ function evalVolumePoint(map::AbstractMappingType, xi, xyz)
   span = findSpan(xi[3], map.edge_knot[3], map.order[3], map.nctl[3])
   basisFunctions(map.edge_knot[3], map.order[3], xi[3], span, Nw)
   startw = span - map.order[3]
-  #=
-  println("startu = $startu, startv = $startv, startw = $startw")
-  println("Nu = \n$Nu")
-  println("Nv = \n$Nv")
-  println("Nw = \n$Nw")
-  =#
+  
   for ii = 1:map.order[1]
     for jj = 1:map.order[2]
       for kk = 1:map.order[3]

@@ -2,7 +2,7 @@
 # contain all functions pertaining to the bounding box
 
 @doc """
-### BoundingBox
+###PumiBoundingBox
 
 Class that contains information necessary to create a bonding box of control
 points. Use the inner constructor to create an object of this type. The

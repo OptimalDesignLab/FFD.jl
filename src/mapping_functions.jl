@@ -279,6 +279,18 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractDGMesh,
                                      geom_faces::AbstractArray{Int,1})
 
+  # Check if the knot vectors are for Bezier Curves with Bernstein polynomial
+  # basis functions
+  for i = 1:length(map.edge_knot)
+    ctr = 0
+    for j = 1:length(map.edge_knot[i])
+      if map.edge_knot[i][j] != 0.0 && map.edge_knot[i][j] != 1.0
+        ctr += 1
+      end
+    end
+    @assert ctr == 0 "Linear mapping works only for Bezier Curves with Bernstein polynomial basis functions"
+  end
+
   if mesh.dim == 2
     x = zeros(Tffd,3)
     for itr = 1:length(geom_faces)
@@ -448,7 +460,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
         for j = 1:length(vtx_arr)
           fill!(x, 0.0)
           x[1:2] = mesh.coords[:,vtx_arr[j],bndry_i.elements]
-          pX = view(map.xi, :, j, i)
+          pX = view(map.xi[itr], :, j, i)
           nonlinearMap(map, box, x, pX)
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -507,14 +519,14 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
-        # get the local index of the vertices on the boundary face (local face number)
+        # get the local index of the vertices
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
           fill!(x, 0.0)
           x[1:2] = mesh.vert_coords[:,vtx_arr[j],bndry_i.element]
-          pX = view(map.xi, :, j, i)
+          pX = view(map.xi[itr], :, j, i)
           nonlinearMap(map, box, x, pX)
-        end
+        end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
     end      # End for itr = 1:length(geomfaces)
   else
@@ -522,7 +534,6 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       geom_face_number = geom_faces[itr]
       itr2 = 0
       # get the boundary array associated with the geometric edge
-      itr2 = 0
       for itr2 = 1:mesh.numBC
         if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
           break
@@ -535,11 +546,10 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
-        # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
-          X = view(mesh.vert_coords,:,vtx_arr[j],bndry_i.element)
-          pX = view(map.xi, :, j, i)
+          X = view(mesh.vert_coords,:,vtx_arr[j],bndry_i.elements)
+          pX = view(map.xi[itr], :, j, i)
           nonlinearMap(map, box, X, pX)
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces

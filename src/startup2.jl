@@ -32,13 +32,23 @@ opts["order"] = 1
 opts["dimensions"] = 2
 opts["use_DG"] = true
 opts["operator_type"] = "SBPOmega"
-opts["dmg_name"] = "./mesh_files/2D_Airfoil.dmg"
-opts["smb_name"] = "./mesh_files/2D_Airfoil.smb"
+opts["dmg_name"] = "./mesh_files/2DAirfoil_chord1.dmg"
+opts["smb_name"] = "./mesh_files/2DAirfoil_chord1.smb"
 opts["numBC"] = 2
-opts["BC1"] = [8,11,14,17]
+
+# For boxInBox
+#=
+opts["BC1"] = [17,20,23,26]
+opts["BC1_name"] = "FarField"
+opts["BC2"] = [5,8,11,14]
+opts["BC2_name"] = "Airfoil"
+=#
+# For 2DAirfoil
+opts["BC1"] = [8]
 opts["BC1_name"] = "FarField"
 opts["BC2"] = [5]
 opts["BC2_name"] = "Airfoil"
+
 opts["coloring_distance"] = 2 # 0 For CG Mesh 2 for DG Mesh
 opts["jac_type"] = 2
 
@@ -50,17 +60,13 @@ println("geom_faces = $geom_faces")
 # Free Form deformation parameters
 ndim = 2
 order = [4,4,2]  # Order of B-splines in the 3 directions
-nControlPts = [4,4,2]
-
-# Copy the original vertex coordinates
-orig_vert_coords = deepcopy(mesh.vert_coords)
-
+nControlPts = [4,5,2]
 
 ffd_map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false,
-geom_faces=[5])
-println("ffd_map.geom_faces = $(ffd_map.geom_faces)")
-println("ffd_map.xi[1] = $(size(ffd_map.xi[1]))")
-println("size_mesh.vert_coords = $(size(mesh.vert_coords))")
+geom_faces=geom_faces)
+# println("ffd_map.geom_faces = $(ffd_map.geom_faces)")
+# println("ffd_map.xi[1] = $(size(ffd_map.xi[2]))")
+# println("size_mesh.vert_coords = $(size(mesh.vert_coords))")
 calcKnot(ffd_map)
 println("knot vectors = \n", ffd_map.edge_knot)
 
@@ -72,114 +78,33 @@ println("box bounds = \n", ffd_box.box_bounds)
 
 # Control points
 controlPoint(ffd_map, ffd_box)
+#=
+for k = 1:ffd_map.nctl[3]
+  for j = 1:ffd_map.nctl[2]
+    for i = 1:ffd_map.nctl[1]
+      println("cp_xyz[:,$i,$j,$k] = ", ffd_map.cp_xyz[:,i,j,k])
+    end
+    println('\n')
+  end
+end
+=#
+
+#=
+U = [0.0,0.0,0.0,0.0,0.3333333333333333,0.6666666666666666,1.0,1.0,1.0,1.0]
+u = 0.5
+span = FreeFormDeformation.findSpan(u,U,order[1],nControlPts[1])
+println("span = $span")
+N = zeros(order[1])
+FreeFormDeformation.basisFunctions(U, order[1], u, span, N)
+println("N =\n", N)
+=#
 
 # Populate map.xi
 calcParametricMappingLinear(ffd_map, ffd_box, mesh, geom_faces)
 
-#=
-# Check if xi is being computed correctly
-err_ctr = 0
-for itr = 1:length(geom_faces)
-  geom_face_number = geom_faces[itr]
-  # get the boundary array associated with the geometric edge
-  itr2 = 0
-  for itr2 = 1:mesh.numBC
-    if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-      break
-    end
-  end
-  start_index = mesh.bndry_offsets[itr2]
-  end_index = mesh.bndry_offsets[itr2+1]
-  idx_range = start_index:(end_index-1)
-  bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
-  nfaces = length(bndry_facenums)
-  for i = 1:nfaces
-    bndry_i = bndry_facenums[i]
-    # get the local index of the vertices
-    vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-    for j = 1:length(vtx_arr)
-      x = zeros(3)
-      x[1:2] = mesh.vert_coords[:,vtx_arr[j],bndry_i.element]
-      xi = x - ffd_box.origin
-      for k = 1:3
-        xi[k] = xi[k]/(ffd_box.box_bounds[2,k]-ffd_box.box_bounds[1,k])
-      end
-      err = xi - ffd_map.xi[itr][:,j,i]
-      if norm(err) > 1e-14
-        err_ctr += 1
-      end
-    end  # End for j = 1:length(vtx_arr)
-  end    # End for i = 1:nfaces
-end      # End for itr = 1:length(geomfaces)
-if err_ctr > 0
-  error("Counter > 0")
-end
-=#
-
-#=
-orig_cp_xyz = deepcopy(ffd_map.cp_xyz)
-# Check if cp_xyz is updated correctly
-err_ctr = 0
-for i = 1:size(ffd_map.cp_xyz,2)
-  for j = 1:size(ffd_map.cp_xyz,3)
-    for k = 1:size(ffd_map.cp_xyz, 4)
-      err = ffd_map.cp_xyz[1,i,j,k] - orig_cp_xyz[1,i,j,k]
-      if norm(err - 0.02) > 1e-14
-        err_ctr += 1
-      end
-    end
-  end
-end
-if err_ctr > 0
-  println("cp_xyz not updated")
-end
-=#
-
-#=
-err_ctr = 0
-ctr2 = 0
-for itr = 1:length(geom_faces)
-  geom_face_number = geom_faces[itr]
-  # get the boundary array associated with the geometric edge
-  itr2 = 0
-  for itr2 = 1:mesh.numBC
-    if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-      break
-    end
-  end
-  start_index = mesh.bndry_offsets[itr2]
-  end_index = mesh.bndry_offsets[itr2+1]
-  idx_range = start_index:(end_index-1)
-  bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
-  nfaces = length(bndry_facenums)
-  for i = 1:nfaces
-    bndry_i = bndry_facenums[i]
-    # get the local index of the vertices
-    vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-    for j = 1:length(vtx_arr)
-      # fill!(x, 0.0)
-      #println("original = $(orig_vert_coords[:,vtx_arr[j],bndry_i.element]), new = $(mesh.vert_coords[:,vtx_arr[j],bndry_i.element])")
-      err = orig_vert_coords[:,vtx_arr[j],bndry_i.element] -
-            mesh.vert_coords[:,vtx_arr[j],bndry_i.element] + [0.02,0.0]
-      #println("err = $err")
-      if norm(err) > 1e-14
-        err_ctr += 1
-      end
-      ctr2 += 1
-    end  # End for j = 1:length(vtx_arr)
-  end    # End for i = 1:nfaces
-end      # End for itr = 1:length(geomfaces)
-
-println("ctr2 = $ctr2")
-if err_ctr > 0
-  println("Something wrong")
-else
-  println("err_ctr = $err_ctr")
-end
-=#
 
 # Copy original mesh vertex coordinates
-orig_vert_coords = deepcopy(mesh.vert_coords)
+# orig_vert_coords = deepcopy(mesh.vert_coords)
 
 # Prep MeshWarping
 volNodes = zeros(Tmsh, 3, mesh.numVert)
@@ -290,12 +215,34 @@ faceSizes = mesh.dim*ones(Int32,sum(nwall_faces))
 initializeWarping(param, mpiVar, symmetryPlanes, volNodes, surfaceVtx,
                       flatWarpSurfPts, faceConn, faceSizes)
 # New Surface Coordinates
+#=
+# Print control points
+for k = 1:ffd_map.nctl[3]
+  for j = 1:ffd_map.nctl[2]
+    for i = 1:ffd_map.nctl[1]
+      println("cp_xyz[:,$i,$j,$k] = ", ffd_map.cp_xyz[:,i,j,k])
+    end
+    println('\n')
+  end
+end
+
+# Camber the shit
+ffd_map.cp_xyz[2,1:2,1:4,:] -= 0.01*4
+ffd_map.cp_xyz[2,7,1:4,:] -= 0.015*4
+ffd_map.cp_xyz[2,4:6,5:7,:] += 0.01*4
+
+
+# Translate control points along x & y by  5 units
+ffd_map.cp_xyz[1,:,:,:] += 0.1*4
+ffd_map.cp_xyz[2,:,:,:] += 0.5*4
+
 
 # Rotation matrix
-theta = 10*pi/180  # Rotate wall coordinates by 10 degrees
+theta = -20*pi/180  # Rotate wall coordinates by 10 degrees
 rotMat = [cos(theta) -sin(theta) 0
           sin(theta) cos(theta)  0
           0          0           1] # Rotation matrix
+
 # Rotate the control points
 for k = 1:ffd_map.nctl[3]
   for j = 1:ffd_map.nctl[2]
@@ -304,55 +251,9 @@ for k = 1:ffd_map.nctl[3]
     end
   end
 end
-
-
-# Translate control points along x & y by  5 units
-# ffd_map.cp_xyz[1,:,:,:] += 0.02
+=#
 
 evalSurface(ffd_map, mesh)
-#=
-# Check if evalSurface works correctly
-err_ctr = 0
-ctr2 = 0
-for itr = 1:length(geom_faces)
-  geom_face_number = geom_faces[itr]
-  # get the boundary array associated with the geometric edge
-  itr2 = 0
-  for itr2 = 1:mesh.numBC
-    if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-      break
-    end
-  end
-  start_index = mesh.bndry_offsets[itr2]
-  end_index = mesh.bndry_offsets[itr2+1]
-  idx_range = start_index:(end_index-1)
-  bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
-  nfaces = length(bndry_facenums)
-  for i = 1:nfaces
-    bndry_i = bndry_facenums[i]
-    # get the local index of the vertices
-    vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-    for j = 1:length(vtx_arr)
-      # fill!(x, 0.0)
-      #println("original = $(orig_vert_coords[:,vtx_arr[j],bndry_i.element]), new = $(mesh.vert_coords[:,vtx_arr[j],bndry_i.element])")
-      err = orig_vert_coords[:,vtx_arr[j],bndry_i.element] -
-            mesh.vert_coords[:,vtx_arr[j],bndry_i.element] + [0.02,0.0]
-      #println("err = $err")
-      if norm(err) > 1e-14
-        err_ctr += 1
-      end
-      ctr2 += 1
-    end  # End for j = 1:length(vtx_arr)
-  end    # End for i = 1:nfaces
-end      # End for itr = 1:length(geomfaces)
-
-println("ctr2 = $ctr2")
-if err_ctr > 0
-  println("Something wrong")
-else
-  println("All good. err_ctr = $err_ctr")
-end
-=#
 
 # Update wallCoords
 ctr = 1 # Counter for wall coordinates
@@ -395,14 +296,12 @@ for i = 1:mesh.numEl
     # Get the vertex numbering on the portion of mesh owned by the processor
     local_vertnum = mesh.element_vertnums[j,i]
     mesh.vert_coords[:,j,i] = volNodes[1:2,local_vertnum] # mesh.element_vertnums
-    #println("volNodes[:, $local_vertnum] = $(volNodes[:,local_vertnum])")
   end
 end
-
 
 
 for i = 1:mesh.numEl
   update_coords(mesh, i, mesh.vert_coords[:,:,i])
 end
-commit_coords(mesh)
-PumiInterface.writeVtkFiles("rotation10", mesh.m_ptr)
+commit_coords(mesh, sbp)
+writeVisFiles(mesh, "visRotation")
