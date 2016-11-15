@@ -55,41 +55,24 @@ opts["jac_type"] = 2
 sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 
 geom_faces = opts["BC2"]
-println("geom_faces = $geom_faces")
 
 # Free Form deformation parameters
 ndim = 2
 order = [4,4,2]  # Order of B-splines in the 3 directions
-nControlPts = [4,5,2]
+nControlPts = [6,6,2]
 
 ffd_map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false,
 geom_faces=geom_faces)
-# println("ffd_map.geom_faces = $(ffd_map.geom_faces)")
-# println("ffd_map.xi[1] = $(size(ffd_map.xi[2]))")
-# println("size_mesh.vert_coords = $(size(mesh.vert_coords))")
+
 calcKnot(ffd_map)
-println("knot vectors = \n", ffd_map.edge_knot)
 
 # Create Bounding box
 offset = [0., 0., 0.5] # No offset in the X & Y direction
 ffd_box = PumiBoundingBox{Tmsh}(ffd_map, mesh, sbp, offset)
-println("box origin = $(ffd_box.origin)")
-println("box bounds = \n", ffd_box.box_bounds)
 
 # Control points
 controlPoint(ffd_map, ffd_box)
-#=
-for k = 1:ffd_map.nctl[3]
-  for j = 1:ffd_map.nctl[2]
-    for i = 1:ffd_map.nctl[1]
-      println("cp_xyz[:,$i,$j,$k] = ", ffd_map.cp_xyz[:,i,j,k])
-    end
-    println('\n')
-  end
-end
-=#
-
-#=
+#= # test basis function evaluation
 U = [0.0,0.0,0.0,0.0,0.3333333333333333,0.6666666666666666,1.0,1.0,1.0,1.0]
 u = 0.5
 span = FreeFormDeformation.findSpan(u,U,order[1],nControlPts[1])
@@ -100,23 +83,22 @@ println("N =\n", N)
 =#
 
 # Populate map.xi
-calcParametricMappingLinear(ffd_map, ffd_box, mesh, geom_faces)
+calcParametricMappingNonlinear(ffd_map, ffd_box, mesh, geom_faces)
 
-
-# Copy original mesh vertex coordinates
-# orig_vert_coords = deepcopy(mesh.vert_coords)
 
 # Prep MeshWarping
 volNodes = zeros(Tmsh, 3, mesh.numVert)
+MPI.Barrier(comm)
 println("size mesh.vert_coords = $(size(mesh.vert_coords))")
 for i = 1:mesh.numEl
   for j = 1:size(mesh.vert_coords,2)
     # Get the vertex numbering on the portion of mesh owned by the processor
     local_vertnum = mesh.element_vertnums[j,i]
     volNodes[1:2,local_vertnum] = mesh.vert_coords[:,j,i]# mesh.element_vertnums
-    #println("volNodes[:, $local_vertnum] = $(volNodes[:,local_vertnum])")
+    #println("Rank = $my_rank, volNodes[:, $local_vertnum] = $(volNodes[:,local_vertnum])")
   end
 end
+MPI.Barrier(comm)
 
 # Get the bool array of all the surface vertex coordinates
 surfaceVtx = zeros(Int32, mesh.numVert)
@@ -146,12 +128,10 @@ for itr = 1:length(geom_faces)
   bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
   nwall_faces[itr] = length(bndry_facenums)
 end      # End for itr = 1:length(geomfaces)
-println("nwall_faces = $nwall_faces")
-println("total surface vtx = ", sum(surfaceVtx))
 
 
-wallCoords = zeros(3, sum(nwall_faces)*vtx_per_face)
 # Populate wallCoords
+wallCoords = zeros(3, sum(nwall_faces)*vtx_per_face)
 ctr = 1 # Counter for wall coordinates
 for itr = 1:length(geom_faces)
   geom_face_number = geom_faces[itr]
@@ -181,8 +161,11 @@ end
 
 # Warp parameters
 nFaceConnectivity = sum(nwall_faces)*vtx_per_face
+# Get total number of vertices in the mesh
+total_vtx = MPI.Allreduce(mesh.numVert, MPI.SUM, comm)
+
 println("nFaceConnectivity = $nFaceConnectivity")
-param = warpParam(nLocalNodes=mesh.numVert, nFaceConnLocal=nFaceConnectivity,
+param = warpParam(nNodes=total_vtx, nLocalNodes=mesh.numVert, nFaceConnLocal=nFaceConnectivity,
                   nFaceSizesLocal=sum(nwall_faces))
 # MPI Information for warping
 mpiVar = MPIInfo(warp_comm_world=comm_world, myID=my_rank, nProc=comm_size)
@@ -190,7 +173,7 @@ mpiVar = MPIInfo(warp_comm_world=comm_world, myID=my_rank, nProc=comm_size)
 # Populate entries of param
 param.aExp = 2.
 param.bExp = 2.
-param.LdefFact = 4.1
+param.LdefFact = 1
 param.alpha = 0.2
 param.symmTol = 1e-4
 param.errTol = 1e-4
@@ -283,10 +266,9 @@ for itr = 1:length(geom_faces)
   end    # End for i = 1:nfaces
 end
 
-# println("flatWarpSurfPts = \n",flatWarpSurfPts)
-
 # Warp The mesh
 warpMesh(param, volNodes, flatWarpSurfPts)
+MPI.Barrier(comm)
 
 # Update all the mesh coordinates
 println("type of volNodes = ", typeof(volNodes), " size = ", size(volNodes))

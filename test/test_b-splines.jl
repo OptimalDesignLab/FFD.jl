@@ -14,13 +14,13 @@ facts("--- Checking B-spline Formulation ---") do
   @fact nctl --> 7
 
   context("Checking knot span index evaluation") do
-    span = findSpan(u, U, order, nctl)
+    span = FreeFormDeformation.findSpan(u, U, order, nctl)
     @fact span --> 5
   end
 
   context("Checking basis function evaluations") do
     N = zeros(order)
-    span = findSpan(u, U, order, nctl)
+    span = FreeFormDeformation.findSpan(u, U, order, nctl)
     FreeFormDeformation.basisFunctions(U, order, u, span, N)
     @fact N[1] --> roughly(0.081, atol = 1e-15)
     @fact N[2] --> roughly(0.405, atol = 1e-15)
@@ -48,7 +48,7 @@ facts("--- Checking B-spline Derivatives ---") do
     nctl = length(U) - order
     N = zeros(AbstractFloat, order)
     Nderiv = zeros(AbstractFloat, order)
-    span = findSpan(u, U, order, nctl)
+    span = FreeFormDeformation.findSpan(u, U, order, nctl)
     FreeFormDeformation.derivBasisFunctions(u, U, order, span, N, Nderiv)
 
     @fact N[1] --> roughly(0.081, atol = 1e-15)

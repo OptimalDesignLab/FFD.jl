@@ -1,7 +1,7 @@
 module FreeFormDeformation
 export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
-export calcParametricMappingNonlinear, evalVolume, evalSurface, findSpan
+export calcParametricMappingNonlinear, evalVolume, evalSurface
 
 using ArrayViews
 using MPI
