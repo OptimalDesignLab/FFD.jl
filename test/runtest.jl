@@ -16,6 +16,7 @@ using FreeFormDeformation
 using FactCheck
 
 include("./test_b-splines.jl")
+include("./test_linearFFD.jl")
 
 
 #=

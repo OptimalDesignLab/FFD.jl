@@ -191,13 +191,6 @@ type PumiMapping{Tffd} <: AbstractMappingType
 
     if full_geom == true
       map.xi = zeros(Tffd, 3, mesh.dim+1, mesh.numEl) # Only valid for simplex elements
-      #=
-      if mesh.dim == 2
-        map.xi = zeros(Tffd, 3, 3, mesh.numEl)
-      else
-        map.xi = zeros(Tffd, 3, 4, mesh.numEl)
-      end
-      =#
     else
       map.geom_faces = geom_faces
       map.xi = Array(Array{Tffd,3}, length(geom_faces))
