@@ -49,7 +49,7 @@ facts("--- Checking Mapping object ---") do
 end  # End facts("--- Checking Mapping object ---")
 
 # Pumi Specific Tests
-facts("--- Checking Pumi Specific FFD Types and Functions In Serial ---") do
+facts("--- Checking FFD Types and Functions For Serial DG Pumi Meshes ---") do
 
   # MPI Declarations
   MPI.Init()
@@ -223,7 +223,42 @@ facts("--- Checking Pumi Specific FFD Types and Functions In Serial ---") do
 
   end
 
-end # End facts("--- Checking Pumi Specific FFD Types and Functions ---")
+
+end # End facts("--- Checking FFD Types and Functions For Serial DG Pumi Meshes ---")
+
+facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
+
+  # MPI Declarations
+  comm = MPI.COMM_WORLD
+  comm_world = MPI.MPI_COMM_WORLD
+  comm_self = MPI.COMM_SELF
+  my_rank = MPI.Comm_rank(comm)
+  comm_size = MPI.Comm_size(comm)
+
+  opts = PdePumiInterface.get_defaults()
+  # 2D mesh
+  opts["order"] = 1
+  opts["dimensions"] = 2
+  opts["use_DG"] = false
+  opts["operator_type"] = "SBPGamma"
+  opts["dmg_name"] = "../src/mesh_files/2D_Airfoil.dmg"
+  opts["smb_name"] = "../src/mesh_files/2D_Airfoil.smb"
+  opts["numBC"] = 2
+
+  # For 2DAirfoil
+  opts["BC1"] = [8,11,14,17]
+  opts["BC1_name"] = "FarField"
+  opts["BC2"] = [5]
+  opts["BC2_name"] = "Airfoil"
+
+  opts["coloring_distance"] = 0 # 0 For CG Mesh 2 for DG Mesh
+  opts["jac_type"] = 2
+
+  # Create PumiMesh and SBP objects
+  sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+
+
+end # End facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---")
 
 
 #=
