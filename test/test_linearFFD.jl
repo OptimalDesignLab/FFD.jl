@@ -421,6 +421,86 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 
   context("--- Checking Surface evaluation for 2D DG Mesh ---") do
 
+    # Rigid body rotation
+    theta = -20*pi/180  # Rotate wall coordinates by 10 degrees
+    rotMat = [cos(theta) -sin(theta) 0
+              sin(theta) cos(theta)  0
+              0          0           1] # Rotation matrix
+    # Rotate the control points
+    for k = 1:map.nctl[3]
+      for j = 1:map.nctl[2]
+        for i = 1:map.nctl[1]
+          map.cp_xyz[:,i,j,k] = rotMat*map.cp_xyz[:,i,j,k]
+        end
+      end
+    end
+
+    # Rigid body translation
+    map.cp_xyz[1,:,:,:] += 0.2
+    map.cp_xyz[2,:,:,:] += 0.3
+
+    evalSurface(map, mesh)
+
+    outname = string("./testvalues/modified_coordinates_2D_airfoil_face5.dat")
+    f = open(outname, "w")
+    for itr = 1:length(map.geom_faces)
+      geom_face_number = map.geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices on the boundary face (local face number)
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          println(f, mesh.vert_coords[1,vtx_arr[j],bndry_i.element])
+          println(f, mesh.vert_coords[2,vtx_arr[j],bndry_i.element])
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nfaces
+    end  # End for itr = 1:length(map.geom_faces)
+    close(f)
+
+    test_surface_coords = readdlm(outname)
+    ctr = 1
+    for itr = 1:length(map.geom_faces)
+      geom_face_number = map.geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices on the boundary face (local face number)
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          err1 = norm(mesh.vert_coords[1,vtx_arr[j],bndry_i.element] -
+                 test_surface_coords[ctr], 2)
+          err2 = norm(mesh.vert_coords[2,vtx_arr[j],bndry_i.element] -
+                 test_surface_coords[ctr+1], 2)
+          @fact err1 --> less_than(1e-14)
+          @fact err2 --> less_than(1e-14)
+          ctr += 2
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nfaces
+    end  # End for itr = 1:length(map.geom_faces)
+
   end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
 
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
