@@ -442,6 +442,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     evalSurface(map, mesh)
 
     outname = string("./testvalues/modified_coordinates_2D_airfoil_face5.dat")
+    #=
     f = open(outname, "w")
     for itr = 1:length(map.geom_faces)
       geom_face_number = map.geom_faces[itr]
@@ -468,7 +469,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       end    # End for i = 1:nfaces
     end  # End for itr = 1:length(map.geom_faces)
     close(f)
-
+    =#
     test_surface_coords = readdlm(outname)
     ctr = 1
     for itr = 1:length(map.geom_faces)
