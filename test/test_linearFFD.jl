@@ -1,6 +1,6 @@
 # test components
 
-facts("--- Checking Mapping object ---") do
+facts("--- Checking Generic Mapping object ---") do
 
   # Create Test mesh for tests
   nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
@@ -49,7 +49,7 @@ facts("--- Checking Mapping object ---") do
 end  # End facts("--- Checking Mapping object ---")
 
 # Pumi Specific Tests
-facts("--- Checking FFD Types and Functions For Serial DG Pumi Meshes ---") do
+facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---") do
 
   # MPI Declarations
   MPI.Init()
@@ -81,7 +81,7 @@ facts("--- Checking FFD Types and Functions For Serial DG Pumi Meshes ---") do
   # Create PumiMesh and SBP objects
   sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 
-  context("--- Checking Linear Mapping For Entire DG Mesh ---") do
+  context("--- Checking Linear Mapping For DG Mesh ---") do
 
     # Free Form deformation parameters
     ndim = 2
@@ -226,6 +226,205 @@ facts("--- Checking FFD Types and Functions For Serial DG Pumi Meshes ---") do
 
 end # End facts("--- Checking FFD Types and Functions For Serial DG Pumi Meshes ---")
 
+facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---") do
+
+  comm = MPI.COMM_WORLD
+  comm_world = MPI.MPI_COMM_WORLD
+  comm_self = MPI.COMM_SELF
+  my_rank = MPI.Comm_rank(comm)
+  comm_size = MPI.Comm_size(comm)
+
+  opts = PdePumiInterface.get_defaults()
+  # 2D mesh
+  opts["order"] = 1
+  opts["dimensions"] = 2
+  opts["use_DG"] = true
+  opts["operator_type"] = "SBPOmega"
+  opts["dmg_name"] = "../src/mesh_files/2D_Airfoil.dmg"
+  opts["smb_name"] = "../src/mesh_files/2D_Airfoil.smb"
+  opts["numBC"] = 2
+
+  # For 2DAirfoil
+  opts["BC1"] = [8,11,14,17]
+  opts["BC1_name"] = "FarField"
+  opts["BC2"] = [5]
+  opts["BC2_name"] = "Airfoil"
+
+  opts["coloring_distance"] = 2 # 0 For CG Mesh 2 for DG Mesh
+  opts["jac_type"] = 2
+
+  # Create PumiMesh and SBP objects
+  sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+
+  context("--- Checking Linear Mapping for 2D DG Mesh ---") do
+
+    # geometry faces to be embedded in FFD Box
+    geom_faces = opts["BC2"]
+
+    # Free Form deformation parameters
+    ndim = 2
+    order = [4,4,2]  # Order of B-splines in the 3 directions
+    nControlPts = [4,4,2]
+
+    # Create Mapping object
+    map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false, geom_faces=geom_faces)
+
+    # Create knot vector
+    calcKnot(map)
+
+    # Create Bounding box
+    offset = [0., 0., 0.5] # No offset in the X & Y direction
+    box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
+
+    # Control points
+    controlPoint(map, box)
+
+    calcParametricMappingLinear(map, box, mesh, geom_faces)
+
+    @fact map.ndim --> 2
+    @fact map.full_geom --> false
+    @fact map.nctl --> [4,4,2]
+    @fact map.order --> [4,4,2]
+    @fact map.edge_knot[1] --> [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
+    @fact map.edge_knot[2] --> [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
+    @fact map.edge_knot[3] --> [0.0,0.0,1.0,1.0]
+    @fact size(map.aj) --> (3,4,3)
+    @fact size(map.dl) --> (3,3)
+    @fact size(map.dr) --> (3,3)
+    @fact size(map.work) --> (4,4,2,12)
+    @fact size(map.cp_xyz) --> (3,4,4,2)
+    @fact size(map.xi) --> (1,)
+    @fact size(map.xi[1]) --> (3,2,102) # Essentially tests defineMapXi
+
+    outname = string("./testvalues/xi_values_2D_airfoil_face5.dat")
+    #=
+    f = open(outname, "w")
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:end_index
+      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          println(f, map.xi[itr][1,j,i])
+          println(f, map.xi[itr][2,j,i])
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nfaces
+    end      # End for itr = 1:length(geomfaces)
+    close(f)
+    =#
+    ctr = 1
+    test_xi_values = readdlm(outname)
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:end_index
+      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          err1 = norm(map.xi[itr][1,j,i] - test_xi_values[ctr],2)
+          err2 = norm(map.xi[itr][2,j,i] - test_xi_values[ctr+1],2)
+          @fact err1 --> less_than(1e-14)
+          @fact err2 --> less_than(1e-14)
+          ctr += 2
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nfaces
+    end      # End for itr = 1:length(geomfaces)
+
+
+  end # End context("--- Checking Linear Mapping for DG Mesh ---")
+
+  # geometry faces to be embedded in FFD Box
+  geom_faces = opts["BC2"]
+
+  # Free Form deformation parameters
+  ndim = 2
+  order = [4,4,2]  # Order of B-splines in the 3 directions
+  nControlPts = [4,4,2]
+
+  # Create Mapping object
+  map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false, geom_faces=geom_faces)
+
+  # Create knot vector
+  calcKnot(map)
+
+  # Create Bounding box
+  offset = [0., 0., 0.5] # No offset in the X & Y direction
+  box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
+
+  # Control points
+  controlPoint(map, box)
+
+  context("--- Checking Nonlinear Mapping for DG Mesh ---") do
+
+    # Populate map.xi
+    calcParametricMappingNonlinear(map, box, mesh, geom_faces)
+    @fact size(map.xi) --> (1,)
+    @fact size(map.xi[1]) --> (3,2,102) # Essentially tests defineMapXi
+
+    outname = string("./testvalues/xi_values_2D_airfoil_face5.dat")
+    ctr = 1
+    test_xi_values = readdlm(outname)
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:end_index
+      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          err1 = norm(map.xi[itr][1,j,i] - test_xi_values[ctr],2)
+          err2 = norm(map.xi[itr][2,j,i] - test_xi_values[ctr+1],2)
+          @fact err1 --> less_than(1e-14)
+          @fact err2 --> less_than(1e-14)
+          ctr += 2
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nfaces
+    end      # End for itr = 1:length(geomfaces)
+
+  end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
+
+  context("--- Checking Surface evaluation for 2D DG Mesh ---") do
+
+  end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
+
+end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
+
 facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
 
   # MPI Declarations
@@ -327,6 +526,116 @@ facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
 
 end # End facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---")
 
+#=
+facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---") do
+
+  comm = MPI.COMM_WORLD
+  comm_world = MPI.MPI_COMM_WORLD
+  comm_self = MPI.COMM_SELF
+  my_rank = MPI.Comm_rank(comm)
+  comm_size = MPI.Comm_size(comm)
+
+  opts = PdePumiInterface.get_defaults()
+
+  # 2D mesh
+  opts["order"] = 1
+  opts["dimensions"] = 2
+  opts["use_DG"] = false
+  opts["operator_type"] = "SBPGamma"
+  opts["dmg_name"] = "../src/mesh_files/2D_Airfoil.dmg"
+  opts["smb_name"] = "../src/mesh_files/2D_Airfoil.smb"
+  opts["numBC"] = 2
+
+  # For 2DAirfoil
+  opts["BC1"] = [8,11,14,17]
+  opts["BC1_name"] = "FarField"
+  opts["BC2"] = [5]
+  opts["BC2_name"] = "Airfoil"
+
+  opts["coloring_distance"] = 0 # 0 For CG Mesh 2 for DG Mesh
+  opts["jac_type"] = 2
+
+  # Create PumiMesh and SBP objects
+  sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+
+  context("--- Checking Linear Mapping for 2D CG Mesh ---") do
+
+    # geometry faces to be embedded in FFD Box
+    geom_faces = opts["BC2"]
+
+    # Free Form deformation parameters
+    ndim = 2
+    order = [4,4,2]  # Order of B-splines in the 3 directions
+    nControlPts = [4,4,2]
+
+    # Create Mapping object
+    map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false, geom_faces=geom_faces)
+
+    # Create knot vector
+    calcKnot(map)
+
+    # Create Bounding box
+    offset = [0., 0., 0.5] # No offset in the X & Y direction
+    box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
+
+    # Control points
+    controlPoint(map, box)
+
+    calcParametricMappingLinear(map, box, mesh, geom_faces)
+
+    @fact map.ndim --> 2
+    @fact map.full_geom --> false
+    @fact map.nctl --> [4,4,2]
+    @fact map.order --> [4,4,2]
+    @fact map.edge_knot[1] --> [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
+    @fact map.edge_knot[2] --> [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
+    @fact map.edge_knot[3] --> [0.0,0.0,1.0,1.0]
+    @fact size(map.aj) --> (3,4,3)
+    @fact size(map.dl) --> (3,3)
+    @fact size(map.dr) --> (3,3)
+    @fact size(map.work) --> (4,4,2,12)
+    @fact size(map.cp_xyz) --> (3,4,4,2)
+    println("size map.xi = ", size(map.xi))
+
+    outname = string("xi_values_2D_airfoil_face5.dat")
+
+
+  end # End context("--- Checking Linear Mapping for DG Mesh ---")
+
+  # geometry faces to be embedded in FFD Box
+  geom_faces = opts["BC2"]
+
+  # Free Form deformation parameters
+  ndim = 2
+  order = [4,4,2]  # Order of B-splines in the 3 directions
+  nControlPts = [4,4,2]
+
+  # Create Mapping object
+  map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false, geom_faces=geom_faces)
+
+  # Create knot vector
+  calcKnot(map)
+
+  # Create Bounding box
+  offset = [0., 0., 0.5] # No offset in the X & Y direction
+  box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
+
+  # Control points
+  controlPoint(map, box)
+
+  context("--- Checking Nonlinear Mapping for CG Mesh ---") do
+
+    # Populate map.xi
+    calcParametricMappingNonlinear(map, box, mesh, geom_faces)
+
+  end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
+
+  context("--- Checking Surface evaluation for 2D CG Mesh ---") do
+
+  end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
+
+end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
+=#
 MPI.Finalize()
 #=
 facts("--- Checking BoundingBox ---") do
