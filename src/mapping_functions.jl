@@ -191,7 +191,7 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
   if mesh.dim == 2
     X = zeros(Tffd,3)
     for i = 1:mesh.numEl
-      for j = 1:mesh.numNodesPerElement
+      for j = 1:size(mesh.vert_coords,2) # 1:mesh.numNodesPerElement
         X[1:2] = mesh.vert_coords[:,j,i]
         pX = view(map.xi,:,j,i)
         linearMap(map, box, X, pX)
@@ -199,7 +199,7 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
     end
   else
     for i = 1:mesh.numEl
-      for j = 1:mesh.numNodesPerElement
+      for j = 1:size(mesh.vert_coords,2) # 1:mesh.numNodesPerElement
         X = view(mesh.vert_coords,:,j,i)
         pX = view(map.xi,:,j,i)
         linearMap(map, box, X, pX)

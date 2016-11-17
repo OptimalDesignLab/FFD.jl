@@ -207,7 +207,7 @@ facts("--- Checking FFD Types and Functions For Serial DG Pumi Meshes ---") do
 
     evalVolume(map, mesh)
 
-    outname = string("./testvalues/volume_coords_full_mesh_2D_airfoil.dat")
+    outname = string("./testvalues/volume_coords_full_DG_mesh_2D_airfoil.dat")
     test_vert_coords = readdlm(outname)
     @fact length(test_vert_coords) --> length(mesh.vert_coords)
     for i = 1:20:length(mesh.vert_coords)
@@ -257,10 +257,77 @@ facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
   # Create PumiMesh and SBP objects
   sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 
+  context("--- Checking Linear Mapping For Entire CG Mesh ---") do
+
+    # Free Form deformation parameters
+    ndim = 2
+    order = [4,4,2]  # Order of B-splines in the 3 directions
+    nControlPts = [4,4,2]
+
+    # Create Mapping object
+    map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh)
+
+    # Create knot vector
+    calcKnot(map) # No need to test this since doesnt depend on mesh type
+
+    # Create Bounding box
+    # Doesn't depend on mesh type if entire geometry is embedded in FFD box
+    offset = [0., 0., 0.5] # No offset in the X & Y direction
+    box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
+
+    # Control points
+    controlPoint(map, box) # No Need to test this since it doesnt depend on mesh type
+
+    # Populate map.xi
+    calcParametricMappingLinear(map, box, mesh)
+
+    # Check map.xi
+    outname = string("./testvalues/xi_full_linear_mapping_DG.dat")
+    orig_xi_vals = readdlm(outname)
+    for i = 1:10:length(map.xi)
+      err = norm(orig_xi_vals[i] - map.xi[i], 2)
+      @fact err --> less_than(1e-14)
+    end
+
+  end # End context("--- Checking Linear mapping For Entire DG Mesh ---")
+
+  context("--- Checking Nonlinear Mapping For Entire CG Mesh ---") do
+
+    # Free Form deformation parameters
+    ndim = 2
+    order = [4,4,2]  # Order of B-splines in the 3 directions
+    nControlPts = [4,4,2]
+
+    # Create Mapping object
+    map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh)
+
+    # Create knot vector
+    calcKnot(map) # No need to test this since doesnt depend on mesh type
+
+    # Create Bounding box
+    # Doesn't depend on mesh type if entire geometry is embedded in FFD box
+    offset = [0., 0., 0.5] # No offset in the X & Y direction
+    box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
+
+    # Control points
+    controlPoint(map, box) # No Need to test this since it doesnt depend on mesh type
+
+    # Populate map.xi
+    calcParametricMappingNonlinear(map, box, mesh)
+
+    # Check map.xi
+    outname = string("./testvalues/xi_full_linear_mapping_DG.dat")
+    orig_xi_vals = readdlm(outname)
+    for i = 1:10:length(map.xi)
+      err = norm(orig_xi_vals[i] - map.xi[i], 2)
+      @fact err --> less_than(1e-14)
+    end
+
+  end # End context("--- Checking Linear mapping For Entire DG Mesh ---")
 
 end # End facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---")
 
-
+MPI.Finalize()
 #=
 facts("--- Checking BoundingBox ---") do
 
