@@ -475,7 +475,7 @@ control points for testing
 
 * `map` : Object of AbstractMappingType
 
-"""
+"""->
 
 function writeControlPointsVTS(map::AbstractMappingType)
 
