@@ -2,12 +2,14 @@ module FreeFormDeformation
 export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
 export calcParametricMappingNonlinear, evalVolume, evalSurface
+export writeControlPointsVTS
 
 using ArrayViews
 using MPI
 using PdePumiInterface
 using ODLCommonTools
 using SummationByParts
+using WriteVTK
 
 
 # Abstract Type definition
@@ -462,5 +464,25 @@ function calcdXdxi(map, xi, jderiv, dX)
 
   return nothing
 end  # End function calcdXdxi(map, xi, jderiv)
+
+@doc """
+### writeControlPointsVTS
+
+Writes a `*.vts` file to be viewed in Paraview. Necessary for visualizing the
+control points for testing
+
+**Input**
+
+* `map` : Object of AbstractMappingType
+
+"""
+
+function writeControlPointsVTS(map::AbstractMappingType)
+
+  vtsfile = vtk_grid("control_points", map.cp_xyz)
+  outfiles = vtk_save(vtsfile)
+
+  return nothing
+end
 
 end # End module FreeFormDeformation
