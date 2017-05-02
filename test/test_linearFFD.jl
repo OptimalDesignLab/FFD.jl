@@ -501,14 +501,14 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 
     dpsiTRdXs = rand(Float64, 2*3*sum(nwall_faces))
     evaldXdControlPointProduct(map, mesh, dpsiTRdXs)
-
+    #=
     # Check against finite difference
     pert = 1e-6
     for i = 1:length(map.cp_xyz)
-      cp_xyz[i] += pert
+      mapcp_xyz[i] += pert
 
     end # End map.cp_xyz
-
+    =#
   end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
 
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
