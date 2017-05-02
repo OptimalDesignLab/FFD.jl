@@ -450,8 +450,8 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       end
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
-      idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range)
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -459,7 +459,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
           fill!(x, 0.0)
-          x[1:2] = mesh.coords[:,vtx_arr[j],bndry_i.elements]
+          x[1:2] = mesh.coords[:,vtx_arr[j],bndry_i.element]
           pX = view(map.xi[itr], :, j, i)
           nonlinearMap(map, box, x, pX)
         end  # End for j = 1:length(vtx_arr)
@@ -477,15 +477,15 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       end
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
-      idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range)
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
         # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
-          X = view(mesh.coords,:,vtx_arr[j],bndry_i.elements)
+          X = view(mesh.coords,:,vtx_arr[j],bndry_i.element)
           pX = view(map.xi, :, j, i)
           nonlinearMap(map, box, X, pX)
         end  # End for j = 1:length(vtx_arr)

@@ -6,6 +6,7 @@ push!(LOAD_PATH, joinpath(Pkg.dir("MeshMovement"), "src"))
 push!(LOAD_PATH, joinpath(Pkg.dir("PDESolver"), "src/Utils"))
 
 using PdePumiInterface
+using PDESolver
 using SummationByParts
 using ODLCommonTools
 using ArrayViews

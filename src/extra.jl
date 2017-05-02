@@ -545,7 +545,7 @@ function contractWithdGdB(map, dJdGrid)
 
               ps = p + span[1] - map.order[1]
               coeff = basis[p,1]*basis[q,2]*basis[r,3]
-              map.work[ps, qs, rs, 1:3] += coedd*dJdG[:]
+              map.work[ps, qs, rs, 1:3] += coeff*dJdG[:]
 
             end # End for p = 1:map.order[1]
           end   # End for q = 1:map.order[2]

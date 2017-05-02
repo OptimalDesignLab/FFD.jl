@@ -127,7 +127,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = sview(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -195,9 +195,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
         for j = 1:length(vtx_arr)
           fill!(x, 0.0)
           evalVolumePoint(map, map.xi[itr][:,j,i], x)
-          #println("original = $(mesh.vert_coords[2,vtx_arr[j],bndry_i.element]), x = $(x[2]), vtx_arr[$j] = $(vtx_arr[j])")
           mesh.vert_coords[:,vtx_arr[j],bndry_i.element] = x[1:2]
-          #println("x[1:2] = $(x[1:2]), vert_coords = $(mesh.vert_coords[:,vtx_arr[j],bndry_i.element])")
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
     end  # End for itr = 1:length(map.geom_faces)
@@ -267,7 +265,7 @@ function evalVolumePoint(map::AbstractMappingType, xi, xyz)
   span = findSpan(xi[3], map.edge_knot[3], map.order[3], map.nctl[3])
   basisFunctions(map.edge_knot[3], map.order[3], xi[3], span, Nw)
   startw = span - map.order[3]
-  
+
   for ii = 1:map.order[1]
     for jj = 1:map.order[2]
       for kk = 1:map.order[3]
@@ -281,3 +279,134 @@ function evalVolumePoint(map::AbstractMappingType, xi, xyz)
 
   return nothing
 end
+
+function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
+                                    dJdVert::AbstractArray{Float64,1})
+
+  fill!(map.work, 0.0)
+  ctr = 1
+  for itr = 1:length(map.geom_faces)
+    geom_face_number = map.geom_faces[itr]
+    # get the boundary array associated with the geometric edge
+    itr2 = 0
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
+      end
+    end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    nfaces = length(bndry_facenums)
+    for i = 1:nfaces
+      bndry_i = bndry_facenums[i]
+      vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+      for j = 1:length(vtx_arr)
+        contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert[ctr:ctr+2])
+        ctr += 3
+      end  # End for j = 1:length(vtx_arr)
+    end    # End for i = 1:nfaces
+  end  # End for itr = 1:length(map.geom_faces)
+
+  return nothing
+end
+
+@doc """
+### contractWithdGdB
+
+Used to contract the matrix dG/dB, the derivative of the mesh node coordinates
+with respect to the mapping control points, with a given array, here labelled
+dJdGrid and stored in (j,k,m,:) format. This can be used to find
+dJ/dB = (dJ/dG)(dG/dB) for some objective J. In practice, the objective used is
+actually
+
+             J_practice = J_obj + psi^T dot R
+
+where J_obj is the actual objective, psi are the flow adjoints, and R is the
+flow residual.
+
+**Arguments**
+
+*  `map`     : Object of mapping type
+*  `dJdGrid` : The derivative of the objective w.r.t the grid coordintes
+
+"""->
+
+function contractWithdGdB(map::AbstractMappingType, xi, dJdG)
+
+  # Evaluate the knot vectors and basis values
+  Nu = zeros(map.order[1])
+  Nv = zeros(map.order[2])
+  Nw = zeros(map.order[3])
+  span = zeros(Int, 3)
+
+  # Work with u
+  span[1] = findSpan(xi[1], map.edge_knot[1], map.order[1], map.nctl[1])
+  basisFunctions(map.edge_knot[1], map.order[1], xi[1], span[1], Nu)
+  # startu = span - map.order[1]
+
+  # Work with v
+  span[2] = findSpan(xi[2], map.edge_knot[2], map.order[2], map.nctl[2])
+  basisFunctions(map.edge_knot[2], map.order[2], xi[2], span[2], Nv)
+  # startv = span - map.order[2]
+
+  # Work with w
+  span[3] = findSpan(xi[3], map.edge_knot[3], map.order[3], map.nctl[3])
+  basisFunctions(map.edge_knot[3], map.order[3], xi[3], span[3], Nw)
+  # startw = span - map.order[3]
+
+  for r = 1:map.order[3]
+    rs = r + span[3] - map.order[3]
+    for q = 1:map.order[2]
+      qs = q + span[2] - map.order[2]
+      for p = 1:map.order[1]
+
+        ps = p + span[1] - map.order[1]
+        coeff = Nu[p]*Nv[q]*Nw[r]
+        map.work[1:3, ps, qs, rs] += coeff*dJdG[:]
+
+      end # End for p = 1:map.order[1]
+    end   # End for q = 1:map.order[2]
+  end     # End for r = 1:map.order[3]
+
+  return nothing
+end  # End function contractWithdGdB(map, dJdGrid)
+
+#=
+function calcdXdControlPoint(map::PumiMapping)
+
+  Nu = zeros(map.order[1])
+  Nv = zeros(map.order[2])
+  Nw = zeros(map.order[3])
+
+  # Work with u
+  span = findSpan(xi[1], map.edge_knot[1], map.order[1], map.nctl[1])
+  basisFunctions(map.edge_knot[1], map.order[1], xi[1], span, Nu)
+  startu = span - map.order[1]
+
+  # Work with v
+  span = findSpan(xi[2], map.edge_knot[2], map.order[2], map.nctl[2])
+  basisFunctions(map.edge_knot[2], map.order[2], xi[2], span, Nv)
+  startv = span - map.order[2]
+
+  # Work with w
+  span = findSpan(xi[3], map.edge_knot[3], map.order[3], map.nctl[3])
+  basisFunctions(map.edge_knot[3], map.order[3], xi[3], span, Nw)
+  startw = span - map.order[3]
+
+  for ii = 1:map.order[1]
+    for jj = 1:map.order[2]
+      for kk = 1:map.order[3]
+        for idim = 1:3
+          xyz[idim] += Nu[ii]*Nv[jj]*Nw[kk]*
+                       map.cp_xyz[idim, startu+ii, startv+jj, startw+kk]
+        end
+      end  # End for kk = 1:map.order[3]
+    end    # End for jj = 1:map.order[2]
+  end      # End for ii = 1:map.order[1]
+
+
+  return nothing
+end
+=#

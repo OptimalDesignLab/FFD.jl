@@ -233,27 +233,27 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
           break
         end
       end
-
+      
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
-      idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range)
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
         for j = 1:sbp.numfacenodes
           k = sbp.facenodes[j, bndry_i.face]
-          coords = view(mesh.coords, :, k, bndry_i.elements)
-          if xmin > coords[1,j,i]
-            xmin = coords[1,j,i]
-          elseif xmax < coords[1,j,i]
-            xmax = coords[1,j,i]
+          coords = view(mesh.coords, :, k, bndry_i.element)
+          if xmin > coords[1]
+            xmin = coords[1]
+          elseif xmax < coords[1]
+            xmax = coords[1]
           end # End if
 
-          if ymin > coords[2,j,i]
-            ymin = coords[2,j,i]
-          elseif ymax < coords[2,j,i]
-            ymax = coords[2,j,i]
+          if ymin > coords[2]
+            ymin = coords[2]
+          elseif ymax < coords[2]
+            ymax = coords[2]
           end # End if
         end   # End for j = 1:sbp.facenode
       end     # End for i = 1:nfaces
@@ -277,7 +277,7 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
         bndry_i = bndry_facenums[i]
         for j = 1:sbp.numfacenodes
           k = sbp.facenodes[j, bndry_i.face]
-          coords = view(mesh.coords, :, k, bndry_i.elements)
+          coords = view(mesh.coords, :, k, bndry_i.element)
           if xmin > coords[1,j,i]
             xmin = coords[1,j,i]
           elseif xmax < coords[1,j,i]
@@ -387,7 +387,6 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractDGMesh, sbp::AbstractSBP,
   else
     for itr = 1:length(geom_faces)
       geom_face_number = geom_faces[itr]
-      itr2 = 0
       # get the boundary array associated with the geometric edge
       itr2 = 0
       for itr2 = 1:mesh.numBC

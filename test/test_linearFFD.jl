@@ -77,9 +77,11 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
 
   opts["coloring_distance"] = 2 # 0 For CG Mesh 2 for DG Mesh
   opts["jac_type"] = 2
+  opts["jac_method"] = 2
+  opts["run_type"] = 5
 
   # Create PumiMesh and SBP objects
-  sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+  sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = PDESolver.createMeshAndOperator(opts, 1)
 
   context("--- Checking Linear Mapping For DG Mesh ---") do
 
@@ -115,7 +117,7 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
     @fact size(map.aj) --> (3,4,3)
     @fact size(map.dl) --> (3,3)
     @fact size(map.dr) --> (3,3)
-    @fact size(map.work) --> (4,4,2,12)
+    @fact size(map.work) --> (12,4,4,2)
     @fact size(map.cp_xyz) --> (3,4,4,2)
     @fact size(map.xi) --> (3,3,1498)
 
@@ -252,6 +254,8 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 
   opts["coloring_distance"] = 2 # 0 For CG Mesh 2 for DG Mesh
   opts["jac_type"] = 2
+  opts["jac_method"] = 2
+  opts["run_type"] = 5
 
   # Create PumiMesh and SBP objects
   sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
@@ -291,7 +295,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     @fact size(map.aj) --> (3,4,3)
     @fact size(map.dl) --> (3,3)
     @fact size(map.dr) --> (3,3)
-    @fact size(map.work) --> (4,4,2,12)
+    @fact size(map.work) --> (12,4,4,2)
     @fact size(map.cp_xyz) --> (3,4,4,2)
     @fact size(map.xi) --> (1,)
     @fact size(map.xi[1]) --> (3,2,102) # Essentially tests defineMapXi
@@ -442,34 +446,6 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     evalSurface(map, mesh)
 
     outname = string("./testvalues/modified_coordinates_2D_airfoil_face5.dat")
-    #=
-    f = open(outname, "w")
-    for itr = 1:length(map.geom_faces)
-      geom_face_number = map.geom_faces[itr]
-      # get the boundary array associated with the geometric edge
-      itr2 = 0
-      for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-          break
-        end
-      end
-      start_index = mesh.bndry_offsets[itr2]
-      end_index = mesh.bndry_offsets[itr2+1]
-      idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
-      nfaces = length(bndry_facenums)
-      for i = 1:nfaces
-        bndry_i = bndry_facenums[i]
-        # get the local index of the vertices on the boundary face (local face number)
-        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-        for j = 1:length(vtx_arr)
-          println(f, mesh.vert_coords[1,vtx_arr[j],bndry_i.element])
-          println(f, mesh.vert_coords[2,vtx_arr[j],bndry_i.element])
-        end  # End for j = 1:length(vtx_arr)
-      end    # End for i = 1:nfaces
-    end  # End for itr = 1:length(map.geom_faces)
-    close(f)
-    =#
     test_surface_coords = readdlm(outname)
     ctr = 1
     for itr = 1:length(map.geom_faces)
@@ -502,7 +478,38 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       end    # End for i = 1:nfaces
     end  # End for itr = 1:length(map.geom_faces)
 
-  end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
+  end # End context("--- Checking Surface evaluation for 2D DG Mesh ---")
+
+  context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
+
+    nwall_faces = zeros(Int,length(geom_faces))
+    vtx_per_face = mesh.dim # only true for simplex elements
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range)
+      nwall_faces[itr] = length(bndry_facenums)
+    end
+
+    dpsiTRdXs = rand(Float64, 2*3*sum(nwall_faces))
+    evaldXdControlPointProduct(map, mesh, dpsiTRdXs)
+
+    # Check against finite difference
+    pert = 1e-6
+    for i = 1:length(map.cp_xyz)
+      cp_xyz[i] += pert
+
+    end # End map.cp_xyz
+
+  end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
 
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
 
@@ -533,6 +540,8 @@ facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
 
   opts["coloring_distance"] = 0 # 0 For CG Mesh 2 for DG Mesh
   opts["jac_type"] = 2
+  opts["jac_method"] = 2
+  opts["run_type"] = 5
 
   # Create PumiMesh and SBP objects
   sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
@@ -607,7 +616,7 @@ facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
 
 end # End facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---")
 
-#=
+
 facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---") do
 
   comm = MPI.COMM_WORLD
@@ -635,6 +644,8 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
 
   opts["coloring_distance"] = 0 # 0 For CG Mesh 2 for DG Mesh
   opts["jac_type"] = 2
+  opts["jac_method"] = 2
+  opts["run_type"] = 5
 
   # Create PumiMesh and SBP objects
   sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
@@ -674,12 +685,39 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
     @fact size(map.aj) --> (3,4,3)
     @fact size(map.dl) --> (3,3)
     @fact size(map.dr) --> (3,3)
-    @fact size(map.work) --> (4,4,2,12)
+    @fact size(map.work) --> (12,4,4,2)
     @fact size(map.cp_xyz) --> (3,4,4,2)
-    println("size map.xi = ", size(map.xi))
 
-    outname = string("xi_values_2D_airfoil_face5.dat")
-
+    outname = string("./testvalues/xi_values_2D_airfoil_face5.dat")
+    test_xi_values = readdlm(outname)
+    ctr = 1
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:end_index
+      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          err1 = norm(map.xi[itr][1,j,i] - test_xi_values[ctr],2)
+          err2 = norm(map.xi[itr][2,j,i] - test_xi_values[ctr+1],2)
+          @fact err1 --> less_than(1e-14)
+          @fact err2 --> less_than(1e-14)
+          ctr += 2
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nfaces
+    end      # End for itr = 1:length(geomfaces)
 
   end # End context("--- Checking Linear Mapping for DG Mesh ---")
 
@@ -709,14 +747,84 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
     # Populate map.xi
     calcParametricMappingNonlinear(map, box, mesh, geom_faces)
 
+    # Check for errors in map.xi
+    outname = string("./testvalues/xi_values_2D_airfoil_face5.dat")
+    test_xi_values = readdlm(outname)
+    ctr = 1
+    for itr = 1:length(geom_faces)
+      geom_face_number = geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:end_index
+      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          err1 = norm(map.xi[itr][1,j,i] - test_xi_values[ctr],2)
+          err2 = norm(map.xi[itr][2,j,i] - test_xi_values[ctr+1],2)
+          @fact err1 --> less_than(1e-14)
+          @fact err2 --> less_than(1e-14)
+          ctr += 2
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nfaces
+    end      # End for itr = 1:length(geomfaces)
+
   end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
 
   context("--- Checking Surface evaluation for 2D CG Mesh ---") do
 
+    evalSurface(map, mesh, sbp)
+    outname = string("./testvalues/modified_coordinates_2D_airfoil_face5.dat")
+#=
+
+    test_surface_coords = readdlm(outname)
+    ctr = 1
+    for itr = 1:length(map.geom_faces)
+      geom_face_number = map.geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices on the boundary face (local face number)
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          err1 = norm(mesh.coords[1,vtx_arr[j],bndry_i.element] -
+                 test_surface_coords[ctr], 2)
+          err2 = norm(mesh.coords[2,vtx_arr[j],bndry_i.element] -
+                 test_surface_coords[ctr+1], 2)
+          @fact err1 --> less_than(1e-14)
+          @fact err2 --> less_than(1e-14)
+          ctr += 2
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nfaces
+    end  # End for itr = 1:length(map.geom_faces)
+
+=#
+
   end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
 
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
-=#
+
 MPI.Finalize()
 #=
 facts("--- Checking BoundingBox ---") do

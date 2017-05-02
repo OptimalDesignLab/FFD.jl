@@ -2,6 +2,9 @@ module FreeFormDeformation
 export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
 export calcParametricMappingNonlinear, evalVolume, evalSurface
+export evaldXdControlPointProduct
+
+push!(LOAD_PATH, joinpath(Pkg.dir("PumiInterface"), "src"))
 
 using ArrayViews
 using MPI
@@ -204,7 +207,7 @@ type PumiMapping{Tffd} <: AbstractMappingType
     map.aj = zeros(3, max_order, 3)
     map.dl = zeros(max_order-1, 3)
     map.dr = zeros(max_order-1, 3)
-    map.work = zeros(nctl[1], nctl[2], nctl[3], max_work)
+    map.work = zeros(max_work, nctl[1], nctl[2], nctl[3])
 
     return map
   end
