@@ -361,8 +361,8 @@ function contractWithdGdB(map::AbstractMappingType, xi, dJdG)
     for q = 1:map.order[2]
       qs = q + span[2] - map.order[2]
       for p = 1:map.order[1]
-
         ps = p + span[1] - map.order[1]
+        
         coeff = Nu[p]*Nv[q]*Nw[r]
         map.work[1:3, ps, qs, rs] += coeff*dJdG[:]
 

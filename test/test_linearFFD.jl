@@ -480,10 +480,45 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 
   end # End context("--- Checking Surface evaluation for 2D DG Mesh ---")
 
+  context("--- Checking contractWithdGdB for 2D DG Mesh ---") do
+
+    x_coord = [0.20036370588307958,0.2980477741652081,0.0]
+    new_coord = zeros(Float64, 3)
+    xi = map.xi[1][:,1,1]
+    dJdG = rand(Float64, 3)
+    dJdG_fd = zeros(length(map.cp_xyz))
+    dJdG_fd[1:3] = dJdG[:]
+
+    FreeFormDeformation.contractWithdGdB(map, xi, dJdG)
+# for i = 1:size(map.work, 4)
+#      for j = 1:size(map.work, 3)
+#        println("map.cp_xyz[1:3,:,$j,$i] = \n", map.cp_xyz[1:3,:,j,i])
+#      end
+#    end
+
+#   f = open("./testvalues/cp_contractWithdGdB.dat", "w")
+#   for i = 1:length(map.cp_xyz)
+#     println(f, map.cp_xyz[i])
+#   end
+#   close(f)
+  
+    test_val = readdlm("./testvalues/cp_contractWithdGdB.dat")
+    for i = 1:length(test_val)
+      err = norm(test_val[i] - map.cp_xyz[i], 2)
+      @fact err --> roughly(0.0, atol=1e-13)
+    end
+  end # End
+
+  #=
   context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
 
     nwall_faces = zeros(Int,length(geom_faces))
     vtx_per_face = mesh.dim # only true for simplex elements
+
+    # Copy the original vertex coordinates
+    orig_vert_coords = Array(Array{Float64,3}, length(geom_faces))
+    FreeFormDeformation.defineMapXi(mesh, geom_faces, orig_vert_coords)
+
     for itr = 1:length(geom_faces)
       geom_face_number = geom_faces[itr]
       itr2 = 0
@@ -497,20 +532,33 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       idx_range = start_index:(end_index-1)
       bndry_facenums = view(mesh.bndryfaces, idx_range)
       nwall_faces[itr] = length(bndry_facenums)
+      for i = 1:nwall_faces[itr]
+        bndry_i = bndry_facenums[i]
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        for j = 1:length(vtx_arr)
+          fill!(x, 0.0)
+          evalVolumePoint(map, map.xi[itr][:,j,i], x)
+          mesh.vert_coords[:,vtx_arr[j],bndry_i.element] = x[1:2]
+        end  # End for j = 1:length(vtx_arr)
+      end    # End for i = 1:nwall_faces[itr]
     end
 
     dpsiTRdXs = rand(Float64, 2*3*sum(nwall_faces))
     evaldXdControlPointProduct(map, mesh, dpsiTRdXs)
-    #=
+
     # Check against finite difference
     pert = 1e-6
+
+    dpsiTRdXs_fd = zeros(map.cp_xyz)
     for i = 1:length(map.cp_xyz)
-      mapcp_xyz[i] += pert
+      map.cp_xyz[i] += pert
+      evalSurface(map, mesh)
 
+      map.cp_xyz[i] -= pert
     end # End map.cp_xyz
-    =#
-  end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
 
+  end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
+  =#
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
 
 facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
