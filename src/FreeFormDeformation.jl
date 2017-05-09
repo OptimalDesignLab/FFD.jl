@@ -1,4 +1,5 @@
 module FreeFormDeformation
+
 export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
 export calcParametricMappingNonlinear, evalVolume, evalSurface
@@ -21,10 +22,10 @@ abstract AbstractBoundingBox
 @doc """
 ### Mapping
 
-A type for creating mapping objects needed for creating. The mapping is intended
-for a uniform knot distribution along the 3 dimensions in the parametric space.
-An object of this type can be defined by calling an inner constructor with the
-following arguments in sequence
+A type for creating mapping objects. The mapping uses a uniform knot
+distribution along the 3 dimensions in the parametric space.  An object of this
+type can be defined by calling an inner constructor with the following arguments
+in sequence
 
 * Number of dimensions (2 or 3)
 * Array of order of B-splines in all dimensions
@@ -158,7 +159,8 @@ type PumiMapping{Tffd} <: AbstractMappingType
   cp_xyz::AbstractArray{Tffd, 4} # Cartesian coordinates of control points
   edge_knot::AbstractArray{Vector{Tffd}, 1}  # edge knot vectors
   geom_faces::AbstractArray{Int,1}
-
+  cp_idx::AbstractArray{Int,4}  # index assigned to each CP coordinate
+  
   # Working arrays
   aj::AbstractArray{Tffd, 3}
   dl::AbstractArray{Tffd, 2}
@@ -205,6 +207,20 @@ type PumiMapping{Tffd} <: AbstractMappingType
     max_order = maximum(order)  # Highest order among 3 dimensions
     max_knot = max_order + maximum(nctl) # Maximum number of knots among 3 dimensions
 
+    # use simple logical indexing for CP coordinates
+    map.cp_idx = zeros(3, nctl[1], nctl[2], nctl[3])
+    ptr = 1
+    for k = 1:nclt[1]
+      for j = 1:nclt[2]
+        for i = 1:nclt[1]
+          for di = 1:3
+            map.cp_idx[di,i,j,k] = ptr
+            ptr += 1
+          end
+        end
+      end
+    end
+    
     map.aj = zeros(3, max_order, 3)
     map.dl = zeros(max_order-1, 3)
     map.dr = zeros(max_order-1, 3)
@@ -221,6 +237,7 @@ include("control_point.jl")
 include("span.jl")
 include("b-splines.jl")
 include("evaluations.jl")
+include("constraints.jl")
 
 function defineMapXi(mesh::AbstractMesh, geom_faces::AbstractArray{Int,1},
                      xi::AbstractArray)
