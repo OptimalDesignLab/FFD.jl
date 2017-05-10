@@ -487,7 +487,6 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     xi = map.xi[1][:,1,1]
     dJdG = rand(Float64, 3)
     dJdG_fd = zeros(length(map.cp_xyz))
-    dJdG_fd[1:3] = dJdG[:]
 
     FreeFormDeformation.contractWithdGdB(map, xi, dJdG)
 # for i = 1:size(map.work, 4)
@@ -496,20 +495,20 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 #      end
 #    end
 
-#   f = open("./testvalues/cp_contractWithdGdB.dat", "w")
-#   for i = 1:length(map.cp_xyz)
-#     println(f, map.cp_xyz[i])
-#   end
-#   close(f)
+   f = open("./testvalues/cp_contractWithdGdB.dat", "w")
+   for i = 1:length(map.work)
+     println(f, map.work[i])
+   end
+   close(f)
   
     test_val = readdlm("./testvalues/cp_contractWithdGdB.dat")
     for i = 1:length(test_val)
-      err = norm(test_val[i] - map.cp_xyz[i], 2)
+      err = norm(test_val[i] - map.work[i], 2)
       @fact err --> roughly(0.0, atol=1e-13)
     end
   end # End
 
-  #=
+#=
   context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
 
     nwall_faces = zeros(Int,length(geom_faces))
@@ -558,7 +557,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     end # End map.cp_xyz
 
   end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
-  =#
+=# 
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
 
 facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
