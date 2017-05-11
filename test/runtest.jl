@@ -16,8 +16,9 @@ using MeshMovement
 using FreeFormDeformation
 using FactCheck
 
-include("./test_b-splines.jl")
-include("./test_linearFFD.jl")
+# include("./test_b-splines.jl")
+# include("./test_linearFFD.jl")
+include("./test_constraints.jl")
 
 
 #=

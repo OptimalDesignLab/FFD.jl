@@ -1,14 +1,62 @@
 # test constraints
+# MPI Declarations
+MPI.Init()
+comm = MPI.COMM_WORLD
+comm_world = MPI.MPI_COMM_WORLD
+comm_self = MPI.COMM_SELF
+my_rank = MPI.Comm_rank(comm)
+comm_size = MPI.Comm_size(comm)
+
+opts = PdePumiInterface.get_defaults()
+# 2D mesh
+opts["order"] = 1
+opts["dimensions"] = 2
+opts["use_DG"] = true
+opts["operator_type"] = "SBPOmega"
+opts["dmg_name"] = "../src/mesh_files/2D_Airfoil.dmg"
+opts["smb_name"] = "../src/mesh_files/2D_Airfoil.smb"
+opts["numBC"] = 2
+
+# For 2DAirfoil
+opts["BC1"] = [8,11,14,17]
+opts["BC1_name"] = "FarField"
+opts["BC2"] = [5]
+opts["BC2_name"] = "Airfoil"
+
+opts["coloring_distance"] = 2 # 0 For CG Mesh 2 for DG Mesh
+opts["jac_type"] = 2
+opts["jac_method"] = 2
+opts["run_type"] = 5
+
+# Create PumiMesh and SBP objects
+sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = PDESolver.createMeshAndOperator(opts, 1)
+geom_faces = opts["BC2"]
+
+# Free Form deformation parameters
+ndim = 3
+order = [2,4,2]  # Order of B-splines in the 3 directions
+nControlPts = [2,4,2]
+
+# code here for creating rectilinear map
+# Create Mapping object
+map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false,
+                            geom_faces=geom_faces)
+
+# Create knot vector
+calcKnot(map)
+
+# Create Bounding box
+offset = [0., 0., 0.5] # No offset in the X & Y direction
+ffd_box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
+
+# Control points
+controlPoint(map, ffd_box)
+
+# Populate map.xi
+calcParametricMappingNonlinear(map, ffd_box, mesh, geom_faces)
 
 facts("--- Checking Linear-Plane Constraints ---") do
 
-  # Free Form deformation parameters
-  ndim = 3
-  order = [2,4,2]  # Order of B-splines in the 3 directions
-  nControlPts = [2,4,2]
-
-  # code here for creating rectilinear map
-  
   di = 2
 
   # test function for counting number of constraints
@@ -31,28 +79,25 @@ facts("--- Checking Linear-Plane Constraints ---") do
   jLvar = zeros(Int, sum(cntEq))
   LinG = zeros(sum(cntEq))
   Flow = rand(numCnstr)
-  Fupp = rand(numCntrs)
+  Fupp = rand(numCnstr)
   fncidx, ptr = setLinearPlaneConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                            Fupp, fncidx, ptr)
   @fact fncidx --> numCnstr+1
   @fact ptr --> sum(cntEq)+1
   @fact Flow --> roughly(zeros(numCnstr), 1e-15)
   @fact Fupp --> roughly(zeros(numCnstr), 1e-15)
+  ptr = 1
   for k = 1:numCnstr
-    @fact iLfnc[k] --> k
+    for i = 1:cntEq[k]
+      @fact iLfun[ptr] --> k
+      ptr += 1
+    end
   end
   # !!!!!!!!!! should also include checks on jLvar and LinG, eventually
 end
 
 facts("--- Checking Linear-Corner Constraints ---") do
 
-  # Free Form deformation parameters
-  ndim = 3
-  order = [2,4,2]  # Order of B-splines in the 3 directions
-  nControlPts = [2,4,2]
-
-  # code here for creating rectilinear map
-  
   di = 2
 
   # test function for counting number of constraints
@@ -75,28 +120,25 @@ facts("--- Checking Linear-Corner Constraints ---") do
   jLvar = zeros(Int, sum(cntEq))
   LinG = zeros(sum(cntEq))
   Flow = rand(numCnstr)
-  Fupp = rand(numCntrs)
+  Fupp = rand(numCnstr)
   fncidx, ptr = setLinearCornerConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                             Fupp, fncidx, ptr)
   @fact fncidx --> numCnstr+1
   @fact ptr --> sum(cntEq)+1
   @fact Flow --> roughly(zeros(numCnstr), 1e-15)
   @fact Fupp --> roughly(zeros(numCnstr), 1e-15)
+  ptr = 1
   for k = 1:numCnstr
-    @fact iLfnc[k] --> k
+    for i = 1:cntEq[k]
+      @fact iLfun[ptr] --> k
+      ptr += 1
+    end
   end
   # !!!!!!!!!! should also include checks on jLvar and LinG, eventually
 end
 
 facts("--- Checking Linear-Stretch Constraints ---") do
 
-  # Free Form deformation parameters
-  ndim = 3
-  order = [2,4,2]  # Order of B-splines in the 3 directions
-  nControlPts = [2,4,2]
-
-  # code here for creating rectilinear map
-  
   di = 2
 
   # test function for counting number of constraints
@@ -119,28 +161,26 @@ facts("--- Checking Linear-Stretch Constraints ---") do
   jLvar = zeros(Int, sum(cntEq))
   LinG = zeros(sum(cntEq))
   Flow = rand(numCnstr)
-  Fupp = rand(numCntrs)
+  Fupp = rand(numCnstr)
   fncidx, ptr = setLinearStretchConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                              Fupp, fncidx, ptr)
+
   @fact fncidx --> numCnstr+1
   @fact ptr --> sum(cntEq)+1
   @fact Flow --> roughly(zeros(numCnstr), 1e-15)
   @fact Fupp --> roughly(zeros(numCnstr), 1e-15)
+  ptr = 1
   for k = 1:numCnstr
-    @fact iLfnc[k] --> k
+    for i = 1:cntEq[k]
+      @fact iLfun[ptr] --> k
+      ptr += 1
+    end
   end
   # !!!!!!!!!! should also include checks on jLvar and LinG, eventually
 end
 
 facts("--- Checking Linear-Root Constraints ---") do
 
-  # Free Form deformation parameters
-  ndim = 3
-  order = [2,4,2]  # Order of B-splines in the 3 directions
-  nControlPts = [2,4,2]
-
-  # code here for creating rectilinear map
-  
   di = 2
 
   # test function for counting number of constraints
@@ -165,13 +205,17 @@ facts("--- Checking Linear-Root Constraints ---") do
   jLvar = zeros(Int, sum(cntEq))
   LinG = zeros(sum(cntEq))
   Flow = rand(numCnstr)
-  Fupp = rand(numCntrs)
+  Fupp = rand(numCnstr)
   fncidx, ptr = setLinearRootConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                           Fupp, fncidx, ptr)
   @fact fncidx --> numCnstr+1
   @fact ptr --> sum(cntEq)+1
+  ptr = 1
   for k = 1:numCnstr
-    @fact iLfnc[k] --> k
+    for i = 1:cntEq[k]
+      @fact iLfun[ptr] --> k
+      ptr += 1
+    end
   end
   for k = 1:3
     @fact LinG[k] --> 1.0
@@ -181,3 +225,5 @@ facts("--- Checking Linear-Root Constraints ---") do
   @fact LinG[6] --> 1.0
   @fact LinG[7] --> -1.0
 end
+
+MPI.Finalize()

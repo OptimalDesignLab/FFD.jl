@@ -16,8 +16,8 @@ further details).
 function numLinearPlaneConstraints{Tffd}(map::PumiMapping{Tffd}, di::Int)
   it1 = mod(di,3)+1
   it2 = mod(di+1,3)+1
-  num_per_plane = (map.nclt[it1]*map.nclt[it2] - 3)*3
-  return map.nclt[di]*num_per_plane
+  num_per_plane = (map.nctl[it1]*map.nctl[it2] - 3)*3
+  return map.nctl[di]*num_per_plane
 end
 
 @doc """
@@ -40,8 +40,8 @@ function countVarsLinearPlaneConstraints!{Tffd}(map::PumiMapping{Tffd}, di::Int,
                                                 cntEq::AbstractArray{Int,1},
                                                 fncidx::Int)
   num_cnstr = numLinearPlaneConstraints(map, di)
-  cntEq[fncidx:fncidx+num_cnstr] = 4
-  return fncidx+num_cnstr+1
+  cntEq[fncidx:fncidx+num_cnstr-1] = 4
+  return fncidx+num_cnstr
 end
 
 @doc """
@@ -58,7 +58,7 @@ plane, and shear and translate according to the CPs at the corners of the plane.
 * `iLfun`, `jLvar` : the k^th element in the gradient matrix has row index
 *                    `iLfun(k)` and column index `jLvar(k)`
 * `LinG` : `LinG(k) = A(iLfun(k),jLvar(k))`
-* `Flow`, `Fupp` : the upper and lower bounds on all constraints   
+* `Flow`, `Fupp` : the upper and lower bounds on all constraints
 * `fncidx` : function counter; next function to use in iLfun
 * `ptr` : index pointer to next free space in iLfun and jLvar
 
@@ -79,9 +79,11 @@ function setLinearPlaneConstraints!{Tffd
   cp1_jkm = zeros(jkm); cp2_jkm = zeros(jkm); cp3_jkm = zeros(jkm)
   cp1_idx = zeros(jkm); cp2_idx = zeros(jkm); cp3_idx = zeros(jkm)
   cp1_xyz = zeros(3); cp2_xyz = zeros(3); cp3_xyz = zeros(3)
+  u1 = zeros(3); u2 = zeros(3); u3 = zeros(3); e1 = zeros(3); e2 = zeros(3)
+  x = zeros(3)
 
   # loop over the CP planes in the direction di
-  for jdi = 1:map.nclt[di]
+  for jdi = 1:map.nctl[di]
     jkm[di] = jdi
 
     # set the (j,k,m) indices for the CPs at the corners of the plane
@@ -91,10 +93,10 @@ function setLinearPlaneConstraints!{Tffd
 
     cp2_jkm[di] = jdi
     cp2_jkm[it1] = 1
-    cp2_jkm[it2] = map.nclt[it2]
+    cp2_jkm[it2] = map.nctl[it2]
 
     cp3_jkm[di] = jdi
-    cp3_jkm[it1] = map.nclt[it1]
+    cp3_jkm[it1] = map.nctl[it1]
     cp3_jkm[it2] = 1
 
     # get the coordinates of the CPs at the corners of the plane, and some unit
@@ -102,15 +104,15 @@ function setLinearPlaneConstraints!{Tffd
     cp1_xyz = map.cp_xyz[:,cp1_jkm[1],cp1_jkm[2],cp1_jkm[3]]
     cp2_xyz = map.cp_xyz[:,cp2_jkm[1],cp2_jkm[2],cp2_jkm[3]]
     cp3_xyz = map.cp_xyz[:,cp3_jkm[1],cp3_jkm[2],cp3_jkm[3]]
-    
+
     u1[:] = cp2_xyz - cp1_xyz
     fac1 = 1./norm(u1)
     u1[:] *= fac1
-    
+
     u2[:] = cp3_xyz - cp1_xyz
     fac2 = 1./norm(u2)
     u2[:] *= fac2
-    
+
     u3[:] = cross(u1,u2)
     u3[:] *= 1./norm(u3)
     e1[:] = cross(u2,u3)
@@ -122,9 +124,9 @@ function setLinearPlaneConstraints!{Tffd
     cp3_idx = map.cp_idx[:,cp3_jkm[1],cp3_jkm[2],cp3_jkm[3]]
 
     # loop over the CPs that lie in the jdi-th plane
-    for jit1 = 1:map.nclt[it1]
+    for jit1 = 1:map.nctl[it1]
       jkm[it1] = jit1
-      for jit2 = 1:map.nclt[it2]
+      for jit2 = 1:map.nctl[it2]
         jkm[it2] = jit2
         if jkm == cp1_jkm || jkm == cp2_jkm || jkm == cp3_jkm
           # the corner CPs are independent, so skip them
@@ -158,7 +160,7 @@ function setLinearPlaneConstraints!{Tffd
           iLfun[ptr] = fncidx
           jLvar[ptr] = cp3_idx[bdi]
           LinG[ptr] = -coeff3
-          ptr =+ 1
+          ptr += 1
           Flow[fncidx] = 0.0
           Fupp[fncidx] = 0.0
           fncidx += 1
@@ -167,7 +169,6 @@ function setLinearPlaneConstraints!{Tffd
       end # jit2 loop
     end # jit1 loop
   end # jdi loop
-          
   return fncidx, ptr
 end
 
@@ -202,7 +203,7 @@ further details).
 
 """->
 function numLinearCornerConstraints{Tffd}(map::PumiMapping{Tffd}, di::Int)
-  return map.nclt[di]*2
+  return map.nctl[di]*2
 end
 
 @doc """
@@ -225,11 +226,11 @@ function countVarsLinearCornerConstraints!{Tffd}(map::PumiMapping{Tffd}, di::Int
                                                  cntEq::AbstractArray{Int,1},
                                                  fncidx::Int)
   num_cnstr = numLinearCornerConstraints(map, di)
-  cntEq[fncidx:fncidx+num_cnstr] = 4
-  return fncidx+num_cnstr+1
+  cntEq[fncidx:fncidx+num_cnstr-1] = 4
+  return fncidx+num_cnstr
 end
 
-"""
+@doc """
 ### setLinearCornerConstraints!
 
 This constraint is used to keep each plane in the `di` direction square; this
@@ -243,7 +244,7 @@ that the di coordinates of the CPs are the same.
 * `iLfun`, `jLvar` : the k^th element in the gradient matrix has row index
 *                    `iLfun(k)` and column index `jLvar(k)`
 * `LinG` : `LinG(k) = A(iLfun(k),jLvar(k))`
-* `Flow`, `Fupp` : the upper and lower bounds on all constraints   
+* `Flow`, `Fupp` : the upper and lower bounds on all constraints
 * `fncidx` : function counter; next function to use in iLfun
 * `ptr` : index pointer to next free space in iLfun and jLvar
 
@@ -260,13 +261,14 @@ function setLinearCornerConstraints!{Tffd
   it1 = mod(di,3)+1
   it2 = mod(di+1,3)+1
 
-  jkm = zeros(Int,3) 
+  jkm = zeros(Int,3)
   cp1_jkm = zeros(jkm); cp2_jkm = zeros(jkm); cp3_jkm = zeros(jkm)
   cp1_idx = zeros(jkm); cp2_idx = zeros(jkm); cp3_idx = zeros(jkm)
   cp1_xyz = zeros(3); cp2_xyz = zeros(3); cp3_xyz = zeros(3)
-  
+  u1 = zeros(3); tvec = zeros(3)
+
   # loop over the CP planes in the direction di
-  for jdi = 1:map.nclt[di]
+  for jdi = 1:map.nctl[di]
     jkm[di] = jdi
 
     # set the (j,k,m) indices for the CPs at the corners of the plane
@@ -276,10 +278,10 @@ function setLinearCornerConstraints!{Tffd
 
     cp2_jkm[di] = jdi
     cp2_jkm[it1] = 1
-    cp2_jkm[it2] = map.nclt[it2]
+    cp2_jkm[it2] = map.nctl[it2]
 
     cp3_jkm[di] = jdi
-    cp3_jkm[it1] = map.nclt[it1]
+    cp3_jkm[it1] = map.nctl[it1]
     cp3_jkm[it2] = 1
 
     # get the coordinates of the CPs at the corners of the plane, and some unit
@@ -287,11 +289,11 @@ function setLinearCornerConstraints!{Tffd
     cp1_xyz = map.cp_xyz[:,cp1_jkm[1],cp1_jkm[2],cp1_jkm[3]]
     cp2_xyz = map.cp_xyz[:,cp2_jkm[1],cp2_jkm[2],cp2_jkm[3]]
     cp3_xyz = map.cp_xyz[:,cp3_jkm[1],cp3_jkm[2],cp3_jkm[3]]
-    
+
     u1[:] = cp2_xyz - cp1_xyz
     fac1 = 1./norm(u1)
     u1[:] *= fac1
-    
+
     tvec[it1] = -u1[it2]
     tvec[it2] = u1[it1]
     tvec[di] = 0.0
@@ -299,10 +301,10 @@ function setLinearCornerConstraints!{Tffd
 
     # u1 and tvec should be orthogonal
     @assert( dot(u1,tvec) < 1e-14 )
-    
+
     # First equation, for coordinate it1
     # x3[it1] = -alpha*fac1*(x2[it2] - x1[it2]) + x1[it1]
-    
+
     # set data for dependent cp3
     iLfun[ptr] = fncidx
     jLvar[ptr] = cp3_idx[it1]
@@ -331,7 +333,7 @@ function setLinearCornerConstraints!{Tffd
 
     # Second equation, for coordinate it2
     # x3[it2] = alpha*fac1*(x2[it1] - x1[it1]) + x1[it2]
-    
+
     # set data for dependent cp3
     iLfun[ptr] = fncidx
     jLvar[ptr] = cp3_idx[it2]
@@ -358,7 +360,7 @@ function setLinearCornerConstraints!{Tffd
     Fupp[fncidx] = 0.0
     fncidx += 1
   end
-  
+
   return fncidx, ptr
 end
 
@@ -374,7 +376,7 @@ further details).
 
 """->
 function numLinearStretchConstraints{Tffd}(map::PumiMapping{Tffd})
-  return map.nclt[1]*map.nclt[2]*map.nclt[3] - 1
+  return map.nctl[1]*map.nctl[2]*map.nctl[3] - 1
 end
 
 @doc """
@@ -396,11 +398,11 @@ function countVarsLinearStretchConstraints!{Tffd}(map::PumiMapping{Tffd},
                                                   cntEq::AbstractArray{Int,1},
                                                   fncidx::Int)
   num_cnstr = numLinearStretchConstraints(map)
-  cntEq[fncidx:fncidx+num_cnstr] = 2
-  return fncidx+num_cnstr+1
+  cntEq[fncidx:fncidx+num_cnstr-1] = 2
+  return fncidx+num_cnstr
 end
 
-"""
+@doc """
 ### setLinearStretchConstraints!
 
 This constraint is used to scale all the control points' `di` coordinate based
@@ -414,7 +416,7 @@ you want each CP in a plane to stretch in proportion.
 * `iLfun`, `jLvar` : the k^th element in the gradient matrix has row index
 *                    `iLfun(k)` and column index `jLvar(k)`
 * `LinG` : `LinG(k) = A(iLfun(k),jLvar(k))`
-* `Flow`, `Fupp` : the upper and lower bounds on all constraints   
+* `Flow`, `Fupp` : the upper and lower bounds on all constraints
 * `fncidx` : function counter; next function to use in iLfun
 * `ptr` : index pointer to next free space in iLfun and jLvar
 
@@ -430,13 +432,13 @@ function setLinearStretchConstraints!{Tffd
 
   # get master CP index and xyz
   master_jkm = ones(Int,3)
-  master_jkm[di] = map.nclt[di]
+  master_jkm[di] = map.nctl[di]
   master_idx = map.cp_idx[di,master_jkm[1],master_jkm[2],master_jkm[3]]
   master_xyz = map.cp_xyz[di,master_jkm[1],master_jkm[2],master_jkm[3]]
-  
-  for k = 1:map.nclt[3]
-    for j = 1:map.nclt[2]
-      for i = 1:map.nclt[1]
+
+  for k = 1:map.nctl[3]
+    for j = 1:map.nctl[2]
+      for i = 1:map.nctl[1]
         if i == master_jkm[1] && j == master_jkm[2] && k == master_jkm[3]
           # if this is the master node, skip it
           continue
@@ -507,7 +509,7 @@ function countVarsLinearRootConstraints!{Tffd}(map::PumiMapping{Tffd},
   return fncidx
 end
 
-"""
+@doc """
 ### setLinearRootConstraints!
 
 This constraint sets some very specific linear constraints at the root of the
@@ -522,7 +524,7 @@ frozen CP.  **Assumes the symmetry plane is at the low end of the CP indices**.
 * `iLfun`, `jLvar` : the k^th element in the gradient matrix has row index
 *                    `iLfun(k)` and column index `jLvar(k)`
 * `LinG` : `LinG(k) = A(iLfun(k),jLvar(k))`
-* `Flow`, `Fupp` : the upper and lower bounds on all constraints   
+* `Flow`, `Fupp` : the upper and lower bounds on all constraints
 * `fncidx` : function counter; next function to use in iLfun
 * `ptr` : index pointer to next free space in iLfun and jLvar
 
@@ -537,12 +539,12 @@ function setLinearRootConstraints!{Tffd
     fncidx::Int, ptr::Int)
 
   # frozen CP constraint
-  for bdi = 1:3  
+  for bdi = 1:3
     iLfun[ptr] = fncidx
     jLvar[ptr] = map.cp_idx[bdi,1,1,1]
     LinG[ptr] = 1.0
     ptr += 1
-    
+
     Flow[fncidx] = map.cp_xyz[bdi,1,1,1]
     Fupp[fncidx] = Flow[fncidx]
     fncidx += 1
@@ -552,7 +554,7 @@ function setLinearRootConstraints!{Tffd
   it1 = mod(di,3)+1
   it2 = mod(di+1,3)+1
   jkm = ones(Int,3)
-  jkm[it1] = map.nclt[it1]
+  jkm[it1] = map.nctl[it1]
 
   # constraint x2[di] = x1[di]
   iLfun[ptr] = fncidx
@@ -560,7 +562,7 @@ function setLinearRootConstraints!{Tffd
   LinG[ptr] = 1.0
   ptr += 1
   iLfun[ptr] = fncidx
-  jLvar[ptr] = map.cp_xyz[di,1,1,1]
+  jLvar[ptr] = map.cp_idx[di,1,1,1]
   LinG[ptr] = -1.0
   ptr += 1
 
@@ -574,13 +576,13 @@ function setLinearRootConstraints!{Tffd
   LinG[ptr] = 1.0
   ptr += 1
   iLfun[ptr] = fncidx
-  jLvar[ptr] = map.cp_xyz[it2,1,1,1]
+  jLvar[ptr] = map.cp_idx[it2,1,1,1]
   LinG[ptr] = -1.0
   ptr += 1
 
   Flow[fncidx] = 0.0
   Fupp[fncidx] = 0.0
   fncidx += 1
-  
+
   return fncidx, ptr
 end

@@ -5,6 +5,11 @@ export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
 export calcParametricMappingNonlinear, evalVolume, evalSurface
 export writeControlPointsVTS, evaldXdControlPointProduct
 
+export numLinearPlaneConstraints, countVarsLinearPlaneConstraints!, setLinearPlaneConstraints!
+export numLinearCornerConstraints, countVarsLinearCornerConstraints!, setLinearCornerConstraints!
+export numLinearStretchConstraints, countVarsLinearStretchConstraints!, setLinearStretchConstraints!
+export numLinearRootConstraints, countVarsLinearRootConstraints!, setLinearRootConstraints!
+
 push!(LOAD_PATH, joinpath(Pkg.dir("PumiInterface"), "src"))
 
 using ArrayViews
@@ -160,7 +165,7 @@ type PumiMapping{Tffd} <: AbstractMappingType
   edge_knot::AbstractArray{Vector{Tffd}, 1}  # edge knot vectors
   geom_faces::AbstractArray{Int,1}
   cp_idx::AbstractArray{Int,4}  # index assigned to each CP coordinate
-  
+
   # Working arrays
   aj::AbstractArray{Tffd, 3}
   dl::AbstractArray{Tffd, 2}
@@ -210,9 +215,9 @@ type PumiMapping{Tffd} <: AbstractMappingType
     # use simple logical indexing for CP coordinates
     map.cp_idx = zeros(3, nctl[1], nctl[2], nctl[3])
     ptr = 1
-    for k = 1:nclt[1]
-      for j = 1:nclt[2]
-        for i = 1:nclt[1]
+    for k = 1:nctl[1]
+      for j = 1:nctl[2]
+        for i = 1:nctl[1]
           for di = 1:3
             map.cp_idx[di,i,j,k] = ptr
             ptr += 1
@@ -220,7 +225,7 @@ type PumiMapping{Tffd} <: AbstractMappingType
         end
       end
     end
-    
+
     map.aj = zeros(3, max_order, 3)
     map.dl = zeros(max_order-1, 3)
     map.dr = zeros(max_order-1, 3)
