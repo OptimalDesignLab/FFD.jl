@@ -280,38 +280,6 @@ function evalVolumePoint(map::AbstractMappingType, xi, xyz)
   return nothing
 end
 
-function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
-                                    dJdVert::AbstractArray{Float64,1})
-
-  fill!(map.work, 0.0)
-  ctr = 1
-  for itr = 1:length(map.geom_faces)
-    geom_face_number = map.geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
-    idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
-    nfaces = length(bndry_facenums)
-    for i = 1:nfaces
-      bndry_i = bndry_facenums[i]
-      vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-      for j = 1:length(vtx_arr)
-        contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert[ctr:ctr+2])
-        ctr += 3
-      end  # End for j = 1:length(vtx_arr)
-    end    # End for i = 1:nfaces
-  end  # End for itr = 1:length(map.geom_faces)
-
-  return nothing
-end
-
 @doc """
 ### contractWithdGdB
 
@@ -344,69 +312,64 @@ function contractWithdGdB(map::AbstractMappingType, xi, dJdG)
   # Work with u
   span[1] = findSpan(xi[1], map.edge_knot[1], map.order[1], map.nctl[1])
   basisFunctions(map.edge_knot[1], map.order[1], xi[1], span[1], Nu)
-  # startu = span - map.order[1]
+  startu = span[1] - map.order[1]
 
   # Work with v
   span[2] = findSpan(xi[2], map.edge_knot[2], map.order[2], map.nctl[2])
   basisFunctions(map.edge_knot[2], map.order[2], xi[2], span[2], Nv)
-  # startv = span - map.order[2]
+  startv = span[2] - map.order[2]
 
   # Work with w
   span[3] = findSpan(xi[3], map.edge_knot[3], map.order[3], map.nctl[3])
   basisFunctions(map.edge_knot[3], map.order[3], xi[3], span[3], Nw)
-  # startw = span - map.order[3]
-
-  for r = 1:map.order[3]
-    rs = r + span[3] - map.order[3]
-    for q = 1:map.order[2]
-      qs = q + span[2] - map.order[2]
-      for p = 1:map.order[1]
-        ps = p + span[1] - map.order[1]
-        
-        coeff = Nu[p]*Nv[q]*Nw[r]
-        map.work[1:3, ps, qs, rs] += coeff*dJdG[:]
-
-      end # End for p = 1:map.order[1]
-    end   # End for q = 1:map.order[2]
-  end     # End for r = 1:map.order[3]
-
-  return nothing
-end  # End function contractWithdGdB(map, dJdGrid)
-
-#=
-function calcdXdControlPoint(map::PumiMapping)
-
-  Nu = zeros(map.order[1])
-  Nv = zeros(map.order[2])
-  Nw = zeros(map.order[3])
-
-  # Work with u
-  span = findSpan(xi[1], map.edge_knot[1], map.order[1], map.nctl[1])
-  basisFunctions(map.edge_knot[1], map.order[1], xi[1], span, Nu)
-  startu = span - map.order[1]
-
-  # Work with v
-  span = findSpan(xi[2], map.edge_knot[2], map.order[2], map.nctl[2])
-  basisFunctions(map.edge_knot[2], map.order[2], xi[2], span, Nv)
-  startv = span - map.order[2]
-
-  # Work with w
-  span = findSpan(xi[3], map.edge_knot[3], map.order[3], map.nctl[3])
-  basisFunctions(map.edge_knot[3], map.order[3], xi[3], span, Nw)
-  startw = span - map.order[3]
+  startw = span[3] - map.order[3]
 
   for ii = 1:map.order[1]
     for jj = 1:map.order[2]
       for kk = 1:map.order[3]
+        coeff = Nu[ii]*Nv[jj]*Nw[kk]
         for idim = 1:3
-          xyz[idim] += Nu[ii]*Nv[jj]*Nw[kk]*
-                       map.cp_xyz[idim, startu+ii, startv+jj, startw+kk]
+          map.work[idim, startu+ii, startv+jj, startw+kk] += coeff*dJdG[idim]
+          # xyz[idim] += Nu[ii]*Nv[jj]*Nw[kk]*
+          #              map.cp_xyz[idim, startu+ii, startv+jj, startw+kk]
         end
       end  # End for kk = 1:map.order[3]
     end    # End for jj = 1:map.order[2]
   end      # End for ii = 1:map.order[1]
 
+  return nothing
+end  # End function contractWithdGdB(map, dJdGrid)
+
+function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
+                                    dJdVert::AbstractArray{Float64,1})
+
+  fill!(map.work, 0.0)
+  ctr = 1
+  # println("length(dJdVert) = $(length(dJdVert))")
+  for itr = 1:length(map.geom_faces)
+    geom_face_number = map.geom_faces[itr]
+    # get the boundary array associated with the geometric edge
+    itr2 = 0
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
+      end
+    end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    nfaces = length(bndry_facenums)
+    for i = 1:nfaces
+      bndry_i = bndry_facenums[i]
+      vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+      for j = 1:length(vtx_arr)
+        # println("ctr = $ctr, ctr:ctr+2 =$(ctr:ctr+2)")
+        contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert[ctr:ctr+2])
+        ctr += 3
+      end  # End for j = 1:length(vtx_arr)
+    end    # End for i = 1:nfaces
+  end  # End for itr = 1:length(map.geom_faces)
 
   return nothing
 end
-=#

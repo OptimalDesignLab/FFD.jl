@@ -4,6 +4,7 @@ export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
 export calcParametricMappingNonlinear, evalVolume, evalSurface
 export writeControlPointsVTS, evaldXdControlPointProduct
+export initializeFFD
 
 export numLinearPlaneConstraints, countVarsLinearPlaneConstraints!, setLinearPlaneConstraints!
 export numLinearCornerConstraints, countVarsLinearCornerConstraints!, setLinearCornerConstraints!
@@ -17,7 +18,7 @@ using MPI
 using PdePumiInterface
 using ODLCommonTools
 using SummationByParts
-# using WriteVTK
+using WriteVTK
 
 
 # Abstract Type definition
@@ -215,7 +216,7 @@ type PumiMapping{Tffd} <: AbstractMappingType
     # use simple logical indexing for CP coordinates
     map.cp_idx = zeros(3, nctl[1], nctl[2], nctl[3])
     ptr = 1
-    for k = 1:nctl[1]
+    for k = 1:nctl[3]
       for j = 1:nctl[2]
         for i = 1:nctl[1]
           for di = 1:3
@@ -488,6 +489,33 @@ function calcdXdxi(map, xi, jderiv, dX)
 
   return nothing
 end  # End function calcdXdxi(map, xi, jderiv)
+
+@doc """
+Routine to be called externally for initializing FreeFormDeformation
+"""->
+
+function initializeFFD(mesh, sbp, order, nControlPts, Tmsh, offset, full_geom, geom_faces)
+
+  # Create Mapping object
+  ndim = mesh.dim
+  map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false,
+                              geom_faces=geom_faces)
+
+  # Create knot vector
+  calcKnot(map)
+
+  # Create Bounding box
+  # offset = [0., 0., 0.5] # No offset in the X & Y direction
+  ffd_box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
+
+  # Control points
+  controlPoint(map, ffd_box)
+
+  # Populate map.xi
+  calcParametricMappingNonlinear(map, ffd_box, mesh, geom_faces)
+
+  return map
+end
 
 @doc """
 ### writeControlPointsVTS

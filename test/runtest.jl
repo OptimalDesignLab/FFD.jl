@@ -16,9 +16,13 @@ using MeshMovement
 using FreeFormDeformation
 using FactCheck
 
+include("./test_functions.jl")
 # include("./test_b-splines.jl")
 # include("./test_linearFFD.jl")
-include("./test_constraints.jl")
+# include("./test_constraints.jl")
+
+# Debug
+include("./test_FFD_derivatives.jl")
 
 
 #=

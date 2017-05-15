@@ -479,87 +479,101 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     end  # End for itr = 1:length(map.geom_faces)
 
   end # End context("--- Checking Surface evaluation for 2D DG Mesh ---")
-
+#=
   context("--- Checking contractWithdGdB for 2D DG Mesh ---") do
 
-    x_coord = [0.20036370588307958,0.2980477741652081,0.0]
+    # x_coord = [0.20036370588307958,0.2980477741652081,0.0]
     new_coord = zeros(Float64, 3)
     xi = map.xi[1][:,1,1]
     dJdG = rand(Float64, 3)
     dJdG_fd = zeros(length(map.cp_xyz))
 
     FreeFormDeformation.contractWithdGdB(map, xi, dJdG)
-# for i = 1:size(map.work, 4)
-#      for j = 1:size(map.work, 3)
-#        println("map.cp_xyz[1:3,:,$j,$i] = \n", map.cp_xyz[1:3,:,j,i])
-#      end
-#    end
 
-   f = open("./testvalues/cp_contractWithdGdB.dat", "w")
-   for i = 1:length(map.work)
-     println(f, map.work[i])
-   end
-   close(f)
-  
-    test_val = readdlm("./testvalues/cp_contractWithdGdB.dat")
+    cp_jacobian = zeros(length(Xs_bar), length(map.cp_xyz))
+    pert = 1e-6
+    # Get original wall coordinates
+    orig_wallCoords = getWallCoords(mesh, geom_faces)
+    for i = 1:length(map.cp_xyz)
+      map.cp_xyz[i] += pert
+      evalSurface(map, mesh)
+      for j = 1:mesh.numEl
+        update_coords(mesh, j, mesh.vert_coords[:,:,j])
+      end
+      commit_coords(mesh, sbp)
+      new_wallCoords = getWallCoords(mesh, geom_faces)
+      cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
+      map.cp_xyz[i] -= pert
+    end # End for i = 1:length(map.cp_xyz)
+
+    dcp_xyz_fd = transpose(cp_jacobian)*vec(Xs_bar)
+
+    for i = 1:length(dcp_xyz_fd)
+      err_val = norm(dcp_xyz_fd[i] - cp_xyz_bar[i], 2)
+      @fact err_val --> roughly(0.0, atol=1e-6)
+    end
+
+    # f = open("./testvalues/cp_contractWithdGdB.dat", "w")
+    # for i = 1:length(map.work)
+    #   println(f, map.work[i])
+    # end
+    # close(f)
+
+    #=test_val = readdlm("./testvalues/cp_contractWithdGdB.dat")
     for i = 1:length(test_val)
       err = norm(test_val[i] - map.work[i], 2)
       @fact err --> roughly(0.0, atol=1e-13)
     end
-  end # End
-
-#=
+    =#
+  end # End context("--- Checking contractWithdGdB for 2D DG Mesh ---")
+=#
   context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
 
-    nwall_faces = zeros(Int,length(geom_faces))
-    vtx_per_face = mesh.dim # only true for simplex elements
+    fill!(map.work, 0.0)
 
-    # Copy the original vertex coordinates
-    orig_vert_coords = Array(Array{Float64,3}, length(geom_faces))
-    FreeFormDeformation.defineMapXi(mesh, geom_faces, orig_vert_coords)
-
-    for itr = 1:length(geom_faces)
-      geom_face_number = geom_faces[itr]
-      itr2 = 0
-      for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-          break
+    # Create seed vector
+    nwall_faces = getnWallFaces(mesh, geom_faces)
+    nWallCoords = sum(nwall_faces)*vtx_per_face
+    Xs_bar = randn(3, nWallCoords)
+    cp_xyz_bar = zeros(map.cp_xyz)
+    evaldXdControlPointProduct(map, mesh, vec(Xs_bar))
+    for i = 1:size(map.work, 4)
+      for j = 1:size(map.work, 3)
+        for k = 1:size(map.work, 2)
+            cp_xyz_bar[1:3,k,j,i] = map.work[1:3, k,j,i]
         end
       end
-      start_index = mesh.bndry_offsets[itr2]
-      end_index = mesh.bndry_offsets[itr2+1]
-      idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range)
-      nwall_faces[itr] = length(bndry_facenums)
-      for i = 1:nwall_faces[itr]
-        bndry_i = bndry_facenums[i]
-        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-        for j = 1:length(vtx_arr)
-          fill!(x, 0.0)
-          evalVolumePoint(map, map.xi[itr][:,j,i], x)
-          mesh.vert_coords[:,vtx_arr[j],bndry_i.element] = x[1:2]
-        end  # End for j = 1:length(vtx_arr)
-      end    # End for i = 1:nwall_faces[itr]
     end
 
-    dpsiTRdXs = rand(Float64, 2*3*sum(nwall_faces))
-    evaldXdControlPointProduct(map, mesh, dpsiTRdXs)
-
     # Check against finite difference
+    # Compute the entire Jacobian
+    cp_jacobian = zeros(length(Xs_bar), length(map.cp_xyz))
     pert = 1e-6
-
-    dpsiTRdXs_fd = zeros(map.cp_xyz)
+    # Get original wall coordinates
+    orig_wallCoords = getWallCoords(mesh, geom_faces)
     for i = 1:length(map.cp_xyz)
       map.cp_xyz[i] += pert
       evalSurface(map, mesh)
-
+      for j = 1:mesh.numEl
+        update_coords(mesh, j, mesh.vert_coords[:,:,j])
+      end
+      commit_coords(mesh, sbp)
+      new_wallCoords = getWallCoords(mesh, geom_faces)
+      cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
       map.cp_xyz[i] -= pert
-    end # End map.cp_xyz
+    end # End for i = 1:length(map.cp_xyz)
+
+    dcp_xyz_fd = transpose(cp_jacobian)*vec(Xs_bar)
+
+    for i = 1:length(dcp_xyz_fd)
+      err_val = norm(dcp_xyz_fd[i] - cp_xyz_bar[i], 2)
+      @fact err_val --> roughly(0.0, atol=1e-6)
+    end
 
   end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
-=# 
-end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
 
+end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
+#=
 facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
 
   # MPI Declarations
@@ -871,7 +885,7 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
   end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
 
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
-
+=#
 MPI.Finalize()
 #=
 facts("--- Checking BoundingBox ---") do
