@@ -98,25 +98,6 @@ function evalVolume{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
     end
   end
 
-  #=
-  if mesh.dim == 2 # If its a 2D PumiMesh
-    arr = zeros(Tffd, 3)
-    for i = 1:mesh.numEl
-      for j = 1:mesh.numNodesPerElement
-        fill!(arr,0.0)
-        evalVolumePoint(map, map.xi[:,j,i], arr)
-        mesh.vert_coords[:,j,i] = arr[1:2]
-      end
-    end
-  else  # 3D pumi mesh
-    for i = 1:mesh.numEl
-      for j = 1:mesh.numNodesPerElement
-        xyz = view(mesh.vert_coords, :,j,i)
-        evalVolumePoint(map, map.xi[:,j,i], xyz)
-      end
-    end
-  end  # End If
-  =#
   return vertices
 end
 
@@ -346,7 +327,7 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
                                     dJdVert::AbstractArray{Float64,1})
 
   fill!(map.work, 0.0)
-  ctr = 3
+  ctr = 1
   local_vertnum_history = Int[]
   dJdVert_arr = reshape(dJdVert, 3, convert(Int,length(dJdVert)/3))
   for itr = 1:length(map.geom_faces)
@@ -364,42 +345,19 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
     bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
 
-    # Do the first face separately and then run the entre loop. THis is done
-    # because the of the nature of extracted values using findfirst used
-    # subsequently.
-    bndry_1 = bndry_facenums[1]
-    vtx_arr = mesh.topo.face_verts[:,bndry_1.face]
-
-    local_vertnum = mesh.element_vertnums[vtx_arr[2],bndry_1.element]
-    push!(local_vertnum_history, local_vertnum)
-    contractWithdGdB(map, map.xi[itr][:,2,1], dJdVert_arr[:,2])
-
-    local_vertnum = mesh.element_vertnums[vtx_arr[1],bndry_1.element]
-    push!(local_vertnum_history, local_vertnum)
-    # println("map.xi[$itr][:,2,1] = $(map.xi[itr][:,2,1])")
-    # for i = 1:size(map.xi[itr],3)
-    #   println("map.xi[$itr][:,:,$i] = $(map.xi[itr][:,:,i])")
-    # end
-    contractWithdGdB(map, map.xi[itr][:,1,1], dJdVert_arr[:,1])
-
-    #=
-    for i = 2:nfaces
+    for i = 1:nfaces
       bndry_i = bndry_facenums[i]
       vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
       for j = 1:length(vtx_arr)
         local_vertnum = mesh.element_vertnums[vtx_arr[j],bndry_i.element]
+        if findfirst(local_vertnum_history, local_vertnum) == 0
+          contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
+          ctr += 1
+        end
         push!(local_vertnum_history, local_vertnum)
-        for itr2 = 1:length(local_vertnum_history)
-          println("local_vertnum_history = $(local_vertnum_history)")
-          println("findfirst val = $(findfirst(local_vertnum_history, local_vertnum))")
-          if findfirst(local_vertnum_history, local_vertnum) >= ctr
-            contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
-            ctr += 1
-          end
-        end # End for itr2 = 1:length(local_vertnum_history)
       end  # End for j = 1:length(vtx_arr)
     end    # End for i = 1:nfaces
-    =#
+
   end  # End for itr = 1:length(map.geom_faces)
 
   return nothing

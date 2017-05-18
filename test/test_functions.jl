@@ -85,20 +85,35 @@ function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
       face_vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
       for j = 1:length(face_vtx_arr)
         local_vertnum = mesh.element_vertnums[face_vtx_arr[j],bndry_i.element]
+        if findfirst(local_vertnum_history, local_vertnum) == 0
+          for k = 1:mesh.dim
+            wallCoords[k,ctr] = vtx_arr[k, local_vertnum]
+          end
+          ctr += 1
+        end
         push!(local_vertnum_history, local_vertnum)
-        for itr2 = 1:length(local_vertnum_history)
-          if findfirst(local_vertnum_history, local_vertnum) >= ctr
-            for k = 1:mesh.dim
-              wallCoords[k, ctr] = vtx_arr[k, local_vertnum]
-            end # End for k = 1:mesh.dim
-            ctr += 1
-          end   # End if
-        end   # for itr2 = 1:length(local_vertnum_history)
       end     # for j = 1:length(face_vtx_arr)
     end       # for i = 1:nfaces
   end # End for itr = 1:length(geom_faces)
 
   return wallCoords
+end
+
+function checkValueExistence(Arr, val)
+
+  ctr = 0
+  for i = 1:length(Arr)
+    if Arr[i] == val
+      ctr += 1
+    end
+  end
+
+  if ctr > 0
+    return true
+  else
+    return false
+  end
+
 end
 #=
 function getWallCoords(mesh::PumiMeshDG2, geom_faces::AbstractArray{Int, 1})

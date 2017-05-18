@@ -523,15 +523,19 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     # end
 
   end # End context("--- Checking contractWithdGdB for 2D DG Mesh ---")
+  =#
 
   context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
 
     fill!(map.work, 0.0)
+    pert = 1e-6
 
     # Create seed vector
+    # - Get original wall coordinates
+    orig_wallCoords = getUniqueWallCoordsArray(mesh, geom_faces, false)
     nwall_faces = getnWallFaces(mesh, geom_faces)
-    nWallCoords = sum(nwall_faces)*vtx_per_face
-    Xs_bar = randn(3, nWallCoords)
+    Xs_bar = randn(3, size(orig_wallCoords,2))
+    Xs_bar[3,:] = 0.0 # To accurately simulate a 2D mesh
     cp_xyz_bar = zeros(map.cp_xyz)
     evaldXdControlPointProduct(map, mesh, vec(Xs_bar))
     for i = 1:size(map.work, 4)
@@ -543,32 +547,23 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     end
 
     # Check against finite difference
-    # Compute the entire Jacobian
-    cp_jacobian = zeros(length(Xs_bar), length(map.cp_xyz))
-    pert = 1e-6
-    # Get original wall coordinates
-    orig_wallCoords = getWallCoords(mesh, geom_faces)
+    cp_jacobian = zeros(length(orig_wallCoords), length(map.cp_xyz))
     for i = 1:length(map.cp_xyz)
       map.cp_xyz[i] += pert
-      evalSurface(map, mesh)
-      for j = 1:mesh.numEl
-        update_coords(mesh, j, mesh.vert_coords[:,:,j])
-      end
-      commit_coords(mesh, sbp)
-      new_wallCoords = getWallCoords(mesh, geom_faces)
+      vertices = evalSurface(map, mesh)
+      commitToPumi(map, mesh, sbp, vertices)
+      new_wallCoords = getUniqueWallCoordsArray(mesh, geom_faces, false)
       cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
       map.cp_xyz[i] -= pert
     end # End for i = 1:length(map.cp_xyz)
+    prod_val = transpose(cp_jacobian)*vec(Xs_bar)
 
-    dcp_xyz_fd = transpose(cp_jacobian)*vec(Xs_bar)
-
-    for i = 1:length(dcp_xyz_fd)
-      err_val = norm(dcp_xyz_fd[i] - cp_xyz_bar[i], 2)
-      @fact err_val --> roughly(0.0, atol=1e-6)
+    error = vec(cp_xyz_bar) - prod_val
+    for i = 1:length(error)
+      @fact error[i] --> roughly(0.0, atol=1e-9) "Error problem at i = $i"
     end
 
   end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
-  =#
 
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
 
