@@ -4,7 +4,7 @@ export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
 export calcParametricMappingNonlinear, evalVolume, evalSurface
 export writeControlPointsVTS, evaldXdControlPointProduct
-export initializeFFD
+export initializeFFD, commitToPumi
 
 export numLinearPlaneConstraints, countVarsLinearPlaneConstraints!, setLinearPlaneConstraints!
 export numLinearCornerConstraints, countVarsLinearCornerConstraints!, setLinearCornerConstraints!
@@ -518,21 +518,43 @@ function initializeFFD(mesh, sbp, order, nControlPts, Tmsh, offset, full_geom, g
 end
 
 @doc """
-### writeControlPointsVTS
+###FreeFormDeformation.commitToPumi
 
-Writes a `*.vts` file to be viewed in Paraview. Necessary for visualizing the
-control points for testing
-
-**Input**
-
-* `map` : Object of AbstractMappingType
+Uses the modified vertex coordinates to update the Pumi mesh
 
 """->
 
-function writeControlPointsVTS(map::AbstractMappingType)
+function commitToPumi(map, mesh, sbp, vertices)
 
-  vtsfile = vtk_grid("control_points", map.cp_xyz)
-  outfiles = vtk_save(vtsfile)
+  if map.full_geom == true
+    for i = 1:mesh.numEl
+      update_coords(mesh, i, vertices[:,:,i])
+    end
+  else
+    for itr = 1:length(map.geom_faces)
+      geom_face_number = map.geom_faces[itr]
+      # get the boundary array associated with the geometric edge
+      itr2 = 0
+      for itr2 = 1:mesh.numBC
+        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+          break
+        end
+      end
+      start_index = mesh.bndry_offsets[itr2]
+      end_index = mesh.bndry_offsets[itr2+1]
+      idx_range = start_index:(end_index-1)
+      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      nfaces = length(bndry_facenums)
+      for i = 1:nfaces
+        bndry_i = bndry_facenums[i]
+        # get the local index of the vertices on the boundary face (local face number)
+        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        update_coords(mesh, bndry_i.element, vertices[:,:,bndry_i.element])
+      end    # End for i = 1:nfaces
+    end  # End for itr = 1:length(map.geom_faces)
+  end # End
+
+  commit_coords(mesh, sbp)
 
   return nothing
 end

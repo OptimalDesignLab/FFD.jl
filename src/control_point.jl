@@ -32,3 +32,23 @@ function controlPoint(map::AbstractMappingType, box::AbstractBoundingBox)
 
   return nothing
 end  # End function controlPoint
+
+@doc """
+### writeControlPointsVTS
+
+Writes a `*.vts` file to be viewed in Paraview. Necessary for visualizing the
+control points for testing
+
+**Input**
+
+* `map` : Object of AbstractMappingType
+
+"""->
+
+function writeControlPointsVTS(map::AbstractMappingType)
+
+  vtsfile = vtk_grid("control_points", map.cp_xyz)
+  outfiles = vtk_save(vtsfile)
+
+  return nothing
+end

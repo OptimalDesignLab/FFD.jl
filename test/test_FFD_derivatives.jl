@@ -57,6 +57,64 @@ writeControlPointsVTS(map)
 
 calcParametricMappingNonlinear(map, box, mesh, geom_faces)
 
+# Pertub all the x coordinates by 0.1
+map.cp_xyz[1,:,:,:] += 0.1
+vertices = evalSurface(map, mesh)
+
+for itr = 1:length(map.geom_faces)
+  geom_face_number = map.geom_faces[itr]
+  # get the boundary array associated with the geometric edge
+  itr2 = 0
+  for itr2 = 1:mesh.numBC
+    if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+      break
+    end
+  end
+  start_index = mesh.bndry_offsets[itr2]
+  end_index = mesh.bndry_offsets[itr2+1]
+  idx_range = start_index:(end_index-1)
+  bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+  nfaces = length(bndry_facenums)
+  for i = 1:nfaces
+    bndry_i = bndry_facenums[i]
+    vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+    for j = 1:length(vtx_arr)
+      println("vertices[:,$(vtx_arr[j]),$(bndry_i.element)] = ",  vertices[:,vtx_arr[j],bndry_i.element])
+    end  # End for j = 1:length(vtx_arr)
+  end    # End for i = 1:nfaces
+end  # End for itr = 1:length(map.geom_faces)
+
+commitToPumi(map, mesh, sbp, vertices)
+
+for itr = 1:length(map.geom_faces)
+  geom_face_number = map.geom_faces[itr]
+  # get the boundary array associated with the geometric edge
+  itr2 = 0
+  for itr2 = 1:mesh.numBC
+    if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+      break
+    end
+  end
+  start_index = mesh.bndry_offsets[itr2]
+  end_index = mesh.bndry_offsets[itr2+1]
+  idx_range = start_index:(end_index-1)
+  bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+  nfaces = length(bndry_facenums)
+  for i = 1:nfaces
+    bndry_i = bndry_facenums[i]
+    # get the local index of the vertices on the boundary face (local face number)
+    vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+    for j = 1:length(vtx_arr)
+        println("mesh.vert_coords[:,$(vtx_arr[j]),$(bndry_i.element)] = ",  mesh.vert_coords[:,vtx_arr[j],bndry_i.element])
+    end  # End for j = 1:length(vtx_arr)
+  end    # End for i = 1:nfaces
+end  # End for itr = 1:length(map.geom_faces)
+
+writeVisFiles(mesh, "perturbed_mesh")
+
+
+
+#=
 pert = 1e-6 # Finite difference perturbation for tests
 
 facts("---Checking contractWithdGdB ---") do
@@ -82,17 +140,20 @@ facts("---Checking contractWithdGdB ---") do
   cp_jacobian = zeros(length(orig_wallCoords), length(map.cp_xyz))
   for i = 1:length(map.cp_xyz)
     map.cp_xyz[i] += pert
+    println("\nmap.cp_xyz[$i] = $(map.cp_xyz[i])\n")
     evalSurface(map, mesh)
     for j = 1:mesh.numEl
       update_coords(mesh, j, mesh.vert_coords[:,:,j])
     end
     commit_coords(mesh, sbp)
-    vtx_arr = getUniqueVertexArray(mesh)
+    # calcParametricMappingNonlinear(map, box, mesh, geom_faces)
     new_wallCoords = getUniqueWallCoordsArray(mesh, geom_faces, false)
     cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
     map.cp_xyz[i] -= pert
   end # End for i = 1:length(map.cp_xyz)
+
   prod_val = transpose(cp_jacobian)*multiplying_vec
+
   println("cp_jacobian = \n$(cp_jacobian)")
   println("multiplying_vec = \n$(multiplying_vec)")
   println("prod_val = \n$(prod_val)")
@@ -101,6 +162,7 @@ facts("---Checking contractWithdGdB ---") do
   for i = 1:size(map.xi[1],3)
     println("map.xi[1][:,:$i] = \n$(map.xi[1][:,:,i])")
   end
+
   # Compute the error between reverse mode and finite difference
   error = vec(cp_xyz_bar) - prod_val
   for i = 1:length(error)
@@ -108,7 +170,7 @@ facts("---Checking contractWithdGdB ---") do
   end
 
 end # End facts("---Checking contractWithdGdB ---")
-
+=#
 #=
 facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
 
@@ -130,7 +192,7 @@ facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
       end
     end
   end
-#= 
+
   # Check against finite difference
   cp_jacobian = zeros(length(orig_wallCoords), length(map.cp_xyz))
   for i = 1:length(map.cp_xyz)
@@ -149,12 +211,12 @@ facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
   println("prod_val = \n$prod_val")
   println("vec(cp_xyz_bar) = \n$(vec(cp_xyz_bar))")
   println("vec(Xs_bar) = \n$(vec(Xs_bar))")
-  
+
   error = vec(cp_xyz_bar) - prod_val
   for i = 1:length(error)
     # println("error[$i] = $(error[i])")
     @fact error[i] --> roughly(0.0, atol=1e-10) "Error prblem at i = $i"
   end
-  =#
+
 end # End facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
 =#

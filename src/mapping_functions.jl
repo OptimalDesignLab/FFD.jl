@@ -291,6 +291,37 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
     @assert ctr == 0 "Linear mapping works only for Bezier Curves with Bernstein polynomial basis functions"
   end
 
+  x = zeros(Tffd,3)
+  for itr = 1:length(geom_faces)
+    geom_face_number = geom_faces[itr]
+    # get the boundary array associated with the geometric edge
+    itr2 = 0
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
+      end
+    end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    nfaces = length(bndry_facenums)
+    for i = 1:nfaces
+      bndry_i = bndry_facenums[i]
+      # get the local index of the vertices
+      vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+      for j = 1:length(vtx_arr)
+        fill!(x, 0.0)
+        for k = 1:mesh.dim
+          x[k] = mesh.vert_coords[k,vtx_arr[j],bndry_i.element]
+        end
+        pX = view(map.xi[itr], :, j, i)
+        linearMap(map, box, x, pX)
+      end  # End for j = 1:length(vtx_arr)
+    end    # End for i = 1:nfaces
+  end      # End for itr = 1:length(geomfaces)
+
+  #=
   if mesh.dim == 2
     x = zeros(Tffd,3)
     for itr = 1:length(geom_faces)
@@ -346,7 +377,7 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
     end      # End for itr = 1:length(geomfaces)
 
   end  # End if mesh.dim == 2
-
+  =#
   return nothing
 end
 
@@ -411,6 +442,17 @@ end
 function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
                                         box::PumiBoundingBox, mesh::AbstractDGMesh)
 
+  X = zeros(Tffd,3)
+  for i = 1:mesh.numEl
+    for j = 1:mesh.numNodesPerElement
+      for k = 1:mesh.dim
+        X[k] = mesh.vert_coords[k,j,i]
+      end
+      pX = view(map.xi,:,j,i)
+      nonlinearMap(map, box, X, pX)
+    end
+  end
+  #=
   if mesh.dim == 2
     X = zeros(Tffd,3)
     for i = 1:mesh.numEl
@@ -429,7 +471,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       end
     end
   end
-
+  =#
   return nothing
 end
 
@@ -501,6 +543,37 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractDGMesh,
                                      geom_faces::AbstractArray{Int,1})
 
+  x = zeros(Tffd,3)
+  for itr = 1:length(geom_faces)
+    geom_face_number = geom_faces[itr]
+    # get the boundary array associated with the geometric edge
+    itr2 = 0
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
+      end
+    end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    nfaces = length(bndry_facenums)
+    for i = 1:nfaces
+      bndry_i = bndry_facenums[i]
+      # get the local index of the vertices
+      vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+      for j = 1:length(vtx_arr)
+        fill!(x, 0.0)
+        for k = 1:mesh.dim
+          x[k] = mesh.vert_coords[k,vtx_arr[j],bndry_i.element]
+        end
+        pX = view(map.xi[itr], :, j, i)
+        nonlinearMap(map, box, x, pX)
+      end  # End for j = 1:length(vtx_arr)
+    end    # End for i = 1:nfaces
+ end      # End for itr = 1:length(geomfaces)
+
+  #=
   if mesh.dim == 2
     x = zeros(Tffd,3)
     for itr = 1:length(geom_faces)
@@ -556,6 +629,6 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
     end      # End for itr = 1:length(geomfaces)
 
   end  # End if mesh.dim == 2
-
+  =#
   return nothing
 end

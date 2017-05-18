@@ -1,6 +1,8 @@
 # test constraints
 # MPI Declarations
-MPI.Init()
+if !MPI.Initialized()
+  MPI.Init()
+end
 comm = MPI.COMM_WORLD
 comm_world = MPI.MPI_COMM_WORLD
 comm_self = MPI.COMM_SELF
@@ -225,5 +227,3 @@ facts("--- Checking Linear-Root Constraints ---") do
   @fact LinG[6] --> 1.0
   @fact LinG[7] --> -1.0
 end
-
-MPI.Finalize()

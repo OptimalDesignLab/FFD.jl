@@ -53,6 +53,19 @@ symbol convention used in the function is from the book
 *  `map` : Object of mapping type
 *  `Vol` : (x,y,z) coordinates of the embedded volume within the contol points
 
+####Method 2
+
+Applies only to DG meshes so fae
+
+**Input**
+
+* `map`
+* `mesh` : Abstract Pumi DG Mesh
+
+**Output**
+
+* `vertices` : Array of updated vertices same shape as mesh.vert_coords
+
 """->
 
 function evalVolume{Tmsh}(map::Mapping, Vol::AbstractArray{Tmsh,4})
@@ -71,10 +84,21 @@ function evalVolume{Tmsh}(map::Mapping, Vol::AbstractArray{Tmsh,4})
   return nothing
 end
 
-function evalVolume{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractMesh)
+function evalVolume{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
 
-  fill!(mesh.coords, 0.0)
+  vertices = zeros(Tffd, size(mesh.vert_coords))
+  arr = zeros(Tffd, 3)
+  for i = 1:mesh.numEl
+    for j = 1:mesh.numNodesPerElement
+      fill!(arr,0.0)
+      evalVolumePoint(map, map.xi[:,j,i], arr)
+      for k = 1:map.ndim
+        vertices[k,j,i] = arr[k]
+      end
+    end
+  end
 
+  #=
   if mesh.dim == 2 # If its a 2D PumiMesh
     arr = zeros(Tffd, 3)
     for i = 1:mesh.numEl
@@ -92,8 +116,8 @@ function evalVolume{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractMesh)
       end
     end
   end  # End If
-
-  return nothing
+  =#
+  return vertices
 end
 
 
@@ -172,61 +196,37 @@ end
 
 function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
 
-  if map.ndim == 2
-    x = zeros(Tffd, 3)
-    for itr = 1:length(map.geom_faces)
-      geom_face_number = map.geom_faces[itr]
-      # get the boundary array associated with the geometric edge
-      itr2 = 0
-      for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-          break
-        end
+  vertices = zeros(Tffd, size(mesh.vert_coords))
+  x = zeros(Tffd, 3)
+  for itr = 1:length(map.geom_faces)
+    geom_face_number = map.geom_faces[itr]
+    # get the boundary array associated with the geometric edge
+    itr2 = 0
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
       end
-      start_index = mesh.bndry_offsets[itr2]
-      end_index = mesh.bndry_offsets[itr2+1]
-      idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
-      nfaces = length(bndry_facenums)
-      for i = 1:nfaces
-        bndry_i = bndry_facenums[i]
-        # get the local index of the vertices on the boundary face (local face number)
-        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-        for j = 1:length(vtx_arr)
-          fill!(x, 0.0)
-          evalVolumePoint(map, map.xi[itr][:,j,i], x)
-          mesh.vert_coords[:,vtx_arr[j],bndry_i.element] = x[1:2]
-        end  # End for j = 1:length(vtx_arr)
-      end    # End for i = 1:nfaces
-    end  # End for itr = 1:length(map.geom_faces)
-  else
-    for itr = 1:length(map.geom_faces)
-      geom_face_number = map.geom_faces[itr]
-      # get the boundary array associated with the geometric edge
-      itr2 = 0
-      for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-          break
+    end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    nfaces = length(bndry_facenums)
+    for i = 1:nfaces
+      bndry_i = bndry_facenums[i]
+      # get the local index of the vertices on the boundary face (local face number)
+      vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+      for j = 1:length(vtx_arr)
+        fill!(x, 0.0)
+        evalVolumePoint(map, map.xi[itr][:,j,i], x)
+        for k = 1:map.ndim
+          vertices[k,vtx_arr[j],bndry_i.element] = x[k]
         end
-      end
-      start_index = mesh.bndry_offsets[itr2]
-      end_index = mesh.bndry_offsets[itr2+1]
-      idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
-      nfaces = length(bndry_facenums)
-      for i = 1:nfaces
-        bndry_i = bndry_facenums[i]
-        # get the local index of the vertices on the boundary face (local face number)
-        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-        for j = 1:length(vtx_arr)
-          xyz = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.element)
-          evalVolumePoint(map, map.xi[itr][:,j,i], xyz)
-        end  # End for j = 1:sbp.numfacenodes
-      end    # End for i = 1:nfaces
-    end  # End for itr = 1:length(map.geom_faces)
-  end    # End if map.ndim == 2
+      end  # End for j = 1:length(vtx_arr)
+    end    # End for i = 1:nfaces
+  end  # End for itr = 1:length(map.geom_faces)
 
-  return nothing
+  return vertices
 end
 
 @doc """
@@ -328,11 +328,13 @@ function contractWithdGdB(map::AbstractMappingType, xi, dJdG)
     for jj = 1:map.order[2]
       for kk = 1:map.order[3]
         coeff = Nu[ii]*Nv[jj]*Nw[kk]
+        # println("ii = $ii, jj = $jj, kk = $kk, startu = $startu, startv = $startv, startw = $startw")
         for idim = 1:3
           map.work[idim, startu+ii, startv+jj, startw+kk] += coeff*dJdG[idim]
           # xyz[idim] += Nu[ii]*Nv[jj]*Nw[kk]*
           #              map.cp_xyz[idim, startu+ii, startv+jj, startw+kk]
         end
+        # println("map.work[:, $(startu+ii), $(startv+jj), $(startw+kk)] = $(map.work[:, startu+ii, startv+jj, startw+kk])")
       end  # End for kk = 1:map.order[3]
     end    # End for jj = 1:map.order[2]
   end      # End for ii = 1:map.order[1]
@@ -344,8 +346,9 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
                                     dJdVert::AbstractArray{Float64,1})
 
   fill!(map.work, 0.0)
-  ctr = 1
-  # println("length(dJdVert) = $(length(dJdVert))")
+  ctr = 3
+  local_vertnum_history = Int[]
+  dJdVert_arr = reshape(dJdVert, 3, convert(Int,length(dJdVert)/3))
   for itr = 1:length(map.geom_faces)
     geom_face_number = map.geom_faces[itr]
     # get the boundary array associated with the geometric edge
@@ -360,15 +363,43 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
     idx_range = start_index:(end_index-1)
     bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
-    for i = 1:nfaces
+
+    # Do the first face separately and then run the entre loop. THis is done
+    # because the of the nature of extracted values using findfirst used
+    # subsequently.
+    bndry_1 = bndry_facenums[1]
+    vtx_arr = mesh.topo.face_verts[:,bndry_1.face]
+
+    local_vertnum = mesh.element_vertnums[vtx_arr[2],bndry_1.element]
+    push!(local_vertnum_history, local_vertnum)
+    contractWithdGdB(map, map.xi[itr][:,2,1], dJdVert_arr[:,2])
+
+    local_vertnum = mesh.element_vertnums[vtx_arr[1],bndry_1.element]
+    push!(local_vertnum_history, local_vertnum)
+    # println("map.xi[$itr][:,2,1] = $(map.xi[itr][:,2,1])")
+    # for i = 1:size(map.xi[itr],3)
+    #   println("map.xi[$itr][:,:,$i] = $(map.xi[itr][:,:,i])")
+    # end
+    contractWithdGdB(map, map.xi[itr][:,1,1], dJdVert_arr[:,1])
+
+    #=
+    for i = 2:nfaces
       bndry_i = bndry_facenums[i]
       vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
       for j = 1:length(vtx_arr)
-        # println("ctr = $ctr, ctr:ctr+2 =$(ctr:ctr+2)")
-        contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert[ctr:ctr+2])
-        ctr += 3
+        local_vertnum = mesh.element_vertnums[vtx_arr[j],bndry_i.element]
+        push!(local_vertnum_history, local_vertnum)
+        for itr2 = 1:length(local_vertnum_history)
+          println("local_vertnum_history = $(local_vertnum_history)")
+          println("findfirst val = $(findfirst(local_vertnum_history, local_vertnum))")
+          if findfirst(local_vertnum_history, local_vertnum) >= ctr
+            contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
+            ctr += 1
+          end
+        end # End for itr2 = 1:length(local_vertnum_history)
       end  # End for j = 1:length(vtx_arr)
     end    # End for i = 1:nfaces
+    =#
   end  # End for itr = 1:length(map.geom_faces)
 
   return nothing

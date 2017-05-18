@@ -233,7 +233,7 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
           break
         end
       end
-      
+
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:(end_index-1)
