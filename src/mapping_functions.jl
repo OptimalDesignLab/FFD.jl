@@ -103,7 +103,6 @@ function nonlinearMap(map::AbstractMappingType, box::AbstractBoundingBox,
     # Compute residual
     fill!(pointVal, 0.0)
     evalVolumePoint(map, xi, pointVal)
-    # println("pointVal = $pointVal, X = $X")
     res = X - pointVal
 
     # Construct jacobian
@@ -117,8 +116,7 @@ function nonlinearMap(map::AbstractMappingType, box::AbstractBoundingBox,
       calcdXdxi(map, xi, jderiv, Jrow)
     end
     xi_new = xi + J\res
-    #println("xi_new = $xi_new")
-    if norm(xi_new - xi, 2) < 1e-14
+    if norm(xi_new - xi, 2) < 1e-15
       pX[:] = xi_new[:]
       break
     else
