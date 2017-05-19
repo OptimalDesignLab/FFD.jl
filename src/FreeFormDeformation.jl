@@ -494,7 +494,11 @@ end  # End function calcdXdxi(map, xi, jderiv)
 Routine to be called externally for initializing FreeFormDeformation
 """->
 
-function initializeFFD(mesh, sbp, order, nControlPts, Tmsh, offset, full_geom, geom_faces)
+function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP, 
+                       order::AbstractArray{Int,1}, 
+                       nControlPts::AbstractArray{Int,1}, 
+                       offset::AbstractArray{Float64,1}, full_geom::Bool,
+                       geom_faces::AbstractArray{Int,1})
 
   # Create Mapping object
   ndim = mesh.dim
