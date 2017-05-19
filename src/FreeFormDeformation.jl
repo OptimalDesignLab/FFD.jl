@@ -492,17 +492,32 @@ end  # End function calcdXdxi(map, xi, jderiv)
 
 @doc """
 Routine to be called externally for initializing FreeFormDeformation
+
+**Input**
+
+* `mesh` : Pumi mesh
+* `sbp`  : Summation-By-Parts operator
+* `order`: Array of B-splone order along the 3 parametric directions (ξ, η, ζ)
+* `nControlPts` : Array of nu,ber of control points along 3 parametric
+                  directions (ξ, η, ζ)
+* `offset` : FFD Bounding box offset form the embedded geometry along the 3
+             physical directions (x, y, z)
+* `full_geom` : Whether the full geometry or a portion of geometry is being
+                embedded. (True or false)
+* `geom_faces`: (Optional Argument) If partial geometry embedded, give the
+                face/edge numbers of the embedded gemetry
+
 """->
 
-function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP, 
-                       order::AbstractArray{Int,1}, 
-                       nControlPts::AbstractArray{Int,1}, 
+function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
+                       order::AbstractArray{Int,1},
+                       nControlPts::AbstractArray{Int,1},
                        offset::AbstractArray{Float64,1}, full_geom::Bool,
-                       geom_faces::AbstractArray{Int,1})
+                       geom_faces::AbstractArray{Int,1}=[0])
 
   # Create Mapping object
   ndim = mesh.dim
-  map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false,
+  map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=full_geom,
                               geom_faces=geom_faces)
 
   # Create knot vector
@@ -516,7 +531,11 @@ function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
   controlPoint(map, ffd_box)
 
   # Populate map.xi
-  calcParametricMappingNonlinear(map, ffd_box, mesh, geom_faces)
+  if full_geom == true
+    calcParametricMappingNonlinear(map, ffd_box, mesh)
+  else
+    calcParametricMappingNonlinear(map, ffd_box, mesh, geom_faces)
+  end
 
   return map
 end

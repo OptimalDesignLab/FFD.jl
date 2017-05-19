@@ -20,7 +20,7 @@ SOURCE: The NURBS book 2nd Edition, Algorithm A2.1
 
 """->
 
-function findSpan(u, U, k, nctl)
+function findSpan{Tffd}(u::Tffd, U::AbstractArray{Tffd,1}, k::Int, nctl::Int)
 
   if u >= U[nctl+1]
     return nctl  # Special case when u = last term of knot vector
