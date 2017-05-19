@@ -16,7 +16,6 @@ using FreeFormDeformation
 using FactCheck
 
 # Include functions that will be used for performing tests
-include("./test_functions.jl") # File containing only functions that may be used by tests
 include("./test_parallel_FFD.jl")
 
 

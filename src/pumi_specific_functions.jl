@@ -99,23 +99,33 @@ function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
   return wallCoords
 end
 
-function checkValueExistence(Arr, val)
+function defineVertices(mesh::PumiMeshDG2, geom_faces::AbstractArray{Int,1},
+                        vertices::AbstractArray)
 
-  ctr = 0
-  for i = 1:length(Arr)
-    if Arr[i] == val
-      ctr += 1
+  for itr = 1:length(geom_faces)
+    geom_face_number = geom_faces[itr]
+    # get the boundary array associated with the geometric edge
+    itr2 = 0
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
+      end
     end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range)
+    nfaces = length(bndry_facenums)
+    vertices[itr] = zeros(mesh.dim,3,nfaces) # Valid only for simplex elements
+    for i = 1:nfaces
+      bndry_i = bndry_facenums[i]
+      # vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+      vertices[itr][:,:,i] = mesh.vert_coords[:,:,bndry_i.element]
+    end # End for i = 1:nfaces
   end
 
-  if ctr > 0
-    return true
-  else
-    return false
-  end
-
+  return nothing
 end
-#=
 function getWallCoords(mesh::PumiMeshDG2, geom_faces::AbstractArray{Int, 1})
 
   nwall_faces = getnWallFaces(mesh, geom_faces)
@@ -152,4 +162,3 @@ function getWallCoords(mesh::PumiMeshDG2, geom_faces::AbstractArray{Int, 1})
 
   return wallCoords
 end # End function getWallCoords
-=#

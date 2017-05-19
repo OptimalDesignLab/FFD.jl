@@ -177,7 +177,11 @@ end
 
 function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
 
-  vertices = zeros(Tffd, size(mesh.vert_coords))
+  nwall_faces = getnWallFaces(mesh, map.geom_faces)
+  vertices = Array(Array{Tffd,3}, length(map.geom_faces))
+  defineVertices(mesh, map.geom_faces, vertices)
+
+  # vertices = zeros(Tffd, size(mesh.vert_coords))
   x = zeros(Tffd, 3)
   for itr = 1:length(map.geom_faces)
     geom_face_number = map.geom_faces[itr]
@@ -201,7 +205,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
         fill!(x, 0.0)
         evalVolumePoint(map, map.xi[itr][:,j,i], x)
         for k = 1:map.ndim
-          vertices[k,vtx_arr[j],bndry_i.element] = x[k]
+          vertices[itr][k,vtx_arr[j],i] = x[k]
         end
       end  # End for j = 1:length(vtx_arr)
     end    # End for i = 1:nfaces

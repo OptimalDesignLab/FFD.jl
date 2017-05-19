@@ -244,6 +244,7 @@ include("span.jl")
 include("b-splines.jl")
 include("evaluations.jl")
 include("constraints.jl")
+include("pumi_specific_functions.jl")
 
 function defineMapXi(mesh::AbstractMesh, geom_faces::AbstractArray{Int,1},
                      xi::AbstractArray)
@@ -571,8 +572,8 @@ function commitToPumi(map, mesh, sbp, vertices)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
         # get the local index of the vertices on the boundary face (local face number)
-        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-        update_coords(mesh, bndry_i.element, vertices[:,:,bndry_i.element])
+        # vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+        update_coords(mesh, bndry_i.element, vertices[itr][:,:,i])
       end    # End for i = 1:nfaces
     end  # End for itr = 1:length(map.geom_faces)
   end # End

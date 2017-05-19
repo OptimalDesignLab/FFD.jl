@@ -16,9 +16,6 @@ using MPI
 using FreeFormDeformation
 using FactCheck
 
-# Include functions that will be used for performing tests
-include("./test_functions.jl")
-
 # Include the actual tests
 include("./test_b-splines.jl")
 include("./test_linearFFD.jl")
