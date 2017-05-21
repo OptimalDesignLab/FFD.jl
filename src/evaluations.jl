@@ -362,6 +362,13 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
       end  # End for j = 1:length(vtx_arr)
     end    # End for i = 1:nfaces
 
+    # Now do an All reduce operation on map.work
+    recv_arr = zeros(map.work)
+    MPI.Allreduce!(map.work, recv_arr, MPI.SUM, MPI.COMM_WORLD)
+    for i = 1:length(map.work)
+      map.work[i] = recv_arr[i]
+    end
+
   end  # End for itr = 1:length(map.geom_faces)
 
   return nothing

@@ -1,6 +1,16 @@
 # Test derivatives w.r.t control points
 #=
+# MPI Declarations
+if !MPI.Initialized()
+  MPI.Init()
+end
+comm = MPI.COMM_WORLD
+comm_world = MPI.MPI_COMM_WORLD
+comm_self = MPI.COMM_SELF
+my_rank = MPI.Comm_rank(comm)
+comm_size = MPI.Comm_size(comm)
 opts = PdePumiInterface.get_defaults()
+
 # 2D mesh
 opts["order"] = 1
 opts["dimensions"] = 2
@@ -27,34 +37,35 @@ opts["BC4_name"] = "noPenetrationBC"
 
 # Create PumiMesh and SBP objects
 sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
-# geometry faces to be embedded in FFD Box
+
+
+# Initialize FFD
+ndim = mesh.dim
+order = [4,4,2]  # Order of B-splines in the 3 directions
+nControlPts = [4,4,2]
+offset = [0., 0., 0.5] # No offset in the X & Y direction
 geom_faces = opts["BC4"]
 
-# Free Form deformation parameters
-ndim = mesh.dim
-order = [2,2,2]  # Order of B-splines in the 3 directions
-nControlPts = [2,2,2]
+# Create a mapping object using nonlinear mapping
+map = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
 
-# Create Mapping object
-map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false, geom_faces=geom_faces)
+fill!(map.work, 0.0)
 
-# Create knot vector
-calcKnot(map)
+# Create seed vector
+# - Get original wall coordinates
+orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces, false)
+Xs_bar = ones(3, size(orig_wallCoords,2))
+Xs_bar[3,:] = 0.0 # To accurately simulate a 2D mesh
+cp_xyz_bar = zeros(map.cp_xyz)
+evaldXdControlPointProduct(map, mesh, vec(Xs_bar))
 
-# Create Bounding box
-offset = [0., 0., 0.5] # No offset in the X & Y direction
-box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
+filename = "./testvalues/evaldXdControlPointProduct.dat"
+f = open(filename, "w")
+for i = 1:length(map.work)
+  println(f,map.work[i])
+end
+close(f)
 
-# Control points
-controlPoint(map, box)
-writeControlPointsVTS(map)
-
-calcParametricMappingNonlinear(map, box, mesh, geom_faces)
-
-vertices = evalSurface(map, mesh)
-commitToPumi(map, mesh, sbp, vertices)
-
-writeVisFiles(mesh, "translation_plus_rotation_DG_serial_surface")
 =#
 
 facts("---Checking contractWithdGdB ---") do

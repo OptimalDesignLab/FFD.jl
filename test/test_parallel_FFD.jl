@@ -40,9 +40,10 @@ opts["use_jac_precond"] = true
 
 # Create PumiMesh and SBP objects
 sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+orig_vert_coords = deepcopy(mesh.vert_coords)
 
 facts("--- Checking control point manipulation for 2D parallel mesh") do
-
+  
   context("Check for the entire mesh") do
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
@@ -89,7 +90,13 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
 
     # writeVisFiles(mesh, "translation_plus_rotation_DG_parallel_fullmesh")
 
+  end # End context("Check for the entire mesh") 
+  
+  # Reset the coordinates and mesh to the original value
+  for i = 1:mesh.numEl
+    update_coords(mesh, i, orig_vert_coords[:,:,i])
   end
+  commit_coords(mesh, sbp)
 
   context("Check for a geometric surface") do
 
@@ -138,8 +145,50 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
       @fact err --> less_than(1e-14)
     end
 
-    # writeVisFiles(mesh, "translation_plus_rotation_DG_parallel_surface")
+    writeVisFiles(mesh, "translation_plus_rotation_DG_parallel_surface")
 
   end # End context("Check for a geometric surface")
 
 end # End facts("--- Checking control point manipulation for 2D parallel mesh")
+
+
+# Reset the coordinates and mesh to the original value
+for i = 1:mesh.numEl
+  update_coords(mesh, i, orig_vert_coords[:,:,i])
+end
+commit_coords(mesh, sbp)
+MPI.Barrier(comm)
+
+facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
+
+  # Free Form deformation parameters
+  ndim = mesh.dim
+  order = [4,4,2]  # Order of B-splines in the 3 directions
+  nControlPts = [4,4,2]
+  offset = [0., 0., 0.5] # No offset in the X & Y direction
+  Tmsh = Float64
+  geom_faces = opts["BC4"]
+
+  # Create a mapping object using nonlinear mapping
+  map = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
+
+  fill!(map.work, 0.0)
+
+  # Create seed vector
+  # - Get original wall coordinates
+  orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces, false)
+  Xs_bar = ones(3, size(orig_wallCoords,2))
+  Xs_bar[3,:] = 0.0 # To accurately simulate a 2D mesh
+  cp_xyz_bar = zeros(map.cp_xyz)
+  evaldXdControlPointProduct(map, mesh, vec(Xs_bar))
+
+
+  filename = "./testvalues/evaldXdControlPointProduct.dat"
+  test_values = readdlm(filename)
+  for i = 1:length(test_values)
+    err = test_values[i] - map.work[i]
+    @fact err --> less_than(1e-14)
+  end
+
+
+end # End

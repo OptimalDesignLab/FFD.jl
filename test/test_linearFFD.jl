@@ -476,54 +476,6 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     end  # End for itr = 1:length(map.geom_faces)
 
   end # End context("--- Checking Surface evaluation for 2D DG Mesh ---")
-#=
-  context("--- Checking contractWithdGdB for 2D DG Mesh ---") do
-
-    # x_coord = [0.20036370588307958,0.2980477741652081,0.0]
-    new_coord = zeros(Float64, 3)
-    xi = map.xi[1][:,1,1]
-    dJdG = rand(Float64, 3)
-    dJdG_fd = zeros(length(map.cp_xyz))
-
-    FreeFormDeformation.contractWithdGdB(map, xi, dJdG)
-
-    cp_jacobian = zeros(length(Xs_bar), length(map.cp_xyz))
-    pert = 1e-6
-    # Get original wall coordinates
-    orig_wallCoords = getWallCoords(mesh, geom_faces)
-    for i = 1:length(map.cp_xyz)
-      map.cp_xyz[i] += pert
-      evalSurface(map, mesh)
-      for j = 1:mesh.numEl
-        update_coords(mesh, j, mesh.vert_coords[:,:,j])
-      end
-      commit_coords(mesh, sbp)
-      new_wallCoords = getWallCoords(mesh, geom_faces)
-      cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
-      map.cp_xyz[i] -= pert
-    end # End for i = 1:length(map.cp_xyz)
-
-    dcp_xyz_fd = transpose(cp_jacobian)*vec(Xs_bar)
-
-    for i = 1:length(dcp_xyz_fd)
-      err_val = norm(dcp_xyz_fd[i] - cp_xyz_bar[i], 2)
-      @fact err_val --> roughly(0.0, atol=1e-6)
-    end
-
-    # f = open("./testvalues/cp_contractWithdGdB.dat", "w")
-    # for i = 1:length(map.work)
-    #   println(f, map.work[i])
-    # end
-    # close(f)
-
-    # test_val = readdlm("./testvalues/cp_contractWithdGdB.dat")
-    # for i = 1:length(test_val)
-    #   err = norm(test_val[i] - map.work[i], 2)
-    #   @fact err --> roughly(0.0, atol=1e-13)
-    # end
-
-  end # End context("--- Checking contractWithdGdB for 2D DG Mesh ---")
-  =#
 
   context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
 
