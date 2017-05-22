@@ -99,7 +99,7 @@ function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
   return wallCoords
 end
 
-function defineVertices(mesh::PumiMeshDG2, geom_faces::AbstractArray{Int,1},
+function defineVertices(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1},
                         vertices::AbstractArray)
 
   for itr = 1:length(geom_faces)
@@ -116,16 +116,16 @@ function defineVertices(mesh::PumiMeshDG2, geom_faces::AbstractArray{Int,1},
     idx_range = start_index:(end_index-1)
     bndry_facenums = view(mesh.bndryfaces, idx_range)
     nfaces = length(bndry_facenums)
-    vertices[itr] = zeros(mesh.dim,3,nfaces) # Valid only for simplex elements
+    vertices[itr] = zeros(size(mesh.vert_coords,1), size(mesh.vert_coords,2), nfaces)
     for i = 1:nfaces
       bndry_i = bndry_facenums[i]
-      # vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
       vertices[itr][:,:,i] = mesh.vert_coords[:,:,bndry_i.element]
     end # End for i = 1:nfaces
   end
 
   return nothing
 end
+
 function getWallCoords(mesh::PumiMeshDG2, geom_faces::AbstractArray{Int, 1})
 
   nwall_faces = getnWallFaces(mesh, geom_faces)

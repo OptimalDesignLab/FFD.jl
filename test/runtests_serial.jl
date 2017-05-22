@@ -17,10 +17,11 @@ using FreeFormDeformation
 using FactCheck
 
 # Include the actual tests
-include("./test_b-splines.jl")
-include("./test_linearFFD.jl")
-include("./test_FFD_derivatives.jl")
-include("./test_constraints.jl")
+# include("./test_b-splines.jl")
+# include("./test_serial_FFD_2D_mesh.jl")
+# include("./test_contractWithdGdB.jl")
+# include("./test_constraints.jl")
+include("./test_serial_FFD_3D_mesh.jl")
 
 # Debug
 
