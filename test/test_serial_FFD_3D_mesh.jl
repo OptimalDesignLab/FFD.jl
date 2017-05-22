@@ -15,14 +15,15 @@ orig_vert_coords = deepcopy(mesh.vert_coords)
 facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
 
   context("Check control point manipulation with nonlinear mapping on full mesh") do
-    
+
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
     nControlPts = [4,4,2]
-    offset = [0., 0., 0.5] # No offset in the X & Y direction
+    offset = [0., 0., 0.] # No offset in the X & Y direction
 
     # Create a mapping object using nonlinear mapping
-    map = initializeFFD(mesh, sbp, order, nControlPts, offset, true)
+    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, true)
+    writeControlPointsVTS(map)
 
     # Rigid body rotation
     theta = -20*pi/180  # Rotate wall coordinates by 20 degrees
@@ -46,6 +47,8 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
     vertices = evalVolume(map, mesh)
     commitToPumi(map, mesh, sbp, vertices)
 
+    writeVisFiles(mesh, "FFD_full_body_3D")
+
     fname = "./testvalues/translation_plus_rotation_DG_3D_tet8cube.dat"
     # f = open(fname, "w")
     # for i = 1:length(mesh.vert_coords)
@@ -58,25 +61,27 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
       err = abs(test_values[i] - mesh.vert_coords[i])
       @fact err --> less_than(1e-14)
     end
-    
+
   end # End context("Check control point manipulation with nonlinear mapping on full mesh")
-  
+
   # Reset the coordinates and mesh to the original value
   for i = 1:mesh.numEl
     update_coords(mesh, i, orig_vert_coords[:,:,i])
   end
   commit_coords(mesh, sbp)
 
+
   context("Check control point manipulation on a geometry face") do
 
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
     nControlPts = [4,4,2]
-    offset = [0., 0., 0.5] # No offset in the X & Y direction
+    offset = [0.1, 0.1, 0.1] # No offset in the X & Y direction
     geom_faces = opts["BC2"]
-    
+
     # Create a mapping object using nonlinear mapping
-    map = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
+    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
+    writeControlPointsVTS(map)
 
     # Rigid body rotation
     theta = -2*pi/180  # Rotate wall coordinates by 2 degrees
@@ -100,7 +105,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
     vertices = evalSurface(map, mesh)
     commitToPumi(map, mesh, sbp, vertices)
 
-    # writeVisFiles(mesh, "FFD_perturbed_face2")
+    writeVisFiles(mesh, "FFD_perturbed_face_BC2")
 
     fname = "./testvalues/translation_plus_rotation_DG_3D_tet8cube_face4.dat"
     # f = open(fname, "w")
@@ -128,11 +133,11 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
     nControlPts = [4,4,2]
-    offset = [0., 0., 0.5] # No offset in the X & Y direction
+    offset = [0.5, 0.5, 0.5] # No offset in the X & Y direction
     geom_faces = opts["BC2"]
-    
+
     # Create a mapping object using nonlinear mapping
-    map = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
+    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
 
     fill!(map.work, 0.0)
     pert = 1e-6

@@ -525,7 +525,6 @@ function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
   calcKnot(map)
 
   # Create Bounding box
-  # offset = [0., 0., 0.5] # No offset in the X & Y direction
   ffd_box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
 
   # Control points
@@ -538,7 +537,7 @@ function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
     calcParametricMappingNonlinear(map, ffd_box, mesh, geom_faces)
   end
 
-  return map
+  return map, ffd_box
 end
 
 @doc """

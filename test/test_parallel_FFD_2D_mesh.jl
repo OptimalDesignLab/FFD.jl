@@ -19,9 +19,8 @@ opts["use_DG"] = true
 opts["operator_type"] = "SBPOmega"
 opts["dmg_name"] = ".null"
 opts["smb_name"] = "../src/mesh_files/gvortex1np2.smb"
-opts["numBC"] = 2
 
-# For 2DAirfoil
+# For 2D Isentropic Vortex
 opts["numBC"] = 4
 opts["BC1"] = [0]
 opts["BC1_name"] = "FreeStreamBC"
@@ -43,7 +42,7 @@ sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 orig_vert_coords = deepcopy(mesh.vert_coords)
 
 facts("--- Checking control point manipulation for 2D parallel mesh") do
-  
+
   context("Check for the entire mesh") do
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
@@ -51,7 +50,7 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
     offset = [0., 0., 0.5] # No offset in the X & Y direction
 
     # Create a mapping object using nonlinear mapping
-    map = initializeFFD(mesh, sbp, order, nControlPts, offset, true)
+    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, true)
 
     # Control Point Manipulation
     #  - Rigid body rotation
@@ -90,8 +89,8 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
 
     # writeVisFiles(mesh, "translation_plus_rotation_DG_parallel_fullmesh")
 
-  end # End context("Check for the entire mesh") 
-  
+  end # End context("Check for the entire mesh")
+
   # Reset the coordinates and mesh to the original value
   for i = 1:mesh.numEl
     update_coords(mesh, i, orig_vert_coords[:,:,i])
@@ -109,7 +108,7 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
     geom_faces = opts["BC4"]
 
     # Create a mapping object using nonlinear mapping
-    map = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
+    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
 
     # Control Point Manipulation
     #  - Rigid body rotation
@@ -170,7 +169,7 @@ facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
   geom_faces = opts["BC4"]
 
   # Create a mapping object using nonlinear mapping
-  map = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
 
   fill!(map.work, 0.0)
 
