@@ -6,3 +6,5 @@ rm -v meshlog_*.dat
 rm -v nrm_face.dat
 rm -v load_balance_*.dat
 rm -v control_points.vts
+rm -v counts*.txt
+rm -v arg_dict_output.jl

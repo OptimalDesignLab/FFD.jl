@@ -316,10 +316,7 @@ function contractWithdGdB(map::AbstractMappingType, xi, dJdG)
         # println("ii = $ii, jj = $jj, kk = $kk, startu = $startu, startv = $startv, startw = $startw")
         for idim = 1:3
           map.work[idim, startu+ii, startv+jj, startw+kk] += coeff*dJdG[idim]
-          # xyz[idim] += Nu[ii]*Nv[jj]*Nw[kk]*
-          #              map.cp_xyz[idim, startu+ii, startv+jj, startw+kk]
         end
-        # println("map.work[:, $(startu+ii), $(startv+jj), $(startw+kk)] = $(map.work[:, startu+ii, startv+jj, startw+kk])")
       end  # End for kk = 1:map.order[3]
     end    # End for jj = 1:map.order[2]
   end      # End for ii = 1:map.order[1]
