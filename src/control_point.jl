@@ -45,9 +45,9 @@ control points for testing
 
 """->
 
-function writeControlPointsVTS(map::AbstractMappingType)
+function writeControlPointsVTS(map::AbstractMappingType, fname::AbstractString)
 
-  vtsfile = vtk_grid("control_points", map.cp_xyz)
+  vtsfile = vtk_grid(fname, map.cp_xyz)
   outfiles = vtk_save(vtsfile)
 
   return nothing

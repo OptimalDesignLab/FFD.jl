@@ -117,7 +117,7 @@ facts("---Checking contractWithdGdB ---") do
 
   # Control points
   controlPoint(map, box)
-  writeControlPointsVTS(map)
+  # writeControlPointsVTS(map)
 
   calcParametricMappingNonlinear(map, box, mesh, geom_faces)
 
@@ -138,7 +138,7 @@ facts("---Checking contractWithdGdB ---") do
 
   # Check against finite difference
   # - Get original wall coordinates
-  orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces, false)
+  orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
   multiplying_vec = zeros(length(orig_wallCoords))
   multiplying_vec[4:5] = dJdG[1:2]
   cp_jacobian = zeros(length(orig_wallCoords), length(map.cp_xyz))

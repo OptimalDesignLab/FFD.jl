@@ -119,7 +119,6 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
   my_rank = MPI.Comm_rank(comm)
   comm_size = MPI.Comm_size(comm)
 
-  # ctr = 1
   wallCoords = zeros(Tmsh, 3, 0)
   vertex_coordinate = zeros(Tmsh,3)
   vtx_arr = getUniqueVertexArray(mesh) # Get Unique vertex Array
@@ -160,7 +159,6 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
                 end # End for k = 1:mesh.dim
                 # Append a colum of coordinates
                 wallCoords = hcat(wallCoords, vertex_coordinate)
-                # ctr += 1
               end # End if my_rank == minimum(rank_arr)
 
             else # The vertex exist only on one MPI rank

@@ -175,7 +175,7 @@ facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
 
   # Create seed vector
   # - Get original wall coordinates
-  orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces, false)
+  orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
   Xs_bar = ones(3, size(orig_wallCoords,2))
   Xs_bar[3,:] = 0.0 # To accurately simulate a 2D mesh
   cp_xyz_bar = zeros(map.cp_xyz)

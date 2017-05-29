@@ -13,7 +13,7 @@ sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 orig_vert_coords = deepcopy(mesh.vert_coords)
 
 facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
-
+#=
   context("Check control point manipulation with nonlinear mapping on full mesh") do
 
     ndim = mesh.dim
@@ -121,7 +121,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
     end
 
   end # End context("Check control point manipulation on a geometry face")
-
+=#
   # Reset the coordinates and mesh to the original value
   for i = 1:mesh.numEl
     update_coords(mesh, i, orig_vert_coords[:,:,i])
@@ -144,9 +144,10 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
 
     # Create seed vector
     # - Get original wall coordinates
-    orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces, false)
+    orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
     nwall_faces = FreeFormDeformation.getnWallFaces(mesh, geom_faces)
-    Xs_bar = randn(3, size(orig_wallCoords,2))
+    # Xs_bar = randn(3, size(orig_wallCoords,2))
+    Xs_bar = ones(3, size(orig_wallCoords,2))
     cp_xyz_bar = zeros(map.cp_xyz)
     evaldXdControlPointProduct(map, mesh, vec(Xs_bar))
     for i = 1:size(map.work, 4)
@@ -157,13 +158,20 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
       end
     end
 
+    fname = "./testvalues/evaldXdControlPointProduct_tet8cube.dat"
+    f = open(fname, "w")
+    for i = 1:length(map.work)
+      println(f, map.work[i])
+    end
+    close(f)
+
     # Check against finite difference
     cp_jacobian = zeros(length(orig_wallCoords), length(map.cp_xyz))
     for i = 1:length(map.cp_xyz)
       map.cp_xyz[i] += pert
       vertices = evalSurface(map, mesh)
       commitToPumi(map, mesh, sbp, vertices)
-      new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces, false)
+      new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
       cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
       map.cp_xyz[i] -= pert
     end # End for i = 1:length(map.cp_xyz)

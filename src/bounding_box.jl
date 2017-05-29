@@ -202,7 +202,7 @@ function calcEntireGeometryBounds{Tffd}(coords::AbstractArray{Tffd,3},
       geom_bounds[1,3] = recv_buffer[i+4]
     end
     if recv_buffer[i+5] > geom_bounds[2,3]
-      geom_bounds[2,3] = recv_buffer[i]
+      geom_bounds[2,3] = recv_buffer[i+5]
     end
   end
 
@@ -212,6 +212,10 @@ end
 function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
                                      geom_bounds::AbstractArray{Tffd,2},
                                      geom_faces::AbstractArray{Int,1})
+
+  if !MPI.Initialized()
+   MPI.Init()
+  end
 
   fill!(geom_bounds, 0.0)
 
@@ -278,22 +282,22 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
         for j = 1:sbp.numfacenodes
           k = sbp.facenodes[j, bndry_i.face]
           coords = view(mesh.coords, :, k, bndry_i.element)
-          if xmin > coords[1,j,i]
-            xmin = coords[1,j,i]
-          elseif xmax < coords[1,j,i]
-            xmax = coords[1,j,i]
+          if xmin > coords[1]
+            xmin = coords[1]
+          elseif xmax < coords[1]
+            xmax = coords[1]
           end # End if
 
-          if ymin > coords[2,j,i]
-            ymin = coords[2,j,i]
-          elseif ymax < coords[2,j,i]
-            ymax = coords[2,j,i]
+          if ymin > coords[2]
+            ymin = coords[2]
+          elseif ymax < coords[2]
+            ymax = coords[2]
           end # End if
 
-          if zmin > coords[3,j,i]
-            zmin = coords[3,j,i]
-          elseif zmax < coords[3,j,i]
-            zmax = coords[3,j,i]
+          if zmin > coords[3]
+            zmin = coords[3]
+          elseif zmax < coords[3]
+            zmax = coords[3]
           end # End if
         end   # End for j = 1:sbp.facenode
       end     # End for i = 1:nfaces
@@ -307,9 +311,7 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
   geom_bounds[1,3] = zmin
   geom_bounds[2,3] = zmax
 
-  if !MPI.Initialized()
-    MPI.Init()
-  end
+
   recv_buffer = MPI.Allgather(geom_bounds, MPI.COMM_WORLD)
   for i = 1:6:length(recv_buffer)
     if recv_buffer[i] < geom_bounds[1,1]
@@ -328,7 +330,7 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
       geom_bounds[1,3] = recv_buffer[i+4]
     end
     if recv_buffer[i+5] > geom_bounds[2,3]
-      geom_bounds[2,3] = recv_buffer[i]
+      geom_bounds[2,3] = recv_buffer[i+5]
     end
   end
 
@@ -455,7 +457,7 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractDGMesh, sbp::AbstractSBP,
       geom_bounds[1,3] = recv_buffer[i+4]
     end
     if recv_buffer[i+5] > geom_bounds[2,3]
-      geom_bounds[2,3] = recv_buffer[i]
+      geom_bounds[2,3] = recv_buffer[i+5]
     end
   end
 

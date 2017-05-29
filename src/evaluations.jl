@@ -313,7 +313,6 @@ function contractWithdGdB(map::AbstractMappingType, xi, dJdG)
     for jj = 1:map.order[2]
       for kk = 1:map.order[3]
         coeff = Nu[ii]*Nv[jj]*Nw[kk]
-        # println("ii = $ii, jj = $jj, kk = $kk, startu = $startu, startv = $startv, startw = $startw")
         for idim = 1:3
           map.work[idim, startu+ii, startv+jj, startw+kk] += coeff*dJdG[idim]
         end
@@ -324,6 +323,71 @@ function contractWithdGdB(map::AbstractMappingType, xi, dJdG)
   return nothing
 end  # End function contractWithdGdB(map, dJdGrid)
 
+function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
+                                    dJdVert::AbstractArray{Float64,1})
+
+  my_rank = MPI.Comm_rank(MPI.COMM_WORLD)
+
+  fill!(map.work, 0.0)
+  ctr = 1
+  local_vertnum_history = Int[]
+  dJdVert_arr = reshape(dJdVert, 3, convert(Int,length(dJdVert)/3))
+  for itr = 1:length(map.geom_faces)
+    geom_face_number = map.geom_faces[itr]
+    # get the boundary array associated with the geometric edge
+    itr2 = 0
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
+      end
+    end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    nfaces = length(bndry_facenums)
+
+    for i = 1:nfaces
+      bndry_i = bndry_facenums[i]
+      vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+      for j = 1:length(vtx_arr)
+        local_vertnum = mesh.element_vertnums[vtx_arr[j],bndry_i.element]
+        if findfirst(local_vertnum_history, local_vertnum) == 0
+          # Check if this local vertex exists on other ranks
+          if haskey(mesh.vert_sharing.rev_mapping, local_vertnum)
+            # Check which all MPI ranks have this vertex and its position in
+            # that rank's mesh.vert_sharing.
+            rank_arr = first(mesh.vert_sharing.rev_mapping[local_vertnum])
+            localIdx_arr = last(mesh.vert_sharing.rev_mapping[local_vertnum])
+            # Lower rank always has ownership rights
+            if my_rank < minimum(rank_arr)
+              contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
+              ctr += 1
+            end # End if my_rank < minimum(rank_arr)
+          else # The vertex exist only on one MPI rank
+            # if my_rank == 1
+            #   println("map.xi[$itr][:,$j,$i] = $(map.xi[itr][:,j,i]), ctr = $ctr")
+            # end
+            contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
+            ctr += 1
+          end # End if haskey
+        end
+        push!(local_vertnum_history, local_vertnum)
+      end  # End for j = 1:length(vtx_arr)
+    end    # End for i = 1:nfaces
+
+    # Now do an All reduce operation on map.work
+    recv_arr = zeros(map.work)
+    MPI.Allreduce!(map.work, recv_arr, MPI.SUM, MPI.COMM_WORLD)
+    for i = 1:length(map.work)
+      map.work[i] = recv_arr[i]
+    end
+    
+  end  # End for itr = 1:length(map.geom_faces)
+
+  return nothing
+end
+#=
 function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
                                     dJdVert::AbstractArray{Float64,1})
 
@@ -370,3 +434,4 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
 
   return nothing
 end
+=#
