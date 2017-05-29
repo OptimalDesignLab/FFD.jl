@@ -13,7 +13,7 @@ sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 orig_vert_coords = deepcopy(mesh.vert_coords)
 
 facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
-#=
+
   context("Check control point manipulation with nonlinear mapping on full mesh") do
 
     ndim = mesh.dim
@@ -121,7 +121,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
     end
 
   end # End context("Check control point manipulation on a geometry face")
-=#
+
   # Reset the coordinates and mesh to the original value
   for i = 1:mesh.numEl
     update_coords(mesh, i, orig_vert_coords[:,:,i])
@@ -158,12 +158,12 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
       end
     end
 
-    fname = "./testvalues/evaldXdControlPointProduct_tet8cube.dat"
-    f = open(fname, "w")
-    for i = 1:length(map.work)
-      println(f, map.work[i])
-    end
-    close(f)
+    # fname = "./testvalues/evaldXdControlPointProduct_tet8cube.dat"
+    # f = open(fname, "w")
+    # for i = 1:length(map.work)
+    #   println(f, map.work[i])
+    # end
+    # close(f)
 
     # Check against finite difference
     cp_jacobian = zeros(length(orig_wallCoords), length(map.cp_xyz))

@@ -157,16 +157,10 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
 
     test_values = readdlm(fname)
     @fact length(map.work) --> length(test_values)
-    #=
-    for i = 1:length(map.work)
-      println(map.work[i])
-    end
-    =#
     for i = 1:length(map.work)
       err = abs(test_values[i] - map.work[i])
       @fact err --> less_than(1e-14) "problem at index $i"
     end
-
 
   end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
 

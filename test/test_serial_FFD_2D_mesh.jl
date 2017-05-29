@@ -504,7 +504,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       map.cp_xyz[i] += pert
       vertices = evalSurface(map, mesh)
       commitToPumi(map, mesh, sbp, vertices)
-      new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces, false)
+      new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
       cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
       map.cp_xyz[i] -= pert
     end # End for i = 1:length(map.cp_xyz)
