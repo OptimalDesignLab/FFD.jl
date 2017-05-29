@@ -16,7 +16,7 @@ using FreeFormDeformation
 using FactCheck
 
 # Include functions that will be used for performing tests
-# include("./test_parallel_FFD_2D_mesh.jl")
+include("./test_parallel_FFD_2D_mesh.jl")
 include("./test_parallel_FFD_3D_mesh.jl")
 
 

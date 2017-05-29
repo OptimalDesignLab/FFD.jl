@@ -18,18 +18,39 @@ opts = PDESolver.read_input(ARGS[1])
 sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 orig_vert_coords = deepcopy(mesh.vert_coords)
 
+facts("--- Check if Unique wall coordinates are being computed correctly across all ranks ---") do
+
+  geom_faces = opts["BC2"]
+  wallCoords = FreeFormDeformation.getGlobalUniqueWallCorrdsArray(mesh, geom_faces)
+  if my_rank == 0
+    @fact wallCoords --> roughly([0.0 0.0 0.0 0.0 0.0 0.0
+                                  0.0 0.5 0.0 0.5 1.0 1.0
+                                  0.5 1.0 1.0 0.5 1.0 0.5], atol=1e-14)
+  end
+
+  if my_rank == 1
+    @fact wallCoords --> roughly([0.0 0.0 0.0
+                                  0.0 0.5 1.0
+                                  0.0 0.0 0.0], atol=1e-14)
+  end
+
+end # End facts
+MPI.Barrier(comm)
 
 facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
-  #=
+
   context("Check control point manipulation with nonlinear mapping on full mesh") do
 
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
     nControlPts = [4,4,2]
     offset = [0., 0., 0.5] # No offset in the X & Y direction
+    full_geom = true
 
     # Create a mapping object using nonlinear mapping
-    map = initializeFFD(mesh, sbp, order, nControlPts, offset, true)
+    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom)
+    @fact box.box_bounds --> roughly([0.0 0.0 -0.5
+                                      1.0 1.0 1.5], atol=1e-14)
 
     # Rigid body rotation
     theta = -20*pi/180  # Rotate wall coordinates by 20 degrees
@@ -65,8 +86,6 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
       err = abs(test_values[i] - mesh.vert_coords[i])
       @fact err --> less_than(1e-14)
     end
-
-    # writeVisFiles(mesh, "fullbody_perturb_parallel")
 
   end # End context("Check control point manipulation with nonlinear mapping on full mesh")
 
@@ -123,8 +142,6 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
       @fact err --> less_than(1e-14)
     end
 
-    # writeVisFiles(mesh, "face4_perturb_parallel")
-
   end # End context("Check control point manipulation on a geometry face")
 
   MPI.Barrier(comm)
@@ -133,7 +150,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
     update_coords(mesh, i, orig_vert_coords[:,:,i])
   end
   commit_coords(mesh, sbp)
-  =#
+
   context("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
 
     ndim = mesh.dim
