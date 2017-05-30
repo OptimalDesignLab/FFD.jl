@@ -2,8 +2,20 @@
 # File containing functions that reduce the suze of the test files
 
 @doc """
+###FreeFormDeformation.getnWallFaces
+
 Get the number of element faces that exist on a geometric face of a mesh
 despite the name of the function
+
+**Inputs**
+
+* `mesh` : Pumi DG mesh
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+                 of element faces needs to be computed
+
+**Output**
+
+* `nwall_faces` : Number of element faces(edges in 2D) on each geometric face
 """->
 
 function getnWallFaces(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1})
@@ -31,8 +43,20 @@ function getnWallFaces(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1})
 end
 
 @doc """
-Get a 2D array of coordinates of unique vertices for the local portion of the
+###FreeFormDeformation.getUniqueVertexArray
+
+Get a 2D array of coordinates of unique vertices for the LOCAL portion of the
 entire mesh.
+
+**Input**
+
+* `mesh` : Pumi DG mesh
+
+**Output**
+
+* `volNodes` : 2D array of unique vertices that exist on an MPI rank.
+               size = [3, n_local_vertices]
+
 """->
 
 function getUniqueVertexArray{Tmsh}(mesh::AbstractMesh{Tmsh})
@@ -52,8 +76,25 @@ function getUniqueVertexArray{Tmsh}(mesh::AbstractMesh{Tmsh})
 end
 
 @doc """
+###FreeFormDeformation.getUniqueWallCoordsArray
+
 Get a 2D array of coordinates of unique vertices for the local portion of a
 geometric face.
+
+NOTE: Use this ONLY to compute the unique wall vertices on a given MPI rank.
+      This function does not account for non-uniqueness that arises from the
+      same vertex existing on 2 MPI ranks
+
+**Inputs**
+
+* `mesh` : Pumi DG mesh
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+                 of element faces needs to be computed
+
+**Outputs**
+
+* `wallCoords` : 2D array of coordinates of wall vertices. size = [3, total_vertices]
+
 """->
 
 function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
@@ -108,7 +149,28 @@ function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
   return wallCoords
 end
 
+@doc """
+###FreeFormDeformation.getGlobalUniqueWallCorrdsArray
 
+Get a 2D array of coordinates of unique wall vertices that is owned by the MPI
+rank. By default PUMI Mesh does not have ownership considering the unstructured 
+nature of the mesh where a vertex exists on several ranks. A sense of ownership
+is created where the lowest rank containing the vertex owns it. The Array is 
+still distributed across the MPI ranks however the shared vertices appear on
+only the lowest rank.
+
+**Input**
+
+* `mesh` : Pumi DG mesh
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+                 of element faces needs to be computed
+
+**Output**
+
+* `wallCoords` : 2D array of wall coordinates owned by the rank. 
+                 size = [3, n_owned_vertices]
+
+"""->
 
 function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
                                   geom_faces::AbstractArray{Int,1})
@@ -168,7 +230,6 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
               end
               # Append a colum of coordinates
               wallCoords = hcat(wallCoords, vertex_coordinate)
-              # ctr += 1
 
             end   # End if haskey(mesh.vert_sharing.rev_mapping, local_vertnum)
           end     # End if findfirst(local_vertnum_history, local_vertnum) == 0
@@ -183,6 +244,23 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
   return wallCoords
 end
 
+@doc """
+###FreeFormDeformation.getLocalNumFaceVerts_unique
+
+Obtain the number of unique face vertices that exist on one MPI rank. This
+function DOES NOT take into account non-uniquness of vertices that exist across
+multiple MPI ranks.
+
+**Inputs**
+
+* `mesh` : Pumi DG mesh
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+                 of element faces needs to be computed
+
+**Output** :
+
+* `ctr` : Number of unique vertices on a particular MPI rank
+"""->
 function getLocalNumFaceVerts_unique(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1})
 
   local_vertnum_history = Int[]
@@ -218,6 +296,22 @@ function getLocalNumFaceVerts_unique(mesh::AbstractDGMesh, geom_faces::AbstractA
   return ctr
 end
 
+@doc """
+###FreeFormDeformation.defineVertices
+
+This function defines the shape of the vertices array that is used to update
+the Pumi mesh after FFD when a geometric face is paramtereized.
+
+**Arguments**
+
+* `mesh` : Pumi DG mesh
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+                 of element faces needs to be computed
+* `vertices` : Array of arrays holding the coodinates of the updated vertices
+               shape = vertices[n_geom_faces][mesh.dim, size(mesh.vert_coords,2), n_elem_faces]
+
+"""->
+
 function defineVertices(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1},
                         vertices::AbstractArray)
 
@@ -244,6 +338,26 @@ function defineVertices(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1},
 
   return nothing
 end
+
+@doc """
+###FreeFormDeformation.getWallCoords
+
+Get a 2D array of coordinates that exist on a wall element face. This function
+does not take into account uniqueness across adjacent element faces that share
+a common vertex or across MPI ranks that share a vertex.
+
+**Inputs**
+
+* `mesh` : Pumi DG mesh
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+                 of element faces needs to be computed
+
+**Output**
+
+* `wallCoords` : 2D array of coordinates of vertices that exist on a wall.
+                 size = [3, sum(nwall_faces)*vtx_per_face]
+
+"""->
 
 function getWallCoords(mesh::PumiMeshDG2, geom_faces::AbstractArray{Int, 1})
 
