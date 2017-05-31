@@ -363,11 +363,14 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
             if my_rank < minimum(rank_arr)
               contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
               ctr += 1
+            else
+              mpi_neighbor_rank = getNeighborRank(mesh, bndry_i)
+              if my_rank < mpi_neighbor_rank
+                contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
+                ctr += 1
+              end
             end # End if my_rank < minimum(rank_arr)
           else # The vertex exist only on one MPI rank
-            # if my_rank == 1
-            #   println("map.xi[$itr][:,$j,$i] = $(map.xi[itr][:,j,i]), ctr = $ctr")
-            # end
             contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
             ctr += 1
           end # End if haskey
@@ -382,7 +385,7 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
     for i = 1:length(map.work)
       map.work[i] = recv_arr[i]
     end
-    
+
   end  # End for itr = 1:length(map.geom_faces)
 
   return nothing

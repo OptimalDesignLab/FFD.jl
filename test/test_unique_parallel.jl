@@ -27,54 +27,97 @@ comm_size = MPI.Comm_size(comm)
 
 
 resize!(ARGS, 1)
-ARGS[1] = "./input_vals_3d_parallel.jl"
+ARGS[1] = "./input_vals_3d_parallel_np3and4.jl"
 
 opts = PDESolver.read_input(ARGS[1])
 sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 orig_vert_coords = deepcopy(mesh.vert_coords)
 geom_faces = opts["BC2"]
 
-wallCoords = FreeFormDeformation.getGlobalUniqueWallCorrdsArray(mesh, geom_faces)
-local_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
-
-# for i = 1:comm_size
-#   if my_rank == i-1
-#     println("local unique wallCoords rank $(i-1) =\n$local_wallCoords")
-#     println("wallCoords rank $(i-1) =\n$wallCoords")
-#   end
-#   MPI.Barrier(comm)
-# end
-
-facts("--- Check if Unique wall coordinates are being computed correctly across all ranks ---") do
-  if my_rank == 0
-    @fact wallCoords --> roughly([0.0 0.0 0.0 0.0 0.0 0.0
-                                  0.0 0.5 0.0 0.5 1.0 1.0
-                                  0.5 1.0 1.0 0.5 1.0 0.5], atol=1e-14)
-  end
-
-  if my_rank == 1
-    @fact wallCoords --> roughly([0.0 0.0 0.0
-                                  0.0 0.5 1.0
-                                  0.0 0.0 0.0], atol=1e-14)
-  end
-
-end # End facts
-
 facts("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
 
+  # if my_rank == 1
+  #   println("mesh.vert_sharing.vert_nums = \n$(mesh.vert_sharing.vert_nums)")
+  #   println("mesh.vert_sharing.rev_mapping = \n$(mesh.vert_sharing.rev_mapping)")
+  # end
+
+  # for i = 1:comm_size
+  #   if my_rank == i-1
+  #     println("Rank $my_rank,\nmesh.peer_parts = \n$(mesh.peer_parts)")
+  #     println("shared interfaces = \n$(mesh.shared_interfaces)")
+  #   end
+  #   MPI.Barrier(comm)
+  # end
+
   ndim = mesh.dim
-  order = [2,2,2]  # Order of B-splines in the 3 directions
-  nControlPts = [2,2,2]
-  offset = [0.1, 0.0, 0.0] # No offset in the X & Y direction
+  order = [4,4,2]  # Order of B-splines in the 3 directions
+  nControlPts = [4,4,2]
+  offset = [0.5, 0.5, 0.5] # No offset in the X & Y direction
   geom_faces = opts["BC2"]
 
   # Create a mapping object using nonlinear mapping
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
 
+  # for i = 1:comm_size
+  #   fname = string("controlPoints_rank", my_rank)
+  #   writeControlPointsVTS(map, fname)
+  #   MPI.Barrier(comm)
+  # end
+
+  MPI.Barrier(comm)
+  fill!(map.work, 0.0)
+
+  # Create seed vector
+  # - Get original wall coordinates
+  orig_wallCoords = FreeFormDeformation.getGlobalUniqueWallCorrdsArray(mesh, geom_faces)
   for i = 1:comm_size
-    fname = string("controlPoints_rank", my_rank)
-    writeControlPointsVTS(map, fname)
+    if my_rank == i-1
+      println("on rank $my_rank, orig_wallCoords = \n$(orig_wallCoords)")
+    end
+    MPI.Barrier(comm)
   end
+  Xs_bar = ones(3, size(orig_wallCoords,2))
+  evaldXdControlPointProduct(map, mesh, vec(Xs_bar))
+
+  fname = "./testvalues/evaldXdControlPointProduct_tet8cube.dat"
+  
+  test_values = readdlm(fname)
+  @fact length(map.work) --> length(test_values)
+  for i = 1:length(map.work)
+    err = abs(test_values[i] - map.work[i])
+    @fact err --> less_than(1e-14) "problem at index $i"
+  end
+
+  #=
+  for i = 1:comm_size
+    fname2 = string("./testvalues/evaldXdControlPointProduct_tet_cube_8el_rank",
+                    my_rank, ".dat")
+    f = open(fname2, "w")
+    for j = 1:length(map.work)
+      println(f, map.work[j])
+    end
+    close(f)
+  end
+  =#
+
+end # End facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
+
+#=
+facts("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
+
+  ndim = mesh.dim
+  order = [4,4,2]  # Order of B-splines in the 3 directions
+  nControlPts = [4,4,2]
+  offset = [0.5, 0.5, 0.5] # No offset in the X & Y direction
+  geom_faces = opts["BC2"]
+
+  # Create a mapping object using nonlinear mapping
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
+
+  # for i = 1:comm_size
+  #   fname = string("controlPoints_rank", my_rank)
+  #   writeControlPointsVTS(map, fname)
+  # end
 
   fill!(map.work, 0.0)
 
@@ -85,41 +128,14 @@ facts("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
   evaldXdControlPointProduct(map, mesh, vec(Xs_bar))
 
   fname = "./testvalues/evaldXdControlPointProduct_tet8cube.dat"
-
-  if my_rank == 0
-    println("rank = $my_rank\n")
-    test_values = readdlm(fname)
-    @fact length(map.work) --> length(test_values)
-
-    fname2 = "./testvalues/evaldXdControlPointProduct_tet8cube_rank0.dat"
-    f = open(fname2, "w")
-    for i = 1:length(map.work)
-      println(f, map.work[i])
-    end
-    close(f)
-    # for i = 1:length(map.work)
-    #   err = abs(test_values[i] - map.work[i])
-    #   @fact err --> less_than(1e-14) "problem at index $i"
-    # end
-
+  test_values = readdlm(fname)
+  @fact length(map.work) --> length(test_values)
+  for i = 1:length(map.work)
+    err = abs(test_values[i] - map.work[i])
+    @fact err --> less_than(1e-14) "problem at index $i"
   end
 
-  MPI.Barrier(comm)
 
-  if my_rank == 1
-
-    println("\nrank = $my_rank\n")
-
-    test_values = readdlm(fname)
-    @fact length(map.work) --> length(test_values)
-
-    fname2 = "./testvalues/evaldXdControlPointProduct_tet8cube_rank1.dat"
-    f = open(fname2, "w")
-    for i = 1:length(map.work)
-      println(f, map.work[i])
-    end
-    close(f)
-  end
 end # End facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
-
+=#
 MPI.Finalize()

@@ -10,7 +10,7 @@ despite the name of the function
 **Inputs**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
                  of element faces needs to be computed
 
 **Output**
@@ -88,7 +88,7 @@ NOTE: Use this ONLY to compute the unique wall vertices on a given MPI rank.
 **Inputs**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
                  of element faces needs to be computed
 
 **Outputs**
@@ -153,21 +153,21 @@ end
 ###FreeFormDeformation.getGlobalUniqueWallCorrdsArray
 
 Get a 2D array of coordinates of unique wall vertices that is owned by the MPI
-rank. By default PUMI Mesh does not have ownership considering the unstructured 
+rank. By default PUMI Mesh does not have ownership considering the unstructured
 nature of the mesh where a vertex exists on several ranks. A sense of ownership
-is created where the lowest rank containing the vertex owns it. The Array is 
+is created where the lowest rank containing the vertex owns it. The Array is
 still distributed across the MPI ranks however the shared vertices appear on
 only the lowest rank.
 
 **Input**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
                  of element faces needs to be computed
 
 **Output**
 
-* `wallCoords` : 2D array of wall coordinates owned by the rank. 
+* `wallCoords` : 2D array of wall coordinates owned by the rank.
                  size = [3, n_owned_vertices]
 
 """->
@@ -186,6 +186,7 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
   vtx_arr = getUniqueVertexArray(mesh) # Get Unique vertex Array
 
   nface_verts = getLocalNumFaceVerts_unique(mesh, geom_faces)
+  # println("rank = $my_rank, nface_verts = $nface_verts")
   if nface_verts != 0
     local_vertnum_history = Int[]
     for itr = 1:length(geom_faces)
@@ -221,6 +222,16 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
                 end # End for k = 1:mesh.dim
                 # Append a colum of coordinates
                 wallCoords = hcat(wallCoords, vertex_coordinate)
+              else
+                # Check which MPI rank shares this boundary element
+                mpi_neighbor_rank = getNeighborRank(mesh, bndry_i)
+                if my_rank < mpi_neighbor_rank
+                  for k = 1:mesh.dim
+                    vertex_coordinate[k] = vtx_arr[k, local_vertnum]
+                  end # End for k = 1:mesh.dim
+                  # Append a colum of coordinates
+                  wallCoords = hcat(wallCoords, vertex_coordinate)
+                end
               end # End if my_rank == minimum(rank_arr)
 
             else # The vertex exist only on one MPI rank
@@ -244,6 +255,30 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
   return wallCoords
 end
 
+function getNeighborRank(mesh::AbstractDGMesh, bndry_face)
+
+  # println("Rank $(mesh.myrank), mesh.peer_parts = \n$(mesh.peer_parts)")
+
+  npeers = length(mesh.peer_parts)
+  mpi_neighbor_local_elem_no = zero(Int)
+  ctr = 1
+  for i = 1:npeers
+    shared_interface_arr = mesh.shared_interfaces[i]
+    for j = 1:length(shared_interface_arr)
+      elementL = shared_interface_arr[j].elementL
+      faceL = shared_interface_arr[j].faceL
+      if elementL == bndry_face.element # && faceL == bndry_face.face
+        mpi_neighbor_rank = mesh.peer_parts[i]
+        # println("rank $(mesh.myrank), mpi_neighbor_rank = $mpi_neighbor_rank")
+        return mpi_neighbor_rank
+      end # End if elementL == local_elem_no
+    end # End for j = 1:length(shared_interface_arr)
+  end # End for i = 1:npeers
+
+
+  # return mpi_neighbor_rank
+end
+
 @doc """
 ###FreeFormDeformation.getLocalNumFaceVerts_unique
 
@@ -254,7 +289,7 @@ multiple MPI ranks.
 **Inputs**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
                  of element faces needs to be computed
 
 **Output** :
@@ -305,7 +340,7 @@ the Pumi mesh after FFD when a geometric face is paramtereized.
 **Arguments**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
                  of element faces needs to be computed
 * `vertices` : Array of arrays holding the coodinates of the updated vertices
                shape = vertices[n_geom_faces][mesh.dim, size(mesh.vert_coords,2), n_elem_faces]
@@ -349,13 +384,13 @@ a common vertex or across MPI ranks that share a vertex.
 **Inputs**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number 
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
                  of element faces needs to be computed
 
 **Output**
 
 * `wallCoords` : 2D array of coordinates of vertices that exist on a wall.
-                 size = [3, sum(nwall_faces)*vtx_per_face]
+                 size = [3, sum(nwall_faces) \* vtx_per_face]
 
 """->
 
