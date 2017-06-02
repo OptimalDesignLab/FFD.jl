@@ -332,6 +332,17 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
   ctr = 1
   local_vertnum_history = Int[]
   dJdVert_arr = reshape(dJdVert, 3, convert(Int,length(dJdVert)/3))
+
+  # Gather nface_verts from all ranks
+  nlocal_face_verts = getLocalNumFaceVerts_unique(mesh, map.geom_faces)
+  nlocal_face_verts_arr = MPI.Allgather(nlocal_face_verts, MPI.COMM_WORLD)
+  ranks_for_bndry_faces = Int[]
+  for i = 1:length(nlocal_face_verts_arr)
+    if nlocal_face_verts_arr[i] > 0
+      push!(ranks_for_bndry_faces, i-1)
+    end # End if nface_verts_arr[i] > 0
+  end
+
   for itr = 1:length(map.geom_faces)
     geom_face_number = map.geom_faces[itr]
     # get the boundary array associated with the geometric edge
@@ -360,16 +371,25 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
             rank_arr = first(mesh.vert_sharing.rev_mapping[local_vertnum])
             localIdx_arr = last(mesh.vert_sharing.rev_mapping[local_vertnum])
             # Lower rank always has ownership rights
-            if my_rank < minimum(rank_arr)
+            # if my_rank < minimum(rank_arr)
+            #   contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
+            #   ctr += 1
+            # else
+            #   mpi_neighbor_rank = getNeighborRank(mesh, bndry_i)
+            #   if my_rank < mpi_neighbor_rank
+            #     contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
+            #     ctr += 1
+            #   end
+            # end # End if my_rank < minimum(rank_arr)
+            intersect_arr = intersect(rank_arr, ranks_for_bndry_faces)
+            if intersect_arr == []
               contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
               ctr += 1
-            else
-              mpi_neighbor_rank = getNeighborRank(mesh, bndry_i)
-              if my_rank < mpi_neighbor_rank
-                contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
-                ctr += 1
-              end
-            end # End if my_rank < minimum(rank_arr)
+              # println("my_rank = $my_rank, rank_arr = $rank_arr, ranks_for_bndry_faces = $(ranks_for_bndry_faces)")
+            elseif my_rank < minimum(intersect_arr)
+              contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
+              ctr += 1
+            end # End if intersect_arr == []
           else # The vertex exist only on one MPI rank
             contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
             ctr += 1
