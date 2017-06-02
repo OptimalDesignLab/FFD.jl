@@ -171,97 +171,7 @@ only the lowest rank.
                  size = [3, n_owned_vertices]
 
 """->
-#=
-function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
-                                  geom_faces::AbstractArray{Int,1})
 
-  comm = MPI.COMM_WORLD
-  comm_world = MPI.MPI_COMM_WORLD
-  comm_self = MPI.COMM_SELF
-  my_rank = MPI.Comm_rank(comm)
-  comm_size = MPI.Comm_size(comm)
-
-  wallCoords = zeros(Tmsh, 3, 0)
-  vertex_coordinate = zeros(Tmsh,3)
-  vtx_arr = getUniqueVertexArray(mesh) # Get Unique vertex Array
-
-  nface_verts = getLocalNumFaceVerts_unique(mesh, geom_faces)
-  println("rank = $my_rank, nface_verts = $nface_verts")
-  if nface_verts != 0
-    local_vertnum_history = Int[]
-    for itr = 1:length(geom_faces)
-      geom_face_number = geom_faces[itr]
-      itr2 = 0
-      for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-          break
-        end
-      end
-      start_index = mesh.bndry_offsets[itr2]
-      end_index = mesh.bndry_offsets[itr2+1]
-      idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range)
-      nfaces = length(bndry_facenums)
-      for i = 1:nfaces
-        bndry_i = bndry_facenums[i]
-        face_vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-        for j = 1:length(face_vtx_arr)
-          local_vertnum = mesh.element_vertnums[face_vtx_arr[j],bndry_i.element]
-          if findfirst(local_vertnum_history, local_vertnum) == 0
-            # Now Check if this local vertex exists on multiple ranks
-            if haskey(mesh.vert_sharing.rev_mapping, local_vertnum)
-
-              # Check which all MPI ranks have this vertex and its position in
-              # that rank's mesh.vert_sharing.
-              rank_arr = first(mesh.vert_sharing.rev_mapping[local_vertnum])
-              localIdx_arr = last(mesh.vert_sharing.rev_mapping[local_vertnum])
-              # The Idea is that the lowest rank always has ownership rights
-              if my_rank < minimum(rank_arr)
-                for k = 1:mesh.dim
-                  vertex_coordinate[k] = vtx_arr[k, local_vertnum]
-                end # End for k = 1:mesh.dim
-                # Append a colum of coordinates
-                wallCoords = hcat(wallCoords, vertex_coordinate)
-              else
-                # Check which MPI rank shares this boundary element
-                mpi_neighbor_rank = getNeighborRank(mesh, bndry_i)
-                if my_rank == 3
-                  println("my_rank = $my_rank, mpi_neighbor_rank = $mpi_neighbor_rank")
-                  # println("vtx coordinate = $(vtx_arr[:, local_vertnum])\n")
-                  println("bndry_i.element = $(bndry_i.element), bndry_i.face = $(bndry_i.face)")
-                  println("local_vertnum = $local_vertnum, vtx coordinate = $(vtx_arr[:, local_vertnum])\n")
-                end
-                # println("my_rank = $my_rank, wallCoords = \n$wallCoords")
-                if my_rank < mpi_neighbor_rank
-                  for k = 1:mesh.dim
-                    vertex_coordinate[k] = vtx_arr[k, local_vertnum]
-                  end # End for k = 1:mesh.dim
-                  # Append a colum of coordinates
-                  wallCoords = hcat(wallCoords, vertex_coordinate)
-                end
-              end # End if my_rank == minimum(rank_arr)
-
-            else # The vertex exist only on one MPI rank
-
-              for k = 1:mesh.dim
-                vertex_coordinate[k] = vtx_arr[k, local_vertnum]
-              end
-              # Append a colum of coordinates
-              wallCoords = hcat(wallCoords, vertex_coordinate)
-
-            end   # End if haskey(mesh.vert_sharing.rev_mapping, local_vertnum)
-          end     # End if findfirst(local_vertnum_history, local_vertnum) == 0
-          push!(local_vertnum_history, local_vertnum)
-        end     # for j = 1:length(face_vtx_arr)
-      end       # for i = 1:nfaces
-    end # End for itr = 1:length(geom_faces)
-  end # End if nface_verts != 0
-
-  MPI.Barrier(comm)
-
-  return wallCoords
-end
-=#
 function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
                                   geom_faces::AbstractArray{Int,1})
 
@@ -325,21 +235,21 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
               #   # Append a colum of coordinates
               #   wallCoords = hcat(wallCoords, vertex_coordinate)
               # else
-                intersect_arr = intersect(rank_arr, ranks_for_bndry_faces)
-                if intersect_arr == []
-                  for k = 1:mesh.dim
-                    vertex_coordinate[k] = vtx_arr[k, local_vertnum]
-                  end # End for k = 1:mesh.dim
-                  # Append a colum of coordinates
-                  wallCoords = hcat(wallCoords, vertex_coordinate)
-                  # println("my_rank = $my_rank, rank_arr = $rank_arr, ranks_for_bndry_faces = $(ranks_for_bndry_faces)")
-                elseif my_rank < minimum(intersect_arr)
-                  for k = 1:mesh.dim
-                    vertex_coordinate[k] = vtx_arr[k, local_vertnum]
-                  end # End for k = 1:mesh.dim
-                  # Append a colum of coordinates
-                  wallCoords = hcat(wallCoords, vertex_coordinate)
-                end # End if intersect_arr == []
+              intersect_arr = intersect(rank_arr, ranks_for_bndry_faces)
+              if intersect_arr == []
+                for k = 1:mesh.dim
+                  vertex_coordinate[k] = vtx_arr[k, local_vertnum]
+                end # End for k = 1:mesh.dim
+                # Append a colum of coordinates
+                wallCoords = hcat(wallCoords, vertex_coordinate)
+                # println("my_rank = $my_rank, rank_arr = $rank_arr, ranks_for_bndry_faces = $(ranks_for_bndry_faces)")
+              elseif my_rank < minimum(intersect_arr)
+                for k = 1:mesh.dim
+                  vertex_coordinate[k] = vtx_arr[k, local_vertnum]
+                end # End for k = 1:mesh.dim
+                # Append a colum of coordinates
+                wallCoords = hcat(wallCoords, vertex_coordinate)
+              end # End if intersect_arr == []
               # end
             else # The vertex exist only on one MPI rank
 
@@ -361,33 +271,11 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
 
   return wallCoords
 end
-#=
-function checkValidFaceRank(nface_verts_arr, rank_arr)
+@doc """
+### NOT NEEDED!!! ###
+Keep this function around for future reference only
 
-  comm = MPI.COMM_WORLD
-  my_rank = MPI.Comm_rank(comm)
-
-  ranks_for_bndry_faces = Int[]
-  for i = 1:length(nface_verts_arr)
-    if nface_verts_arr[i] > 0
-      push!(ranks_for_bndry_faces, i-1)
-    end # End if nface_verts_arr[i] > 0
-  end
-
-  return nothing
-end
-=#
-
-
-
-
-
-
-
-
-
-
-
+"""->
 function getNeighborRank(mesh::AbstractDGMesh, bndry_face)
 
   npeers = length(mesh.peer_parts)
