@@ -348,49 +348,6 @@ function getLocalNumFaceVerts_unique(mesh::AbstractDGMesh, geom_faces::AbstractA
 end
 
 @doc """
-###FreeFormDeformation.defineVertices
-
-This function defines the shape of the vertices array that is used to update
-the Pumi mesh after FFD when a geometric face is paramtereized.
-
-**Arguments**
-
-* `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
-                 of element faces needs to be computed
-* `vertices` : Array of arrays holding the coodinates of the updated vertices
-               shape = vertices[n_geom_faces][mesh.dim, size(mesh.vert_coords,2), n_elem_faces]
-
-"""->
-
-function defineVertices(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1},
-                        vertices::AbstractArray)
-
-  for itr = 1:length(geom_faces)
-    geom_face_number = geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
-    idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range)
-    nfaces = length(bndry_facenums)
-    vertices[itr] = zeros(size(mesh.vert_coords,1), size(mesh.vert_coords,2), nfaces)
-    for i = 1:nfaces
-      bndry_i = bndry_facenums[i]
-      vertices[itr][:,:,i] = mesh.vert_coords[:,:,bndry_i.element]
-    end # End for i = 1:nfaces
-  end
-
-  return nothing
-end
-
-@doc """
 ###FreeFormDeformation.getWallCoords
 
 Get a 2D array of coordinates that exist on a wall element face. This function

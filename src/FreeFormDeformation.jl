@@ -244,252 +244,7 @@ include("span.jl")
 include("b-splines.jl")
 include("evaluations.jl")
 include("constraints.jl")
-include("pumi_specific_functions.jl")
-
-function defineMapXi(mesh::AbstractMesh, geom_faces::AbstractArray{Int,1},
-                     xi::AbstractArray)
-
-  for itr = 1:length(geom_faces)
-    geom_face_number = geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
-    idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range)
-    nfaces = length(bndry_facenums)
-    xi[itr] = zeros(3,mesh.dim,nfaces)
-  end
-
-  return nothing
-end
-
-
-@doc """
-### calcdXdxi
-
-It calculates the partial derivative of the mapping (including the 0th order)
-
-(x,y,z) = [x(xi,eta,zeta), y(xi,eta,zeta), z(xi,eta,zeta)]
-
-**Arguments**
-
-*  `map`    : Object of Mapping type
-*  `xi`     : Mapping parametric coordinates (s,t,u) to be evaluated
-*  `jderiv` : Derivative indices. jderi[mdi] = n means take the nth derivative
-              in the xi[mdi] direction.
-*  `dX`     : Derivative of X w.r.t the 3 parametric variables. length = 3
-
-REFERENCE: Carl de Boor, 'Pratical Guide to Splines', pgs 138-149, function
-           BVALUE
-
-Notes: (taken from Mapping_Mod.f90)
-1) de Boor points out (pg 149) that for many points (as we may
-   have) it is faster to compute the piecewise polys and differentiate
-   them.  Something to consider for the future.
-2) Since direction indices are used for both the physical and
-   mathematical coordinates, di will be reserved for the physical
-   and mdi for the mathematical coordinates in this function.
-
-"""->
-
-function calcdXdxi(map, xi, jderiv, dX)
-
-  # initialize intermediate arrays
-  km1 = zeros(Int, 3)
-  jcmax = zeros(Int, 3)
-  jcmin = zeros(Int, 3)
-  imk = zeros(Int, 3)
-  left = zeros(Int, 3)
-
-  # the derivative is zero if any of jderiv(mdi) >= order(mdi)
-  for mdi = 1:3
-    if jderiv[mdi] >= map.order[mdi]
-      return
-    end
-  end
-
-  # find the spatially varying knot vector
-  # calcKnot(map)
-
-  # find the left(3) array such that
-  #   knot(mdi,left(mdi)) <= xi(mdi) <= knot(mdi,left(mdi)+1)
-  for mdi = 1:3
-    left[mdi] = findSpan(xi[mdi], map.edge_knot[mdi], map.order[mdi], map.nctl[mdi])
-  end
-  # the calculations involving the knot vectors are independent,
-  # so loop through them sequentially
-
-
-    for mdi = 1:3
-
-      # we will store the (order) b-spline coefficients relevant
-      # to the knot interval [knot(mdi,left),knot(mdi,left+1)]
-      # in aj[mdi,1],...,aj[mdi,order]
-      # and compute dl[mdi,j] = xi[mdi] - knot[mdi][left-j]
-      #             dr[mdi,j] = knot[mdi][left+j] - xi[mdi]
-      # for all j = 1,...,order[mdi]-1
-
-      km1[mdi] = map.order[mdi] - 1
-      jcmin[mdi] = 1
-      imk[mdi] = left[mdi] - map.order[mdi]
-      if imk[mdi] < 0
-        # we are close to the left end of the knot interval, so some
-        # of the aj will be set to zero later
-        jcmin[mdi] = 1 - imk[mdi]
-        for j = 1:left[mdi]
-          map.dl[j,mdi] = xi[mdi] - map.edge_knot[mdi][left[mdi]+1-j]
-        end
-        for j = left[mdi]:km1[mdi]
-          map.dl[j,mdi] = map.dl[left[mdi],mdi]
-        end
-      else
-        for j = 1:km1[mdi]
-          map.dl[j,mdi] = xi[mdi] - map.edge_knot[mdi][left[mdi]+1-j]
-        end
-      end
-
-      jcmax[mdi] = map.order[mdi]
-      n = map.nctl[mdi]
-      nmi = n - left[mdi]
-      if nmi < 0
-        # we are close to the right end of the knot interval, so some
-        # of the aj will be set to zero later
-        jcmax[mdi] = map.order[mdi] + nmi
-        for j = 1:jcmax[mdi]
-          map.dr[j,mdi] = map.edge_knot[mdi][left[mdi]+j] - xi[mdi]
-        end
-        for j = jcmax[mdi]:km[mdi]
-          map.dr[j,mdi] = map.dr[jcmax[mdi],mdi]
-        end
-      else
-        for j = 1:km1[mdi]
-          map.dr[j,mdi] = map.edge_knot[mdi][left[mdi]+j] - xi[mdi]
-        end
-      end
-    end # mdi loop
-    # set all elements of aj[:,:,1] to zero, in case we are close to
-    # the ends of the knot vector
-    map.aj[:,:,1] = 0.0
-
-    for jc1 = jcmin[1]:jcmax[1]
-      p = imk[1] + jc1
-
-      # set all the elements of aj[:,:,2] to zero, in case we are
-      # close to the ends of the knot vector
-      map.aj[:,:,2] = 0.0
-
-      for jc2 = jcmin[2]:jcmax[2]
-        q = imk[2] + jc2
-
-        # set all the elements of aj[:,:,3] to zero, in case we are
-        # close to the ends of the knot vector
-        map.aj[:,:,3] = 0.0
-
-        for jc3 = jcmin[3]:jcmax[3]
-          map.aj[:,jc3,3] = map.cp_xyz[:,p,q,imk[3]+jc3]
-        end
-
-        if jderiv[3] != 0
-          # derivative: apply the recursive formula X.12b from de Boor
-          for j = 1:jderiv[3]
-            kmj = map.order[3] - j
-            ilo = kmj
-            for jj = 1:kmj
-              map.aj[:,jj,3] = (map.aj[:,jj+1,3] - map.aj[:,jj,3]) *
-                               kmj / (map.dl[ilo,3] + map.dr[jj,3])
-              ilo = ilo - 1
-            end
-          end
-        end
-        #println("map.aj[:,:,3] = \n", map.aj[:,:,3])
-        if jderiv[3] != km1[3]
-          # if jderiv != order - 1, we need to apply the recursive
-          # formula from de Boor
-          for j = jderiv[3]+1:km1[3]
-            kmj = map.order[3] - j
-            ilo = kmj
-            for jj = 1:kmj
-              map.aj[:,jj,3] = (map.aj[:,jj+1,3]*map.dl[ilo,3] +
-                   map.aj[:,jj,3]*map.dr[jj,3]) / (map.dl[ilo,3] + map.dr[jj,3])
-              ilo = ilo - 1
-            end
-          end
-        end
-        # println("map.aj[:,:,3] = \n", map.aj[:,:,3])
-
-        map.aj[:,jc2,2] = map.aj[:,1,3]
-      end # get next element of aj(:,2)
-
-      if jderiv[2] != 0
-        # derivative: apply the recursive formula X.12b from de Boor
-        for j = 1:jderiv[2]
-          kmj = map.order[2] - j
-          ilo = kmj
-          for jj = 1:kmj
-            map.aj[:,jj,2] = (map.aj[:,jj+1,2] - map.aj[:,jj,2]) * kmj /
-                             (map.dl[ilo,2] + map.dr[jj,2])
-            ilo = ilo - 1
-          end
-        end
-      end
-
-      if jderiv[2] != km1[2]
-        # if jderiv /= order - 1, we need to apply the recursive
-        # formula from de Boor
-        for j = jderiv[2]+1:km1[2]
-          kmj = map.order[2] - j
-          ilo = kmj
-          for jj = 1:kmj
-            map.aj[:,jj,2] = (map.aj[:,jj+1,2]*map.dl[ilo,2] + map.aj[:,jj,2]*
-                             map.dr[jj,2]) / (map.dl[ilo,2] + map.dr[jj,2])
-            ilo = ilo - 1
-          end
-        end
-      end
-
-      map.aj[:,jc1,1] = map.aj[:,1,2]
-      # println("map.aj[:,:,2] = \n", map.aj[:,:,2])
-
-    end # get next element of map.aj[:,:,1]
-
-    if jderiv[1] != 0
-      # derivative: apply the recursive formula X.12b from de Boor
-      for j = 1:jderiv[1]
-        kmj = map.order[1] - j
-        ilo = kmj
-        for jj = 1:kmj
-          map.aj[:,jj,1] = (map.aj[:,jj+1,1] - map.aj[:,jj,1]) * kmj /
-                           (map.dl[ilo,1] + map.dr[jj,1])
-          ilo = ilo - 1
-        end
-      end
-    end
-
-    if jderiv[1] != km1[1]
-      # if jderiv /= order - 1, we need to apply the recursive
-      # formula from de Boor
-      for j = jderiv[1]+1:km1[1]
-        kmj = map.order[1] - j
-        ilo = kmj
-        for jj = 1:kmj
-          map.aj[:,jj,1] = (map.aj[:,jj+1,1]*map.dl[ilo,1] + map.aj[:,jj,1]*
-                           map.dr[jj,1]) / (map.dl[ilo,1] + map.dr[jj,1])
-          ilo = ilo - 1
-        end
-      end
-    end
-    # println("map.aj[:,:,1] = \n", map.aj[:,:,2])
-
-    dX[:] = map.aj[:,1,1]
-
-  return nothing
-end  # End function calcdXdxi(map, xi, jderiv)
+# include("pumi_specific_functions.jl")
 
 @doc """
 Routine to be called externally for initializing FreeFormDeformation
@@ -538,6 +293,77 @@ function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
   end
 
   return map, ffd_box
+end
+
+@doc """
+### FreeFormDeformation.defineMapXi
+
+"""->
+
+function defineMapXi(mesh::AbstractMesh, geom_faces::AbstractArray{Int,1},
+                     xi::AbstractArray)
+
+  for itr = 1:length(geom_faces)
+    geom_face_number = geom_faces[itr]
+    # get the boundary array associated with the geometric edge
+    itr2 = 0
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
+      end
+    end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range)
+    nfaces = length(bndry_facenums)
+    xi[itr] = zeros(3,mesh.dim,nfaces)
+  end
+
+  return nothing
+end
+
+@doc """
+###FreeFormDeformation.defineVertices
+
+This function defines the shape of the vertices array that is used to update
+the Pumi mesh after FFD when a geometric face is paramtereized.
+
+**Arguments**
+
+* `mesh` : Pumi DG mesh
+* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
+                 of element faces needs to be computed
+* `vertices` : Array of arrays holding the coodinates of the updated vertices
+               shape = vertices[n_geom_faces][mesh.dim, size(mesh.vert_coords,2), n_elem_faces]
+
+"""->
+
+function defineVertices(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1},
+                        vertices::AbstractArray)
+
+  for itr = 1:length(geom_faces)
+    geom_face_number = geom_faces[itr]
+    # get the boundary array associated with the geometric edge
+    itr2 = 0
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
+      end
+    end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range)
+    nfaces = length(bndry_facenums)
+    vertices[itr] = zeros(size(mesh.vert_coords,1), size(mesh.vert_coords,2), nfaces)
+    for i = 1:nfaces
+      bndry_i = bndry_facenums[i]
+      vertices[itr][:,:,i] = mesh.vert_coords[:,:,bndry_i.element]
+    end # End for i = 1:nfaces
+  end
+
+  return nothing
 end
 
 @doc """
