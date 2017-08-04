@@ -5,11 +5,47 @@ if !MPI.Initialized()
   MPI.Init()
 end
 
-resize!(ARGS, 1)
-ARGS[1] = "./input_vals_3d.jl"
+# resize!(ARGS, 1)
+# ARGS[1] = "./input_vals_3d.jl"
+#
+# opts = PDESolver.read_input(ARGS[1])
+# sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+opts = Dict{ASCIIString, Any}()
+opts["order"] = 1
+opts["dimensions"] = 3
+opts["use_DG"] = true
+opts["Tsbp"] = Float64
+opts["Tmsh"] = Complex128
+opts["operator_type"] = "SBPOmega"
+opts["smb_name"] = "../src/mesh_files/tet8cube.smb"
+opts["dmg_name"] = ".null"
 
-opts = PDESolver.read_input(ARGS[1])
-sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+opts["numBC"] = 3
+opts["BC1"] = [ 0, 1, 2, 3]
+opts["BC1_name"] = "ExpBC"
+opts["BC2"] = [4]
+opts["BC2_name"] = "noPenetrationBC"
+opts["BC3"] = [10]
+opts["BC3_name"] = "noPenetrationBC"
+
+opts["coloring_distance"] = 2 # 0 For CG Mesh 2 for DG Mesh
+opts["jac_type"] = 2
+opts["jac_method"] = 2
+opts["run_type"] = 5
+
+Tsbp = opts["Tsbp"]
+Tmsh = opts["Tmsh"]
+shape_type = 2
+sbp = getTetSBPOmega(degree=opts["order"], Tsbp=Tsbp)
+ref_verts = sbp.vtx
+face_verts = SummationByParts.SymCubatures.getfacevertexindices(sbp.cub)
+topo = ElementTopology{3}(face_verts)
+sbpface = TetFace{Tsbp}(opts["order"], sbp.cub, ref_verts)
+mesh = PumiMeshDG3{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"], sbp,
+                         opts, sbpface, topo; dofpernode=1,
+                         coloring_distance=opts["coloring_distance"],
+                         shape_type=shape_type)
+
 orig_vert_coords = deepcopy(mesh.vert_coords)
 
 facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
@@ -66,7 +102,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
 
   # Reset the coordinates and mesh to the original value
   for i = 1:mesh.numEl
-    update_coords(mesh, i, orig_vert_coords[:,:,i])
+    update_coords(mesh, i, real(orig_vert_coords[:,:,i]))
   end
   commit_coords(mesh, sbp, opts)
 
@@ -124,7 +160,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
 
   # Reset the coordinates and mesh to the original value
   for i = 1:mesh.numEl
-    update_coords(mesh, i, orig_vert_coords[:,:,i])
+    update_coords(mesh, i, real(orig_vert_coords[:,:,i]))
   end
   commit_coords(mesh, sbp, opts)
 

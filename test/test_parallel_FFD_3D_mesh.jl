@@ -11,11 +11,48 @@ my_rank = MPI.Comm_rank(comm)
 comm_size = MPI.Comm_size(comm)
 
 
-resize!(ARGS, 1)
-ARGS[1] = "./input_vals_3d_parallel.jl"
+# resize!(ARGS, 1)
+# ARGS[1] = "./input_vals_3d_parallel.jl"
+#
+# opts = PDESolver.read_input(ARGS[1])
+# sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 
-opts = PDESolver.read_input(ARGS[1])
-sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+opts = Dict{ASCIIString, Any}()
+opts["order"] = 1
+opts["dimensions"] = 3
+opts["use_DG"] = true
+opts["Tsbp"] = Float64
+opts["Tmsh"] = Complex128
+opts["operator_type"] = "SBPOmega"
+opts["smb_name"] = "../src/mesh_files/tet8cube_np2.smb"
+opts["dmg_name"] = ".null"
+
+opts["numBC"] = 3
+opts["BC1"] = [ 0, 1, 2, 3]
+opts["BC1_name"] = "ExpBC"
+opts["BC2"] = [4]
+opts["BC2_name"] = "noPenetrationBC"
+opts["BC3"] = [10]
+opts["BC3_name"] = "noPenetrationBC"
+
+opts["coloring_distance"] = 2 # 0 For CG Mesh 2 for DG Mesh
+opts["jac_type"] = 2
+opts["jac_method"] = 2
+opts["run_type"] = 5
+
+Tsbp = opts["Tsbp"]
+Tmsh = opts["Tmsh"]
+shape_type = 2
+sbp = getTetSBPOmega(degree=opts["order"], Tsbp=Tsbp)
+ref_verts = sbp.vtx
+face_verts = SummationByParts.SymCubatures.getfacevertexindices(sbp.cub)
+topo = ElementTopology{3}(face_verts)
+sbpface = TetFace{Tsbp}(opts["order"], sbp.cub, ref_verts)
+mesh = PumiMeshDG3{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"], sbp,
+                         opts, sbpface, topo; dofpernode=1,
+                         coloring_distance=opts["coloring_distance"],
+                         shape_type=shape_type)
+
 orig_vert_coords = deepcopy(mesh.vert_coords)
 
 facts("--- Check if Unique wall coordinates are being computed correctly across all ranks ---") do
