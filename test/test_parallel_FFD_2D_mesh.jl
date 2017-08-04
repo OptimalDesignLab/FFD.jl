@@ -11,14 +11,17 @@ comm_self = MPI.COMM_SELF
 my_rank = MPI.Comm_rank(comm)
 comm_size = MPI.Comm_size(comm)
 
-opts = PdePumiInterface.get_defaults()
+# opts = PdePumiInterface.get_defaults()
 # 2D mesh
+opts = Dict{ASCIIString, Any}()
 opts["order"] = 1
 opts["dimensions"] = 2
 opts["use_DG"] = true
 opts["operator_type"] = "SBPOmega"
 opts["dmg_name"] = ".null"
 opts["smb_name"] = "../src/mesh_files/gvortex1np2.smb"
+opts["Tsbp"] = Float64
+opts["Tmsh"] = Complex128
 
 # For 2D Isentropic Vortex
 opts["numBC"] = 4
@@ -38,7 +41,19 @@ opts["jac_method"] = 2
 opts["use_jac_precond"] = true
 
 # Create PumiMesh and SBP objects
-sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+Tsbp = opts["Tsbp"]
+Tmsh = opts["Tmsh"]
+sbp = getTriSBPOmega(degree=opts["order"], Tsbp=Tsbp)
+shape_type = 2
+ref_verts = [-1. 1 -1; -1 -1 1]
+sbpface = TriFace{Tsbp}(opts["order"], sbp.cub, ref_verts.')
+topo = 0
+mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
+                         sbp, opts, sbpface; dofpernode=1,
+                         coloring_distance=opts["coloring_distance"],
+                         shape_type=shape_type)
+# sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+
 orig_vert_coords = deepcopy(mesh.vert_coords)
 
 facts("--- Checking control point manipulation for 2D parallel mesh") do
@@ -72,7 +87,7 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
     map.cp_xyz[2,:,:,:] += 0.3
 
     vertices = evalVolume(map, mesh)
-    commitToPumi(map, mesh, sbp, vertices)
+    commitToPumi(map, mesh, sbp, vertices, opts)
 
     filename = string("translation_plus_rotation_DG_parallel_fullmesh_", mesh.myrank, ".dat")
     # f = open(string("./testvalues/", filename), "w")
@@ -93,9 +108,9 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
 
   # Reset the coordinates and mesh to the original value
   for i = 1:mesh.numEl
-    update_coords(mesh, i, orig_vert_coords[:,:,i])
+    update_coords(mesh, i, real(orig_vert_coords[:,:,i]))
   end
-  commit_coords(mesh, sbp)
+  commit_coords(mesh, sbp, opts)
 
   context("Check for a geometric surface") do
 
@@ -129,7 +144,7 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
     map.cp_xyz[1,:,:,:] += 0.05
 
     vertices = evalSurface(map, mesh)
-    commitToPumi(map, mesh, sbp, vertices)
+    commitToPumi(map, mesh, sbp, vertices, opts)
 
     filename = string("translation_plus_rotation_DG_parallel_surfaceBC4_", mesh.myrank, ".dat")
     # f = open(string("./testvalues/", filename), "w")
@@ -153,9 +168,9 @@ end # End facts("--- Checking control point manipulation for 2D parallel mesh")
 
 # Reset the coordinates and mesh to the original value
 for i = 1:mesh.numEl
-  update_coords(mesh, i, orig_vert_coords[:,:,i])
+  update_coords(mesh, i, real(orig_vert_coords[:,:,i]))
 end
-commit_coords(mesh, sbp)
+commit_coords(mesh, sbp, opts)
 MPI.Barrier(comm)
 
 facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do

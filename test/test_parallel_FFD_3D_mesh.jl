@@ -72,7 +72,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
     map.cp_xyz[3,:,:,:] += 0.5
 
     vertices = evalVolume(map, mesh)
-    commitToPumi(map, mesh, sbp, vertices)
+    commitToPumi(map, mesh, sbp, vertices, opts)
 
     fname = string("./testvalues/translation_plus_rotation_DG_3D_tet8cube_rank", my_rank,".dat")
     # f = open(fname, "w")
@@ -92,9 +92,9 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
   MPI.Barrier(comm)
   # Reset the coordinates and mesh to the original value
   for i = 1:mesh.numEl
-    update_coords(mesh, i, orig_vert_coords[:,:,i])
+    update_coords(mesh, i, real(orig_vert_coords[:,:,i]))
   end
-  commit_coords(mesh, sbp)
+  commit_coords(mesh, sbp, opts)
 
   context("Check control point manipulation on a geometry face") do
 
@@ -127,7 +127,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
     map.cp_xyz[3,:,:,:] += 0.05
 
     vertices = evalSurface(map, mesh)
-    commitToPumi(map, mesh, sbp, vertices)
+    commitToPumi(map, mesh, sbp, vertices, opts)
 
     fname = string("./testvalues/translation_plus_rotation_DG_3D_tet8cube_face4_rank", my_rank, ".dat")
     # f = open(fname, "w")
@@ -147,9 +147,9 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
   MPI.Barrier(comm)
   # Reset the coordinates and mesh to the original value
   for i = 1:mesh.numEl
-    update_coords(mesh, i, orig_vert_coords[:,:,i])
+    update_coords(mesh, i, real(orig_vert_coords[:,:,i]))
   end
-  commit_coords(mesh, sbp)
+  commit_coords(mesh, sbp, opts)
 
   context("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
 
