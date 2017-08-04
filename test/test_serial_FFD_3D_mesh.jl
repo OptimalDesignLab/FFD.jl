@@ -5,11 +5,6 @@ if !MPI.Initialized()
   MPI.Init()
 end
 
-# resize!(ARGS, 1)
-# ARGS[1] = "./input_vals_3d.jl"
-#
-# opts = PDESolver.read_input(ARGS[1])
-# sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 opts = Dict{ASCIIString, Any}()
 opts["order"] = 1
 opts["dimensions"] = 3

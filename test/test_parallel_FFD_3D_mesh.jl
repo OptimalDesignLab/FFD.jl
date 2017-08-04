@@ -10,13 +10,6 @@ comm_self = MPI.COMM_SELF
 my_rank = MPI.Comm_rank(comm)
 comm_size = MPI.Comm_size(comm)
 
-
-# resize!(ARGS, 1)
-# ARGS[1] = "./input_vals_3d_parallel.jl"
-#
-# opts = PDESolver.read_input(ARGS[1])
-# sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
-
 opts = Dict{ASCIIString, Any}()
 opts["order"] = 1
 opts["dimensions"] = 3
