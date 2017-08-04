@@ -9,11 +9,36 @@ comm_self = MPI.COMM_SELF
 my_rank = MPI.Comm_rank(comm)
 comm_size = MPI.Comm_size(comm)
 
-opts = PdePumiInterface.get_defaults()
-# 2D mesh
+# opts = PdePumiInterface.get_defaults()
+# # 2D mesh
+# opts["order"] = 1
+# opts["dimensions"] = 2
+# opts["use_DG"] = true
+# opts["operator_type"] = "SBPOmega"
+# opts["dmg_name"] = "../src/mesh_files/2D_Airfoil.dmg"
+# opts["smb_name"] = "../src/mesh_files/2D_Airfoil.smb"
+# opts["numBC"] = 2
+#
+# # For 2DAirfoil
+# opts["BC1"] = [8,11,14,17]
+# opts["BC1_name"] = "FarField"
+# opts["BC2"] = [5]
+# opts["BC2_name"] = "Airfoil"
+#
+# opts["coloring_distance"] = 2 # 0 For CG Mesh 2 for DG Mesh
+# opts["jac_type"] = 2
+# opts["jac_method"] = 2
+# opts["run_type"] = 5
+#
+# # Create PumiMesh and SBP objects
+# sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = PDESolver.createMeshAndOperator(opts, 1)
+
+opts = Dict{ASCIIString, Any}()
 opts["order"] = 1
 opts["dimensions"] = 2
 opts["use_DG"] = true
+opts["Tsbp"] = Float64
+opts["Tmsh"] = Complex128
 opts["operator_type"] = "SBPOmega"
 opts["dmg_name"] = "../src/mesh_files/2D_Airfoil.dmg"
 opts["smb_name"] = "../src/mesh_files/2D_Airfoil.smb"
@@ -31,7 +56,19 @@ opts["jac_method"] = 2
 opts["run_type"] = 5
 
 # Create PumiMesh and SBP objects
-sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = PDESolver.createMeshAndOperator(opts, 1)
+dofpernode = 1
+ref_verts = [-1. 1 -1; -1 -1 1]
+Tsbp = opts["Tsbp"]
+Tmsh = opts["Tmsh"]
+sbp = getTriSBPOmega(degree=opts["order"], Tsbp=opts["Tsbp"])
+sbpface = TriFace{Tsbp}(opts["order"], sbp.cub, ref_verts.')
+topo = 0
+shape_type = 2
+mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
+                         sbp, opts, sbpface; dofpernode=dofpernode,
+                         coloring_distance=opts["coloring_distance"],
+                         shape_type=shape_type)
+
 geom_faces = opts["BC2"]
 
 # Free Form deformation parameters
@@ -79,9 +116,9 @@ facts("--- Checking Linear-Plane Constraints ---") do
   ptr = 1
   iLfun = zeros(Int, sum(cntEq))
   jLvar = zeros(Int, sum(cntEq))
-  LinG = zeros(sum(cntEq))
-  Flow = rand(numCnstr)
-  Fupp = rand(numCnstr)
+  LinG = zeros(Tmsh, sum(cntEq))
+  Flow = rand(numCnstr) + 0im
+  Fupp = rand(numCnstr) + 0im
   fncidx, ptr = setLinearPlaneConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                            Fupp, fncidx, ptr)
   @fact fncidx --> numCnstr+1
@@ -120,9 +157,9 @@ facts("--- Checking Linear-Corner Constraints ---") do
   ptr = 1
   iLfun = zeros(Int, sum(cntEq))
   jLvar = zeros(Int, sum(cntEq))
-  LinG = zeros(sum(cntEq))
-  Flow = rand(numCnstr)
-  Fupp = rand(numCnstr)
+  LinG = zeros(Tmsh, sum(cntEq))
+  Flow = rand(numCnstr) + 0im
+  Fupp = rand(numCnstr) + 0im
   fncidx, ptr = setLinearCornerConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                             Fupp, fncidx, ptr)
   @fact fncidx --> numCnstr+1
@@ -161,9 +198,9 @@ facts("--- Checking Linear-Stretch Constraints ---") do
   ptr = 1
   iLfun = zeros(Int, sum(cntEq))
   jLvar = zeros(Int, sum(cntEq))
-  LinG = zeros(sum(cntEq))
-  Flow = rand(numCnstr)
-  Fupp = rand(numCnstr)
+  LinG = zeros(Tmsh, sum(cntEq))
+  Flow = rand(numCnstr) + 0im
+  Fupp = rand(numCnstr) + 0im
   fncidx, ptr = setLinearStretchConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                              Fupp, fncidx, ptr)
 
@@ -205,9 +242,9 @@ facts("--- Checking Linear-Root Constraints ---") do
   ptr = 1
   iLfun = zeros(Int, sum(cntEq))
   jLvar = zeros(Int, sum(cntEq))
-  LinG = zeros(sum(cntEq))
-  Flow = rand(numCnstr)
-  Fupp = rand(numCnstr)
+  LinG = zeros(Tmsh, sum(cntEq))
+  Flow = rand(numCnstr) + 0im
+  Fupp = rand(numCnstr) + 0im
   fncidx, ptr = setLinearRootConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                           Fupp, fncidx, ptr)
   @fact fncidx --> numCnstr+1

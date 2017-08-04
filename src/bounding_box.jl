@@ -44,7 +44,7 @@ orientation as the physical coordinate system.
 
 """->
 
-type PumiBoundingBox{Tffd} <: AbstractBoundingBox
+type PumiBoundingBox{Tffd} <: AbstractBoundingBox{Tffd}
 
   # Physical space
   ndim::Integer # 2D or 3D

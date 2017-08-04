@@ -45,7 +45,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
     map.cp_xyz[3,:,:,:] += 0.5
 
     vertices = evalVolume(map, mesh)
-    commitToPumi(map, mesh, sbp, vertices)
+    commitToPumi(map, mesh, sbp, vertices, opts)
 
     writeVisFiles(mesh, "FFD_full_body_3D")
 
@@ -68,7 +68,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
   for i = 1:mesh.numEl
     update_coords(mesh, i, orig_vert_coords[:,:,i])
   end
-  commit_coords(mesh, sbp)
+  commit_coords(mesh, sbp, opts)
 
 
   context("Check control point manipulation on a geometry face") do
@@ -103,7 +103,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
     map.cp_xyz[3,:,:,:] += 0.05
 
     vertices = evalSurface(map, mesh)
-    commitToPumi(map, mesh, sbp, vertices)
+    commitToPumi(map, mesh, sbp, vertices, opts)
 
     writeVisFiles(mesh, "FFD_perturbed_face_BC2")
 
@@ -126,7 +126,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
   for i = 1:mesh.numEl
     update_coords(mesh, i, orig_vert_coords[:,:,i])
   end
-  commit_coords(mesh, sbp)
+  commit_coords(mesh, sbp, opts)
 
   context("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
 
@@ -170,7 +170,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
     for i = 1:length(map.cp_xyz)
       map.cp_xyz[i] += pert
       vertices = evalSurface(map, mesh)
-      commitToPumi(map, mesh, sbp, vertices)
+      commitToPumi(map, mesh, sbp, vertices, opts)
       new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
       cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
       map.cp_xyz[i] -= pert

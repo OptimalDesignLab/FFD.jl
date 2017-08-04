@@ -228,7 +228,7 @@ is from "The NURBS book 2nd Edition".
 *  `xyz` : (x,y,z) coordinates of the parametric point in the FFD volume
 """->
 
-function evalVolumePoint(map::AbstractMappingType, xi, xyz)
+function evalVolumePoint{Tffd}(map::AbstractMappingType, xi::AbstractArray{Tffd,1}, xyz)
 
   fill!(xyz, 0.0)
 

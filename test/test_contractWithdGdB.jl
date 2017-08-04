@@ -70,15 +70,42 @@ close(f)
 
 facts("---Checking contractWithdGdB ---") do
 
-  opts = PdePumiInterface.get_defaults()
-  # 2D mesh
+  # opts = PdePumiInterface.get_defaults()
+  # # 2D mesh
+  # opts["order"] = 1
+  # opts["dimensions"] = 2
+  # opts["use_DG"] = true
+  # opts["operator_type"] = "SBPOmega"
+  # opts["dmg_name"] = ".null"
+  # opts["smb_name"] = "../src/mesh_files/abc.smb"
+  # opts["numBC"] = 2
+
+  # opts["coloring_distance"] = 2 # 0 For CG Mesh 2 for DG Mesh
+  # opts["jac_type"] = 2
+  # opts["jac_method"] = 2
+  # opts["run_type"] = 5
+
+  # opts["numBC"] = 4
+  # opts["BC1"] = [0]
+  # opts["BC1_name"] = "FreeStreamBC"
+  # opts["BC2"] = [1]
+  # opts["BC2_name"] = "FreeStreamBC"
+  # opts["BC3"] = [2]
+  # opts["BC3_name"] = "FreeStreamBC"
+  # opts["BC4"] = [3]
+  # opts["BC4_name"] = "noPenetrationBC"
+
+  # # Create PumiMesh and SBP objects
+  # sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+  opts = Dict{ASCIIString, Any}()
   opts["order"] = 1
   opts["dimensions"] = 2
   opts["use_DG"] = true
+  opts["Tsbp"] = Float64
+  opts["Tmsh"] = Complex128
   opts["operator_type"] = "SBPOmega"
   opts["dmg_name"] = ".null"
   opts["smb_name"] = "../src/mesh_files/abc.smb"
-  opts["numBC"] = 2
 
   opts["coloring_distance"] = 2 # 0 For CG Mesh 2 for DG Mesh
   opts["jac_type"] = 2
@@ -96,7 +123,18 @@ facts("---Checking contractWithdGdB ---") do
   opts["BC4_name"] = "noPenetrationBC"
 
   # Create PumiMesh and SBP objects
-  sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+  dofpernode = 1
+  ref_verts = [-1. 1 -1; -1 -1 1]
+  Tsbp = opts["Tsbp"]
+  Tmsh = opts["Tmsh"]
+  sbp = getTriSBPOmega(degree=opts["order"], Tsbp=opts["Tsbp"])
+  sbpface = TriFace{Tsbp}(opts["order"], sbp.cub, ref_verts.')
+  topo = 0
+  shape_type = 2
+  mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
+                           sbp, opts, sbpface; dofpernode=dofpernode,
+                           coloring_distance=opts["coloring_distance"],
+                           shape_type=shape_type)
   # geometry faces to be embedded in FFD Box
   geom_faces = opts["BC4"]
 
@@ -145,7 +183,7 @@ facts("---Checking contractWithdGdB ---") do
   for i = 1:length(map.cp_xyz)
     map.cp_xyz[i] += pert
     vertices = evalSurface(map, mesh)
-    commitToPumi(map, mesh, sbp, vertices)
+    commitToPumi(map, mesh, sbp, vertices, opts)
     new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
     cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
     map.cp_xyz[i] -= pert

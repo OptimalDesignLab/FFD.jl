@@ -22,8 +22,8 @@ using WriteVTK
 
 
 # Abstract Type definition
-abstract AbstractMappingType # Abstract Mapping type for creating a different Mapping type
-abstract AbstractBoundingBox
+abstract AbstractMappingType{Tffd} <: Any # Abstract Mapping type for creating a different Mapping type
+abstract AbstractBoundingBox{Tffd} <: Any
 
 @doc """
 ### Mapping
@@ -154,7 +154,7 @@ end  # End Mapping
 
 """->
 
-type PumiMapping{Tffd} <: AbstractMappingType
+type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
   full_geom::Bool               # Embed entire geometry or only certain faces
@@ -244,7 +244,7 @@ include("span.jl")
 include("b-splines.jl")
 include("evaluations.jl")
 include("constraints.jl")
-# include("pumi_specific_functions.jl")
+include("pumi_specific_functions.jl")
 
 @doc """
 Routine to be called externally for initializing FreeFormDeformation
@@ -339,7 +339,7 @@ the Pumi mesh after FFD when a geometric face is paramtereized.
 
 """->
 
-function defineVertices(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1},
+function defineVertices{Tmsh}(mesh::AbstractDGMesh{Tmsh}, geom_faces::AbstractArray{Int,1},
                         vertices::AbstractArray)
 
   for itr = 1:length(geom_faces)
@@ -356,7 +356,7 @@ function defineVertices(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1},
     idx_range = start_index:(end_index-1)
     bndry_facenums = view(mesh.bndryfaces, idx_range)
     nfaces = length(bndry_facenums)
-    vertices[itr] = zeros(size(mesh.vert_coords,1), size(mesh.vert_coords,2), nfaces)
+    vertices[itr] = zeros(Tmsh, size(mesh.vert_coords,1), size(mesh.vert_coords,2), nfaces)
     for i = 1:nfaces
       bndry_i = bndry_facenums[i]
       vertices[itr][:,:,i] = mesh.vert_coords[:,:,bndry_i.element]
@@ -373,11 +373,13 @@ Uses the modified vertex coordinates to update the Pumi mesh
 
 """->
 
-function commitToPumi(map, mesh, sbp, vertices)
+function commitToPumi{Tffd, Tmsh}(map::PumiMapping{Tffd},
+                      mesh::AbstractDGMesh{Tmsh}, sbp, vertices, opts)
 
   if map.full_geom == true
+    println("Tmsh = $Tmsh")
     for i = 1:mesh.numEl
-      update_coords(mesh, i, vertices[:,:,i])
+      update_coords(mesh, i, real(vertices[:,:,i]))
     end
   else
     for itr = 1:length(map.geom_faces)
@@ -398,12 +400,12 @@ function commitToPumi(map, mesh, sbp, vertices)
         bndry_i = bndry_facenums[i]
         # get the local index of the vertices on the boundary face (local face number)
         # vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-        update_coords(mesh, bndry_i.element, vertices[itr][:,:,i])
+        update_coords(mesh, bndry_i.element, real(vertices[itr][:,:,i]))
       end    # End for i = 1:nfaces
     end  # End for itr = 1:length(map.geom_faces)
   end # End
 
-  commit_coords(mesh, sbp)
+  commit_coords(mesh, sbp, opts)
 
   return nothing
 end

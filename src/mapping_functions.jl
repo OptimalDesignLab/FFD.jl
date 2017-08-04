@@ -66,15 +66,15 @@ solve.
 
 """->
 
-function nonlinearMap(map::AbstractMappingType, box::AbstractBoundingBox,
-                      X, pX)
+function nonlinearMap{Tffd}(map::AbstractMappingType{Tffd},
+                            box::AbstractBoundingBox{Tffd}, X, pX)
 
   origin = box.origin
 
   # Compute the residual
-  res = zeros(box.ndim)
-  pointVal = zeros(box.ndim)
-  xi = zeros(box.ndim)
+  res = zeros(Tffd, box.ndim)
+  pointVal = zeros(Tffd, box.ndim)
+  xi = zeros(Tffd, box.ndim)
   xi_new = zeros(xi)
   xi[:] = pX
 

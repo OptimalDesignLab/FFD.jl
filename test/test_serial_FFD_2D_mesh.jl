@@ -60,11 +60,13 @@ comm_size = MPI.Comm_size(comm)
 # Pumi Specific Tests
 facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---") do
 
-  opts = PdePumiInterface.get_defaults()
   # 2D mesh
+  opts = Dict{ASCIIString, Any}()
   opts["order"] = 1
   opts["dimensions"] = 2
   opts["use_DG"] = true
+  opts["Tsbp"] = Float64
+  opts["Tmsh"] = Complex128
   opts["operator_type"] = "SBPOmega"
   opts["dmg_name"] = "../src/mesh_files/2D_Airfoil.dmg"
   opts["smb_name"] = "../src/mesh_files/2D_Airfoil.smb"
@@ -82,7 +84,18 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
   opts["run_type"] = 5
 
   # Create PumiMesh and SBP objects
-  sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = PDESolver.createMeshAndOperator(opts, 1)
+  dofpernode = 1
+  ref_verts = [-1. 1 -1; -1 -1 1]
+  Tsbp = opts["Tsbp"]
+  Tmsh = opts["Tmsh"]
+  sbp = getTriSBPOmega(degree=opts["order"], Tsbp=opts["Tsbp"])
+  sbpface = TriFace{Tsbp}(opts["order"], sbp.cub, ref_verts.')
+  topo = 0
+  shape_type = 2
+  mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
+                           sbp, opts, sbpface; dofpernode=dofpernode,
+                           coloring_distance=opts["coloring_distance"],
+                           shape_type=shape_type)
 
   context("--- Checking Linear Mapping For DG Mesh ---") do
 
@@ -208,7 +221,7 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
     map.cp_xyz[2,:,:,:] += 0.3
 
     vertices = evalVolume(map, mesh)
-    commitToPumi(map, mesh, sbp, vertices)
+    commitToPumi(map, mesh, sbp, vertices, opts)
 
     outname = string("./testvalues/volume_coords_full_DG_mesh_2D_airfoil.dat")
     test_vert_coords = readdlm(outname)
@@ -232,11 +245,12 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
   my_rank = MPI.Comm_rank(comm)
   comm_size = MPI.Comm_size(comm)
 
-  opts = PdePumiInterface.get_defaults()
-  # 2D mesh
+  opts = Dict{ASCIIString, Any}()
   opts["order"] = 1
   opts["dimensions"] = 2
   opts["use_DG"] = true
+  opts["Tsbp"] = Float64
+  opts["Tmsh"] = Complex128
   opts["operator_type"] = "SBPOmega"
   opts["dmg_name"] = "../src/mesh_files/2D_Airfoil.dmg"
   opts["smb_name"] = "../src/mesh_files/2D_Airfoil.smb"
@@ -254,7 +268,18 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
   opts["run_type"] = 5
 
   # Create PumiMesh and SBP objects
-  sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+  dofpernode = 1
+  ref_verts = [-1. 1 -1; -1 -1 1]
+  Tsbp = opts["Tsbp"]
+  Tmsh = opts["Tmsh"]
+  sbp = getTriSBPOmega(degree=opts["order"], Tsbp=opts["Tsbp"])
+  sbpface = TriFace{Tsbp}(opts["order"], sbp.cub, ref_verts.')
+  topo = 0
+  shape_type = 2
+  mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
+                           sbp, opts, sbpface; dofpernode=dofpernode,
+                           coloring_distance=opts["coloring_distance"],
+                           shape_type=shape_type)
 
   context("--- Checking Linear Mapping for 2D DG Mesh ---") do
 
@@ -297,34 +322,6 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     @fact size(map.xi[1]) --> (3,2,102) # Essentially tests defineMapXi
 
     outname = string("./testvalues/xi_values_2D_airfoil_face5.dat")
-    #=
-    f = open(outname, "w")
-    for itr = 1:length(geom_faces)
-      geom_face_number = geom_faces[itr]
-      # get the boundary array associated with the geometric edge
-      itr2 = 0
-      for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-          break
-        end
-      end
-      start_index = mesh.bndry_offsets[itr2]
-      end_index = mesh.bndry_offsets[itr2+1]
-      idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
-      nfaces = length(bndry_facenums)
-      for i = 1:nfaces
-        bndry_i = bndry_facenums[i]
-        # get the local index of the vertices
-        vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
-        for j = 1:length(vtx_arr)
-          println(f, map.xi[itr][1,j,i])
-          println(f, map.xi[itr][2,j,i])
-        end  # End for j = 1:length(vtx_arr)
-      end    # End for i = 1:nfaces
-    end      # End for itr = 1:length(geomfaces)
-    close(f)
-    =#
     ctr = 1
     test_xi_values = readdlm(outname)
     for itr = 1:length(geom_faces)
@@ -440,7 +437,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     map.cp_xyz[2,:,:,:] += 0.3
 
     vertices = evalSurface(map, mesh)
-    commitToPumi(map, mesh, sbp, vertices)
+    commitToPumi(map, mesh, sbp, vertices, opts)
 
     outname = string("./testvalues/modified_coordinates_2D_airfoil_face5.dat")
     test_surface_coords = readdlm(outname)
@@ -503,7 +500,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     for i = 1:length(map.cp_xyz)
       map.cp_xyz[i] += pert
       vertices = evalSurface(map, mesh)
-      commitToPumi(map, mesh, sbp, vertices)
+      commitToPumi(map, mesh, sbp, vertices, opts)
       new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
       cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
       map.cp_xyz[i] -= pert
@@ -518,7 +515,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
   end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
 
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
-
+#=
 facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
 
   # MPI Declarations
@@ -528,11 +525,12 @@ facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
   my_rank = MPI.Comm_rank(comm)
   comm_size = MPI.Comm_size(comm)
 
-  opts = PdePumiInterface.get_defaults()
-  # 2D mesh
+  opts = Dict{ASCIIString, Any}()
   opts["order"] = 1
   opts["dimensions"] = 2
-  opts["use_DG"] = false
+  opts["use_DG"] = true
+  opts["Tsbp"] = Float64
+  opts["Tmsh"] = Complex128
   opts["operator_type"] = "SBPGamma"
   opts["dmg_name"] = "../src/mesh_files/2D_Airfoil.dmg"
   opts["smb_name"] = "../src/mesh_files/2D_Airfoil.smb"
@@ -544,13 +542,27 @@ facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
   opts["BC2"] = [5]
   opts["BC2_name"] = "Airfoil"
 
-  opts["coloring_distance"] = 0 # 0 For CG Mesh 2 for DG Mesh
+  opts["coloring_distance"] = 0 # For CG Mesh 2 for DG Mesh
   opts["jac_type"] = 2
   opts["jac_method"] = 2
   opts["run_type"] = 5
+  opts["use_edge_res"] = false
+  opts["write_edge_vertnums"] = false
+  opts["write_face_vertnums"] = false
 
   # Create PumiMesh and SBP objects
-  sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
+  dofpernode = 1
+  ref_verts = [-1. 1 -1; -1 -1 1]
+  Tsbp = opts["Tsbp"]
+  Tmsh = opts["Tmsh"]
+
+  shape_type = 1
+  sbp = getTriSBPGamma(degree=opts["order"], Tsbp=Tsbp)
+  sbpface = TriFace{Float64}(opts["order"], sbp.cub, sbp.vtx)
+  mesh = PumiMesh2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"], sbp, opts, sbpface;
+                             dofpernode=dofpernode,
+                             coloring_distance=opts["coloring_distance"],
+                             shape_type=shape_type)
 
   context("--- Checking Linear Mapping For Entire CG Mesh ---") do
 
@@ -622,7 +634,6 @@ facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
 
 end # End facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---")
 
-#=
 facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---") do
 
   comm = MPI.COMM_WORLD
