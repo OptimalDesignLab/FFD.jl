@@ -1,9 +1,6 @@
 # All tests for 3D parallel PUMI meshes go here
 
 # MPI Declarations
-if !MPI.Initialized()
-  MPI.Init()
-end
 comm = MPI.COMM_WORLD
 comm_world = MPI.MPI_COMM_WORLD
 comm_self = MPI.COMM_SELF

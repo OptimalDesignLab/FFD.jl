@@ -16,9 +16,6 @@ using MPI
 using FreeFormDeformation
 using FactCheck
 
-if !MPI.Initialized()
-  MPI.Init()
-end
 comm = MPI.COMM_WORLD
 comm_world = MPI.MPI_COMM_WORLD
 comm_self = MPI.COMM_SELF
@@ -110,4 +107,3 @@ facts("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
 
 end # End facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
 
-MPI.Finalize()

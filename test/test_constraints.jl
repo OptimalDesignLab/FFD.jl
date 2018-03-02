@@ -1,8 +1,5 @@
 # test constraints
 # MPI Declarations
-if !MPI.Initialized()
-  MPI.Init()
-end
 comm = MPI.COMM_WORLD
 comm_world = MPI.MPI_COMM_WORLD
 comm_self = MPI.COMM_SELF
@@ -64,10 +61,13 @@ sbp = getTriSBPOmega(degree=opts["order"], Tsbp=opts["Tsbp"])
 sbpface = TriFace{Tsbp}(opts["order"], sbp.cub, ref_verts.')
 topo = 0
 shape_type = 2
-mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
-                         sbp, opts, sbpface; dofpernode=dofpernode,
-                         coloring_distance=opts["coloring_distance"],
-                         shape_type=shape_type)
+mesh = PumiMeshDG2(Tmsh, sbp, opts, sbpface, dofpernode=dofpernode,
+                     shape_type=shape_type)
+
+#mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
+#                         sbp, opts, sbpface; dofpernode=dofpernode,
+#                         coloring_distance=opts["coloring_distance"],
+#                         shape_type=shape_type)
 
 geom_faces = opts["BC2"]
 

@@ -1,10 +1,6 @@
 # All 3D Pumi mesh tests go here
 
 # MPI Declarations
-if !MPI.Initialized()
-  MPI.Init()
-end
-
 opts = Dict{ASCIIString, Any}()
 opts["order"] = 1
 opts["dimensions"] = 3
@@ -36,10 +32,13 @@ ref_verts = sbp.vtx
 face_verts = SummationByParts.SymCubatures.getfacevertexindices(sbp.cub)
 topo = ElementTopology{3}(face_verts)
 sbpface = TetFace{Tsbp}(opts["order"], sbp.cub, ref_verts)
-mesh = PumiMeshDG3{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"], sbp,
-                         opts, sbpface, topo; dofpernode=1,
-                         coloring_distance=opts["coloring_distance"],
-                         shape_type=shape_type)
+mesh = PumiMeshDG3(Tmsh, sbp, opts, sbpface, topo, dofpernode=dofpernode,
+                     shape_type=shape_type)
+
+#mesh = PumiMeshDG3{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"], sbp,
+#                         opts, sbpface, topo; dofpernode=1,
+#                         coloring_distance=opts["coloring_distance"],
+#                         shape_type=shape_type)
 
 orig_vert_coords = deepcopy(mesh.vert_coords)
 

@@ -19,7 +19,6 @@ using MeshMovement
 using FreeFormDeformation
 
 # MPI Declarations
-MPI.Init()
 comm = MPI.COMM_WORLD
 comm_world = MPI.MPI_COMM_WORLD
 comm_self = MPI.COMM_SELF
@@ -246,4 +245,3 @@ for i = 1:mesh.numEl
 end
 commit_coords(mesh, sbp)
 writeVisFiles(mesh, "TestNewAPI")
-MPI.Finalize()

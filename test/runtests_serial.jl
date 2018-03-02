@@ -5,6 +5,7 @@ push!(LOAD_PATH, joinpath(Pkg.dir("SummationByParts"), "src"))
 push!(LOAD_PATH, joinpath(Pkg.dir("MeshMovement"), "src"))
 push!(LOAD_PATH, joinpath(Pkg.dir("PDESolver"), "src/Utils"))
 
+using FreeFormDeformation  # have FFD initialize MPI
 using PDESolver
 using PdePumiInterface
 using SummationByParts
@@ -13,7 +14,6 @@ using ArrayViews
 using Utils
 using MPI
 # using MeshMovement
-using FreeFormDeformation
 using FactCheck
 
 # Include the actual tests
@@ -25,4 +25,4 @@ include("./test_serial_FFD_3D_mesh.jl")
 
 # Debug
 
-MPI.Finalize()
+#MPI.Finalize()

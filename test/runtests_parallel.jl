@@ -19,4 +19,4 @@ include("./test_parallel_FFD_2D_mesh.jl")
 include("./test_parallel_FFD_3D_mesh.jl")
 
 
-MPI.Finalize()
+#MPI.Finalize()

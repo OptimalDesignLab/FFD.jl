@@ -101,7 +101,7 @@ function evalVolume{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
   return vertices
 end
 
-
+#=
 @doc """
 evalSurface
 
@@ -174,6 +174,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
 
   return nothing
 end
+=#
 
 function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
 
@@ -198,10 +199,13 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
     bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
     for i = 1:nfaces
+      println("face ", i)
       bndry_i = bndry_facenums[i]
       # get the local index of the vertices on the boundary face (local face number)
       vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
+      println("vtx_arr = ", vtx_arr)
       for j = 1:length(vtx_arr)
+        println("j = ", j)
         fill!(x, 0.0)
         evalVolumePoint(map, map.xi[itr][:,j,i], x)
         for k = 1:map.ndim

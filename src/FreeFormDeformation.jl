@@ -1,5 +1,22 @@
 module FreeFormDeformation
 
+using MPI
+# initialize MPI, and arrange for its finalization if so
+function finalizeMPI()
+#  println("running atexit hook for MPI")
+  if MPI.Initialized()
+#    println("finalizing MPI")
+    MPI.Finalize()
+  end
+end
+
+if !MPI.Initialized()
+  println("initialiing MPI")
+  MPI.Init()
+  atexit(finalizeMPI)
+end
+
+
 export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
 export calcParametricMappingNonlinear, evalVolume, evalSurface
@@ -14,7 +31,6 @@ export numLinearRootConstraints, countVarsLinearRootConstraints!, setLinearRootC
 push!(LOAD_PATH, joinpath(Pkg.dir("PumiInterface"), "src"))
 
 using ArrayViews
-using MPI
 using PdePumiInterface
 using ODLCommonTools
 using SummationByParts
@@ -24,6 +40,7 @@ using WriteVTK
 # Abstract Type definition
 abstract AbstractMappingType{Tffd} <: Any # Abstract Mapping type for creating a different Mapping type
 abstract AbstractBoundingBox{Tffd} <: Any
+
 
 @doc """
 ### Mapping
@@ -242,13 +259,13 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     order = Int[]
     cp_xyz = zeros(Tffd, 0, 0, 0, 0)
     edge_knot = Array(Vector{TFFD}, 0)
-    geom_faces Int[]
+    geom_faces = Int[]
     cp_idx = zeros(Tffd, 0, 0, 0, 0)
     aj = zeros(Tffd, 0, 0, 0)
     dl = zeros(Tffd, 0, 0)
     dr = zeros(Tffd, 0, 0)
     work = zeros(Tffd, 0, 0, 0, 0)
-    evalVolume () -> nothing
+    evalVolume = () -> nothing
     
 
     return new(ndim, full_geom, nctl, order, cp_xyz, edge_know, geom_faces,

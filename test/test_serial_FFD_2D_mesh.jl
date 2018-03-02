@@ -48,9 +48,6 @@ facts("--- Checking Generic Mapping object ---") do
 end  # End facts("--- Checking Mapping object ---")
 
 # MPI Declarations
-if !MPI.Initialized()
-  MPI.Init()
-end
 comm = MPI.COMM_WORLD
 comm_world = MPI.MPI_COMM_WORLD
 comm_self = MPI.COMM_SELF
@@ -423,12 +420,15 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 
   context("--- Checking Surface evaluation for 2D DG Mesh ---") do
 
+    vertices_orig = evalSurface(map, mesh)
+
     # Rigid body rotation
     theta = -0.5*pi/180  # Rotate wall coordinates by 10 degrees
     rotMat = [cos(theta) -sin(theta) 0
               sin(theta) cos(theta)  0
               0          0           1] # Rotation matrix
-    
+  
+    cp_orig = copy(map.cp_xyz)
     # Rotate the control points
     for k = 1:map.nctl[3]
       for j = 1:map.nctl[2]
@@ -439,12 +439,40 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     end
 
     # Rigid body translation
-    map.cp_xyz[1,:,:,:] += 0.00002
-    map.cp_xyz[2,:,:,:] += 0.00003
+    xfac = 0.2
+    yfac = 0.3
+    map.cp_xyz[1,:,:,:] += xfac
+    map.cp_xyz[2,:,:,:] += yfac
 
     vertices = evalSurface(map, mesh)
-    commitToPumi(map, mesh, sbp, vertices, opts)
-    writeVisFiles(mesh, "mesh_warped")
+
+    println("size(vertices) = ", size(vertices))
+    println("typeof(vertices) = ", typeof(vertices))
+    println("coord_order = ", mesh.coord_order)
+
+    rotMat2 = rotMat[1:2, 1:2]
+    for bc=1:length(vertices)
+      verts_bc = vertices[bc]
+      verts_orig_bc = vertices_orig[bc]
+
+      for i=1:size(verts_bc, 3)
+        println("i = ", i)
+        for j=1:size(verts_bc, 2)
+          println("\nj = ", j)
+          println("verts_orig = ", real(verts_orig_bc[:, j, i]))
+          verts_exact = rotMat2*verts_orig_bc[:, j, i] + [xfac; yfac]
+          println("verts_exact = ", real(verts_exact))
+          println("verts = ", real(verts_bc[:, j, i]))
+
+          @fact norm(verts_exact - verts_bc[:, j, i]) --> roughly(0.0, atol=1e-13)
+        end
+      end
+    end
+    copy!(map.cp_xyz, cp_orig)
+
+#=
+#    commitToPumi(map, mesh, sbp, vertices, opts)
+#    writeVisFiles(mesh, "mesh_warped")
 
     outname = string("./testvalues/modified_coordinates_2D_airfoil_face5.dat")
     test_surface_coords = readdlm(outname)
@@ -478,7 +506,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
     end  # End for itr = 1:length(map.geom_faces)
-
+=#
   end # End context("--- Checking Surface evaluation for 2D DG Mesh ---")
 
   context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
@@ -847,4 +875,3 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
 end # End facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---")
 =#
 
-# MPI.Finalize()

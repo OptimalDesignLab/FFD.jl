@@ -181,9 +181,6 @@ function calcEntireGeometryBounds{Tffd}(coords::AbstractArray{Tffd,3},
   geom_bounds[1,3] = zmin
   geom_bounds[2,3] = zmax
 
-  if !MPI.Initialized()
-    MPI.Init()
-  end
   recv_buffer = MPI.Allgather(geom_bounds, MPI.COMM_WORLD)
   for i = 1:6:length(recv_buffer)
     if recv_buffer[i] < geom_bounds[1,1]
@@ -212,10 +209,6 @@ end
 function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
                                      geom_bounds::AbstractArray{Tffd,2},
                                      geom_faces::AbstractArray{Int,1})
-
-  if !MPI.Initialized()
-   MPI.Init()
-  end
 
   fill!(geom_bounds, 0.0)
 
@@ -436,9 +429,6 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractDGMesh, sbp::AbstractSBP,
   geom_bounds[1,3] = zmin
   geom_bounds[2,3] = zmax
 
-  if !MPI.Initialized()
-    MPI.Init()
-  end
   recv_buffer = MPI.Allgather(geom_bounds, MPI.COMM_WORLD)
   for i = 1:6:length(recv_buffer)
     if recv_buffer[i] < geom_bounds[1,1]
