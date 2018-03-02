@@ -234,7 +234,32 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
 
     return map
   end
+
+  function PumiMapping()
+    ndim = 0
+    full_geom = false
+    nctl = Int[]
+    order = Int[]
+    cp_xyz = zeros(Tffd, 0, 0, 0, 0)
+    edge_knot = Array(Vector{TFFD}, 0)
+    geom_faces Int[]
+    cp_idx = zeros(Tffd, 0, 0, 0, 0)
+    aj = zeros(Tffd, 0, 0, 0)
+    dl = zeros(Tffd, 0, 0)
+    dr = zeros(Tffd, 0, 0)
+    work = zeros(Tffd, 0, 0, 0, 0)
+    evalVolume () -> nothing
+    
+
+    return new(ndim, full_geom, nctl, order, cp_xyz, edge_know, geom_faces,
+               cp_idx, aj, dl, dr, work, evalVolume)
+end
+
+
+
 end  # End type PumiMapping
+
+
 
 include("knot.jl")
 include("bounding_box.jl")

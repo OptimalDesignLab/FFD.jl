@@ -92,10 +92,12 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
   sbpface = TriFace{Tsbp}(opts["order"], sbp.cub, ref_verts.')
   topo = 0
   shape_type = 2
-  mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
-                           sbp, opts, sbpface; dofpernode=dofpernode,
-                           coloring_distance=opts["coloring_distance"],
-                           shape_type=shape_type)
+  mesh = PumiMeshDG2(Tmsh, sbp, opts, sbpface, dofpernode=dofpernode,
+                     shape_type=shape_type)
+#  mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
+#                           sbp, opts, sbpface; dofpernode=dofpernode,
+#                           coloring_distance=opts["coloring_distance"],
+#                           shape_type=shape_type)
 
   context("--- Checking Linear Mapping For DG Mesh ---") do
 
@@ -276,10 +278,13 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
   sbpface = TriFace{Tsbp}(opts["order"], sbp.cub, ref_verts.')
   topo = 0
   shape_type = 2
-  mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
-                           sbp, opts, sbpface; dofpernode=dofpernode,
-                           coloring_distance=opts["coloring_distance"],
-                           shape_type=shape_type)
+  mesh = PumiMeshDG2(Tmsh, sbp, opts, sbpface, dofpernode=dofpernode,
+                     shape_type=shape_type)
+
+#  mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
+#                           sbp, opts, sbpface; dofpernode=dofpernode,
+#                           coloring_distance=opts["coloring_distance"],
+#                           shape_type=shape_type)
 
   context("--- Checking Linear Mapping for 2D DG Mesh ---") do
 
@@ -419,10 +424,11 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
   context("--- Checking Surface evaluation for 2D DG Mesh ---") do
 
     # Rigid body rotation
-    theta = -20*pi/180  # Rotate wall coordinates by 10 degrees
+    theta = -0.5*pi/180  # Rotate wall coordinates by 10 degrees
     rotMat = [cos(theta) -sin(theta) 0
               sin(theta) cos(theta)  0
               0          0           1] # Rotation matrix
+    
     # Rotate the control points
     for k = 1:map.nctl[3]
       for j = 1:map.nctl[2]
@@ -433,11 +439,12 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     end
 
     # Rigid body translation
-    map.cp_xyz[1,:,:,:] += 0.2
-    map.cp_xyz[2,:,:,:] += 0.3
+    map.cp_xyz[1,:,:,:] += 0.00002
+    map.cp_xyz[2,:,:,:] += 0.00003
 
     vertices = evalSurface(map, mesh)
     commitToPumi(map, mesh, sbp, vertices, opts)
+    writeVisFiles(mesh, "mesh_warped")
 
     outname = string("./testvalues/modified_coordinates_2D_airfoil_face5.dat")
     test_surface_coords = readdlm(outname)
