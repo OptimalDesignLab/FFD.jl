@@ -326,6 +326,23 @@ function contractWithdGdB(map::AbstractMappingType, xi, dJdG)
   return nothing
 end  # End function contractWithdGdB(map, dJdGrid)
 
+"""
+### evaldXdControlPointProduct
+
+Higher level function that is used for computing the derivative
+
+  ∂J/∂B = (∂J/∂G)(∂G/∂B)
+
+for pumi meshes. Here J denotes the functional, G denotes the grid, and B denotes
+the control point.
+
+**Arguments**
+
+* `map` : Object of PumiMapping type
+* `mesh` : Object of AbstractDGMesh type
+* `dJdVert` : derivative of the a functional w.r.t. the pumi mesh vertices.
+
+"""
 function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
                                     dJdVert::AbstractArray{Float64,1})
 
@@ -388,7 +405,6 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
             if intersect_arr == []
               contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
               ctr += 1
-              # println("my_rank = $my_rank, rank_arr = $rank_arr, ranks_for_bndry_faces = $(ranks_for_bndry_faces)")
             elseif my_rank < minimum(intersect_arr)
               contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
               ctr += 1
