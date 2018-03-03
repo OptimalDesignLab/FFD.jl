@@ -199,6 +199,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map = new()
     # Check if the input arguments are valid
     @assert ndim >= 2 "Only 2D and 3D valid"
+    @assert mesh.coord_order == 1
     for i = 1:3
       @assert order[i] > 0 "Order cannot be 0 in the $i direction"
       @assert nctl[i] > 0 "number of control points cannot be 0 in $i direction"
@@ -359,7 +360,7 @@ function defineMapXi(mesh::AbstractMesh, geom_faces::AbstractArray{Int,1},
     idx_range = start_index:(end_index-1)
     bndry_facenums = view(mesh.bndryfaces, idx_range)
     nfaces = length(bndry_facenums)
-    xi[itr] = zeros(3,mesh.dim,nfaces)
+    xi[itr] = zeros(3,mesh.coord_numNodesPerFace,nfaces)
   end
 
   return nothing
@@ -377,7 +378,7 @@ the Pumi mesh after FFD when a geometric face is paramtereized.
 * `geom_faces` : Array of geometric faces (edges in 2D) over which the number
                  of element faces needs to be computed
 * `vertices` : Array of arrays holding the coodinates of the updated vertices
-               shape = vertices[n_geom_faces][mesh.dim, size(mesh.vert_coords,2), n_elem_faces]
+               shape = vertices[n_geom_faces][mesh.dim, mesh.coord_numNodesPerFace, n_elem_faces]
 
 """->
 
@@ -398,10 +399,13 @@ function defineVertices{Tmsh}(mesh::AbstractDGMesh{Tmsh}, geom_faces::AbstractAr
     idx_range = start_index:(end_index-1)
     bndry_facenums = view(mesh.bndryfaces, idx_range)
     nfaces = length(bndry_facenums)
-    vertices[itr] = zeros(Tmsh, size(mesh.vert_coords,1), size(mesh.vert_coords,2), nfaces)
+    vertices[itr] = zeros(Tmsh, size(mesh.vert_coords,1), mesh.coord_numNodesPerFace, nfaces)
     for i = 1:nfaces
       bndry_i = bndry_facenums[i]
-      vertices[itr][:,:,i] = mesh.vert_coords[:,:,bndry_i.element]
+      for j=1:mesh.coord_numNodesPerFace
+        v_j = mesh.topo.face_verts[j, bndry_i.face]
+        vertices[itr][:,j,i] = mesh.vert_coords[:,v_j,bndry_i.element]
+      end
     end # End for i = 1:nfaces
   end
 

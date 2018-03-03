@@ -516,7 +516,8 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 
     # Create seed vector
     # - Get original wall coordinates
-    orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
+    orig_wallCoords = evalSurface(map, mesh)[1]  # only do the first geometric entity
+#    orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
     nwall_faces = FreeFormDeformation.getnWallFaces(mesh, geom_faces)
     Xs_bar = randn(3, size(orig_wallCoords,2))
     Xs_bar[3,:] = 0.0 # To accurately simulate a 2D mesh

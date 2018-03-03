@@ -26,3 +26,5 @@ include("./test_serial_FFD_3D_mesh.jl")
 # Debug
 
 #MPI.Finalize()
+
+FactCheck.exitstatus()
