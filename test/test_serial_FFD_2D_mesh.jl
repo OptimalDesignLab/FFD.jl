@@ -508,7 +508,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     end  # End for itr = 1:length(map.geom_faces)
 =#
   end # End context("--- Checking Surface evaluation for 2D DG Mesh ---")
-
+#=
   context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
 
     fill!(map.work, 0.0)
@@ -549,8 +549,106 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     end
 
   end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
+=#
+  context("---- Checking Transposed Jacobian-vector Product -----") do
+#=
+    delta_B = zeros(eltype(map.work), 3, map.nctl[1], map.nctl[2], map.nctl[3])
+    Xs_orig = evalSurface(map, mesh)
+    println("typeof(Xs_orig) = ", typeof(Xs_orig))
+    println("size(Xs_orig) = ", size(Xs_orig))
+    println("size(Xs_orig[1]) = ", size(Xs_orig[1]))
+      
+    delta_S = Array(Array{Complex128, 3}, length(map.geom_faces))
+
+    h = 1e-6
+    
+    for itr=1:length(map.geom_faces)
+      println("itr = ", itr)
+      delta_S[itr] = zeros(Complex128, size(Xs_orig[itr]))
+
+      # compute finite differences delta_s^T jac * delta_ba
+      # and compare against the AD version
+      # here we take all combinations of delta_S and delta_x = 1 at a single
+      # entry
+      for i=4:length(map.cp_xyz)
+        # in 2D, skip z components
+        if (i % 3) == 0
+          continue
+        end
+        println("i = ", i)
+        map.cp_xyz[i] += h
+        verts_new = evalSurface(map, mesh)
+        map.cp_xyz[i] -= h
+
+        for j=1:length(verts_new[itr])
+#          if (j % 3) == 0
+#            continue
+#          end
+          println("j = ", j)
+          fill!(delta_B, 0.0)
+          delta_S[itr][j] = 1
+          FreeFormDeformation.evaldXdControlPointTransposeProduct(map, mesh, delta_S, delta_B)
+
+          delta_xj = (verts_new[itr][j] - Xs_orig[itr][j])/h
+          println("delta_xj = ", delta_xj)
+          println("delta_B = ", delta_B[i])
+
+          @fact delta_B[i] --> roughly(delta_xj, atol=1e-6)
+          delta_S[itr][j] = 0
+        end
+      end
+    end
+=#
+
+    # compute entire jacbian
+    Xs_orig = evalSurface(map, mesh)
+    nXs = length(Xs_orig[1])
+    nCP = length(map.cp_xyz)
+    jac = zeros(nXs, nCP)
+    jac2 = zeros(jac)
+
+    # compute complex step jacobian
+    h = 1e-20
+    pert = Complex128(0, h)
+    for i=1:nCP
+      map.cp_xyz[i] += pert
+      Xs = evalSurface(map, mesh)
+
+      for j=1:nXs
+        jac[j, i] = imag(Xs[1][j])/h
+      end
+
+      map.cp_xyz[i] -= pert
+    end
+
+    # compute reverse mode jacobian
+    Xs_dot = Array(Array{Complex128, 3}, 1)
+    Xs_dot[1] = zeros(size(Xs_orig[1]))
+    B_dot = zeros(map.cp_xyz)
+    for i=1:nXs
+      Xs_dot[1][i] = 1
+      FreeFormDeformation.evaldXdControlPointTransposeProduct(map, mesh, Xs_dot, B_dot)
+
+      for j=1:nCP
+        jac2[i, j] = real(B_dot[j])
+      end
+    end
+
+    println("jac = \n", jac)
+    println("jac2 = \n", jac2)
+    println("diff = \n", jac - jac2)
+    println("diffnorm = \n", norm(jac - jac2))
+
+
+
+
+
+
+      end  # end context
 
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
+
+  error("stop here")
 #=
 facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
 

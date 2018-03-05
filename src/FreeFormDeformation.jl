@@ -399,12 +399,13 @@ function defineVertices{Tmsh}(mesh::AbstractDGMesh{Tmsh}, geom_faces::AbstractAr
     idx_range = start_index:(end_index-1)
     bndry_facenums = view(mesh.bndryfaces, idx_range)
     nfaces = length(bndry_facenums)
-    vertices[itr] = zeros(Tmsh, size(mesh.vert_coords,1), mesh.coord_numNodesPerFace, nfaces)
+    arr_dim = 3
+    vertices[itr] = zeros(Tmsh, arr_dim, mesh.coord_numNodesPerFace, nfaces)
     for i = 1:nfaces
       bndry_i = bndry_facenums[i]
       for j=1:mesh.coord_numNodesPerFace
         v_j = mesh.topo.face_verts[j, bndry_i.face]
-        vertices[itr][:,j,i] = mesh.vert_coords[:,v_j,bndry_i.element]
+        vertices[itr][1:mesh.dim,j,i] = mesh.vert_coords[1:mesh.dim,v_j,bndry_i.element]
       end
     end # End for i = 1:nfaces
   end
@@ -455,5 +456,14 @@ function commitToPumi{Tffd, Tmsh}(map::PumiMapping{Tffd},
 
   return nothing
 end
+
+# complexify
+import Base.isless
+
+function isless(x::Number, y::Number)
+
+  return isless(real(x), real(y))
+end
+
 
 end # End module FreeFormDeformation

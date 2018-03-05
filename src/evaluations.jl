@@ -199,15 +199,13 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
     bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
     for i = 1:nfaces
-      println("face ", i)
       bndry_i = bndry_facenums[i]
       # get the local index of the vertices on the boundary face (local face number)
       # map.xi has the xi coordinates of the face nodes only
       for j = 1:mesh.coord_numNodesPerFace
-        println("j = ", j)
         fill!(x, 0.0)
         evalVolumePoint(map, map.xi[itr][:,j,i], x)
-        for k = 1:map.ndim
+        for k = 1:3 #map.ndim
           vertices[itr][k, j, i] = x[k]
         end
       end  # End for j = 1:length(vtx_arr)
@@ -325,6 +323,86 @@ function contractWithdGdB(map::AbstractMappingType, xi, dJdG)
 
   return nothing
 end  # End function contractWithdGdB(map, dJdGrid)
+
+
+"""
+  evaluates (dG/dB)^T v, where v is a user-supplied vector, G are the
+  surface grid points and B are the control points.
+
+  Specifically, G is the non-unqiue representation of the surface vertices
+  (it is per-geometric entity)
+
+  Note: Xs_bar allows duplicate entries, but only one entry can be non-zero
+        in order to get the correct result
+"""
+function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::AbstractDGMesh{Tmsh}, Xs_bar::Array{Array{Complex128, 3}, 1}, Xcp_bar::AbstractArray{Complex128, 4})
+
+  @assert size(Xcp_bar, 1) == 3  # all meshes are 3 dimensional to FFD
+  @assert size(Xcp_bar, 2) == map.nctl[1]
+  @assert size(Xcp_bar, 3) == map.nctl[2]
+  @assert size(Xcp_bar, 4) == map.nctl[3]
+
+  @assert length(Xs_bar) == length(map.geom_faces)
+  for i=1:length(Xs_bar)
+    @assert size(Xs_bar[i], 1) == 3 #mesh.dim
+    @assert size(Xs_bar[i], 2) == mesh.coord_numNodesPerFace
+    @assert size(Xs_bar[i], 3) == size(map.xi[i], 3)
+  end
+#=
+  if mesh.dim == 2 # do not allow differentiating wrt z
+    for i=3:3:length(Xcp_bar)
+      Xcp_bar[i] = 0
+    end
+  end
+=#
+  fill!(map.work, 0.0)  # prepare for accumulation
+  for itr = 1:length(map.geom_faces)
+    geom_face_number = map.geom_faces[itr]
+    # get the boundary array associated with the geometric edge
+    itr2 = 0
+    for itr2 = 1:mesh.numBC
+      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
+        break
+      end
+    end
+    start_index = mesh.bndry_offsets[itr2]
+    end_index = mesh.bndry_offsets[itr2+1]
+    idx_range = start_index:(end_index-1)
+    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    nfaces = length(bndry_facenums)
+    Xs_bar_itr = Xs_bar[itr]
+    Xs_bar_j = zeros(Tmsh, 3)  # vector of length 3 gives compatability between
+                               # 2D and 3D
+
+    for i=1:nfaces
+      for j=1:mesh.coord_numNodesPerFace
+        # copy value into Xs_bar_j
+        for k=1:3  #mesh.dim
+          Xs_bar_j[k] = Xs_bar_itr[k, j, i]
+        end
+        contractWithdGdB(map, map.xi[itr][:, j, i], Xs_bar_j)
+
+        # contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
+      end  # end loop j
+    end  # end loop i
+  end  # end loop itr
+
+  # copy result into user-provided array
+  # was 1:mesh.dim
+  work_slice = sview(map.work, 1:3, :, :, :)
+  copy!(Xcp_bar, work_slice)
+
+  return nothing
+end
+
+
+
+
+
+
+
+
+
 
 """
 ### evaldXdControlPointProduct
