@@ -471,8 +471,8 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     # Create seed vector
     # - Get original wall coordinates
     orig_wallCoords = evalSurface(map, mesh)[1]  # only do the first geometric entity
-#    orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
-    nwall_faces = FreeFormDeformation.getnWallFaces(mesh, geom_faces)
+#    orig_wallCoords = FFD.getUniqueWallCoordsArray(mesh, geom_faces)
+    nwall_faces = FFD.getnWallFaces(mesh, geom_faces)
     Xs_bar = randn(3, size(orig_wallCoords,2))
     Xs_bar[3,:] = 0.0 # To accurately simulate a 2D mesh
     cp_xyz_bar = zeros(map.cp_xyz)
@@ -491,7 +491,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       map.cp_xyz[i] += pert
       vertices = evalSurface(map, mesh)
       commitToPumi(map, mesh, sbp, vertices, opts)
-      new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
+      new_wallCoords = FFD.getUniqueWallCoordsArray(mesh, geom_faces)
       cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
       map.cp_xyz[i] -= pert
     end # End for i = 1:length(map.cp_xyz)
@@ -541,7 +541,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
           println("j = ", j)
           fill!(delta_B, 0.0)
           delta_S[itr][j] = 1
-          FreeFormDeformation.evaldXdControlPointTransposeProduct(map, mesh, delta_S, delta_B)
+          FFD.evaldXdControlPointTransposeProduct(map, mesh, delta_S, delta_B)
 
           delta_xj = (verts_new[itr][j] - Xs_orig[itr][j])/h
           println("delta_xj = ", delta_xj)

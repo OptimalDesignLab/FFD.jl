@@ -1,4 +1,4 @@
-module FreeFormDeformation
+module FFD
 
 using MPI
 # initialize MPI, and arrange for its finalization if so

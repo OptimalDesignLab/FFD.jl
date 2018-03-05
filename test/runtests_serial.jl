@@ -1,11 +1,10 @@
 # runtest.jl
-push!(LOAD_PATH, "../src/")
 push!(LOAD_PATH, joinpath(Pkg.dir("PumiInterface"), "src"))
 push!(LOAD_PATH, joinpath(Pkg.dir("SummationByParts"), "src"))
 push!(LOAD_PATH, joinpath(Pkg.dir("MeshMovement"), "src"))
 push!(LOAD_PATH, joinpath(Pkg.dir("PDESolver"), "src/Utils"))
 
-using FreeFormDeformation  # have FFD initialize MPI
+using FFD  # have FFD initialize MPI
 #using PDESolver
 using PdePumiInterface
 using SummationByParts

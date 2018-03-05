@@ -48,7 +48,7 @@ orig_vert_coords = deepcopy(mesh.vert_coords)
 facts("--- Check if Unique wall coordinates are being computed correctly across all ranks ---") do
 
   geom_faces = opts["BC2"]
-  wallCoords = FreeFormDeformation.getGlobalUniqueWallCorrdsArray(mesh, geom_faces)
+  wallCoords = FFD.getGlobalUniqueWallCorrdsArray(mesh, geom_faces)
   if my_rank == 0
     @fact wallCoords --> roughly([0.0 0.0 0.0 0.0 0.0 0.0
                                   0.0 0.5 0.0 0.5 1.0 1.0
@@ -193,7 +193,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
 
     # Create seed vector
     # - Get original wall coordinates
-    orig_wallCoords = FreeFormDeformation.getGlobalUniqueWallCorrdsArray(mesh, geom_faces)
+    orig_wallCoords = FFD.getGlobalUniqueWallCorrdsArray(mesh, geom_faces)
     Xs_bar = ones(3, size(orig_wallCoords,2))
     evaldXdControlPointProduct(map, mesh, vec(Xs_bar))
 

@@ -11,7 +11,7 @@ using ArrayViews
 using Utils
 using MPI
 # using MeshMovement
-using FreeFormDeformation
+using FFD
 using FactCheck
 
 # Include functions that will be used for performing tests

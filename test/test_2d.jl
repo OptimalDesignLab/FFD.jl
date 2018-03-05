@@ -2,7 +2,7 @@
 
 push!(LOAD_PATH, "../src/")
 
-using FreeFormDeformation
+using FFD
 using PumiInterface
 using PdePumiInterface
 using SummationByParts
@@ -134,7 +134,7 @@ function test_jac(map, mesh)
   facts("----- Testing Transposed Jacobian-vector product -----") do
 
     Xs_dot = Array(Array{Complex128, 3}, length(map.bc_nums))
-    nfaces = FreeFormDeformation.getnWallFaces(mesh, map.bc_nums)
+    nfaces = FFD.getnWallFaces(mesh, map.bc_nums)
     for bc=1:length(map.bc_nums)
       Xs_dot[bc] = zeros(mesh.dim, mesh.coord_numNodesPerFace, nfaces[bc])
     end
@@ -167,7 +167,7 @@ function test_jac(map, mesh)
       for i=1:nXs
         Xs_dot[bc][i] = 1
         fill!(B_dot, 0.0)
-        FreeFormDeformation.evaldXdControlPointTransposeProduct(map, mesh, Xs_dot, B_dot)
+        FFD.evaldXdControlPointTransposeProduct(map, mesh, Xs_dot, B_dot)
 
         for j=1:nCP
           jac2[i, j] = real(B_dot[j])

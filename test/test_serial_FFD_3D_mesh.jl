@@ -176,8 +176,8 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
 
     # Create seed vector
     # - Get original wall coordinates
-    orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, bc_nums)
-    nwall_faces = FreeFormDeformation.getnWallFaces(mesh, bc_nums)
+    orig_wallCoords = FFD.getUniqueWallCoordsArray(mesh, bc_nums)
+    nwall_faces = FFD.getnWallFaces(mesh, bc_nums)
     # Xs_bar = randn(3, size(orig_wallCoords,2))
     Xs_bar = ones(3, size(orig_wallCoords,2))
     cp_xyz_bar = zeros(map.cp_xyz)
@@ -203,7 +203,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
       map.cp_xyz[i] += pert
       vertices = evalSurface(map, mesh)
       commitToPumi(map, mesh, sbp, vertices, opts)
-      new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, bc_nums)
+      new_wallCoords = FFD.getUniqueWallCoordsArray(mesh, bc_nums)
       cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
       map.cp_xyz[i] -= pert
     end # End for i = 1:length(map.cp_xyz)

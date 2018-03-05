@@ -13,7 +13,7 @@ using ArrayViews
 using Utils
 using MPI
 # using MeshMovement
-using FreeFormDeformation
+using FFD
 using FactCheck
 
 comm = MPI.COMM_WORLD
@@ -67,12 +67,12 @@ facts("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
   MPI.Barrier(comm)
   fill!(map.work, 0.0)
 
-  # FreeFormDeformation.bndryMPIRanks(mesh, geom_faces)
+  # FFD.bndryMPIRanks(mesh, geom_faces)
 
 
   # Create seed vector
   # - Get original wall coordinates
-  orig_wallCoords = FreeFormDeformation.getGlobalUniqueWallCorrdsArray(mesh, geom_faces)
+  orig_wallCoords = FFD.getGlobalUniqueWallCorrdsArray(mesh, geom_faces)
   for i = 1:comm_size
     if my_rank == i-1
       println("on rank $my_rank, orig_wallCoords = \n$(orig_wallCoords)")

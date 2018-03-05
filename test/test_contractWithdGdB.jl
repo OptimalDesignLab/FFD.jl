@@ -49,7 +49,7 @@ fill!(map.work, 0.0)
 
 # Create seed vector
 # - Get original wall coordinates
-orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces, false)
+orig_wallCoords = FFD.getUniqueWallCoordsArray(mesh, geom_faces, false)
 Xs_bar = ones(3, size(orig_wallCoords,2))
 Xs_bar[3,:] = 0.0 # To accurately simulate a 2D mesh
 cp_xyz_bar = zeros(map.cp_xyz)
@@ -165,7 +165,7 @@ facts("---Checking contractWithdGdB ---") do
   dJdG = rand(Float64, 3)
   dJdG[3] = 0.0
 
-  FreeFormDeformation.contractWithdGdB(map, xi, dJdG)
+  FFD.contractWithdGdB(map, xi, dJdG)
   cp_xyz_bar = zeros(map.cp_xyz) # Extract the values out of map.work
   for i = 1:size(map.work,4)
     for j = 1:size(map.work,3)
@@ -177,7 +177,7 @@ facts("---Checking contractWithdGdB ---") do
 
   # Check against finite difference
   # - Get original wall coordinates
-  orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
+  orig_wallCoords = FFD.getUniqueWallCoordsArray(mesh, geom_faces)
   multiplying_vec = zeros(length(orig_wallCoords))
   multiplying_vec[4:5] = dJdG[1:2]
   cp_jacobian = zeros(length(orig_wallCoords), length(map.cp_xyz))
@@ -185,7 +185,7 @@ facts("---Checking contractWithdGdB ---") do
     map.cp_xyz[i] += pert
     vertices = evalSurface(map, mesh)
     commitToPumi(map, mesh, sbp, vertices, opts)
-    new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
+    new_wallCoords = FFD.getUniqueWallCoordsArray(mesh, geom_faces)
     cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
     map.cp_xyz[i] -= pert
   end # End for i = 1:length(map.cp_xyz)
