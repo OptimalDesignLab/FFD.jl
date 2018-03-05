@@ -22,6 +22,7 @@ include("./test_serial_FFD_2D_mesh.jl")
 include("./test_contractWithdGdB.jl")
 include("./test_constraints.jl")
 include("./test_serial_FFD_3D_mesh.jl")
+include("test_2d.jl")
 
 # Debug
 

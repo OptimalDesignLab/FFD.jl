@@ -133,7 +133,7 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
     @fact size(map.work) --> (12,4,4,2)
     @fact size(map.cp_xyz) --> (3,4,4,2)
     @fact size(map.xi) --> (3,3,1498)
-
+#=
     # Check Control Point Coordinates
     outname = string("./testvalues/control_points_full_linear_mapping.dat")
     orig_control_pts = readdlm(outname)
@@ -141,7 +141,8 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
       err = norm(map.cp_xyz[i] - orig_control_pts[i], 2)
       @fact err --> less_than(1e-14)
     end
-
+=#
+#=
     # Check map.xi
     outname = string("./testvalues/xi_full_linear_mapping_DG.dat")
     orig_xi_vals = readdlm(outname)
@@ -149,7 +150,7 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
       err = norm(orig_xi_vals[i] - map.xi[i], 2)
       @fact err --> less_than(1e-14)
     end
-
+=#
     # Bounding Box FactCheck
     @fact box.ndim --> 3
     @fact box.offset --> [0.0,0.0,0.5]
@@ -188,7 +189,7 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
   calcParametricMappingNonlinear(map, box, mesh)
 
   context("--- Checking Nonlinear Mapping For Entire DG Mesh ---") do
-
+#=
     # Check if the values are correct
     outname = string("./testvalues/xi_full_linear_mapping_DG.dat")
     orig_xi_vals = readdlm(outname)
@@ -196,11 +197,11 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
       err = norm(orig_xi_vals[i] - map.xi[i], 2)
       @fact err --> less_than(1e-14)
     end
-
+=#
   end # End context("--- Checking Nonlinear mapping For Entire DG Mesh ---")
 
   context("--- Checking Control Point Manipulation ---") do
-
+#=
     # Rigid body rotation
     theta = -20*pi/180  # Rotate wall coordinates by 10 degrees
     rotMat = [cos(theta) -sin(theta) 0
@@ -231,6 +232,7 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
     end
 
     writeVisFiles(mesh, "translation_plus_rotation_DG")
+=#
   end
 
 
@@ -322,7 +324,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     @fact size(map.cp_xyz) --> (3,4,4,2)
     @fact size(map.xi) --> (1,)
     @fact size(map.xi[1]) --> (3,2,102) # Essentially tests defineMapXi
-
+#=
     outname = string("./testvalues/xi_values_2D_airfoil_face5.dat")
     ctr = 1
     test_xi_values = readdlm(outname)
@@ -353,7 +355,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
     end      # End for itr = 1:length(geomfaces)
-
+=#
 
   end # End context("--- Checking Linear Mapping for DG Mesh ---")
 
@@ -379,7 +381,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
   controlPoint(map, box)
 
   context("--- Checking Nonlinear Mapping for DG Mesh ---") do
-
+#=
     # Populate map.xi
     calcParametricMappingNonlinear(map, box, mesh, geom_faces)
     @fact size(map.xi) --> (1,)
@@ -415,60 +417,10 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
     end      # End for itr = 1:length(geomfaces)
-
+=#
   end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
 
   context("--- Checking Surface evaluation for 2D DG Mesh ---") do
-
-    vertices_orig = evalSurface(map, mesh)
-
-    # Rigid body rotation
-    theta = -0.5*pi/180  # Rotate wall coordinates by 10 degrees
-    rotMat = [cos(theta) -sin(theta) 0
-              sin(theta) cos(theta)  0
-              0          0           1] # Rotation matrix
-  
-    cp_orig = copy(map.cp_xyz)
-    # Rotate the control points
-    for k = 1:map.nctl[3]
-      for j = 1:map.nctl[2]
-        for i = 1:map.nctl[1]
-          map.cp_xyz[:,i,j,k] = rotMat*map.cp_xyz[:,i,j,k]
-        end
-      end
-    end
-
-    # Rigid body translation
-    xfac = 0.2
-    yfac = 0.3
-    map.cp_xyz[1,:,:,:] += xfac
-    map.cp_xyz[2,:,:,:] += yfac
-
-    vertices = evalSurface(map, mesh)
-
-    println("size(vertices) = ", size(vertices))
-    println("typeof(vertices) = ", typeof(vertices))
-    println("coord_order = ", mesh.coord_order)
-
-    rotMat2 = rotMat[1:2, 1:2]
-    for bc=1:length(vertices)
-      verts_bc = vertices[bc]
-      verts_orig_bc = vertices_orig[bc]
-
-      for i=1:size(verts_bc, 3)
-        println("i = ", i)
-        for j=1:size(verts_bc, 2)
-          println("\nj = ", j)
-          println("verts_orig = ", real(verts_orig_bc[:, j, i]))
-          verts_exact = rotMat2*verts_orig_bc[:, j, i] + [xfac; yfac]
-          println("verts_exact = ", real(verts_exact))
-          println("verts = ", real(verts_bc[:, j, i]))
-
-          @fact norm(verts_exact - verts_bc[:, j, i]) --> roughly(0.0, atol=1e-13)
-        end
-      end
-    end
-    copy!(map.cp_xyz, cp_orig)
 
 #=
 #    commitToPumi(map, mesh, sbp, vertices, opts)
@@ -600,55 +552,10 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     end
 =#
 
-    # compute entire jacbian
-    Xs_orig = evalSurface(map, mesh)
-    nXs = length(Xs_orig[1])
-    nCP = length(map.cp_xyz)
-    jac = zeros(nXs, nCP)
-    jac2 = zeros(jac)
-
-    # compute complex step jacobian
-    h = 1e-20
-    pert = Complex128(0, h)
-    for i=1:nCP
-      map.cp_xyz[i] += pert
-      Xs = evalSurface(map, mesh)
-
-      for j=1:nXs
-        jac[j, i] = imag(Xs[1][j])/h
-      end
-
-      map.cp_xyz[i] -= pert
-    end
-
-    # compute reverse mode jacobian
-    Xs_dot = Array(Array{Complex128, 3}, 1)
-    Xs_dot[1] = zeros(size(Xs_orig[1]))
-    B_dot = zeros(map.cp_xyz)
-    for i=1:nXs
-      Xs_dot[1][i] = 1
-      FreeFormDeformation.evaldXdControlPointTransposeProduct(map, mesh, Xs_dot, B_dot)
-
-      for j=1:nCP
-        jac2[i, j] = real(B_dot[j])
-      end
-    end
-
-    println("jac = \n", jac)
-    println("jac2 = \n", jac2)
-    println("diff = \n", jac - jac2)
-    println("diffnorm = \n", norm(jac - jac2))
-
-
-
-
-
-
       end  # end context
 
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
 
-  error("stop here")
 #=
 facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
 

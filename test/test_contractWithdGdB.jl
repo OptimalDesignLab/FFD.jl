@@ -65,7 +65,7 @@ close(f)
 =#
 
 facts("---Checking contractWithdGdB ---") do
-
+#=
   # opts = PdePumiInterface.get_defaults()
   # # 2D mesh
   # opts["order"] = 1
@@ -197,5 +197,5 @@ facts("---Checking contractWithdGdB ---") do
   for i = 1:length(error)
     @fact error[i] --> roughly(0.0, atol=1e-10)
   end
-
+=#
 end # End facts("---Checking contractWithdGdB ---")

@@ -413,6 +413,7 @@ function defineVertices{Tmsh}(mesh::AbstractDGMesh{Tmsh}, geom_faces::AbstractAr
   return nothing
 end
 
+#=
 @doc """
 ###FreeFormDeformation.commitToPumi
 
@@ -456,6 +457,7 @@ function commitToPumi{Tffd, Tmsh}(map::PumiMapping{Tffd},
 
   return nothing
 end
+=#
 
 # complexify
 import Base.isless
