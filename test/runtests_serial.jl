@@ -6,12 +6,12 @@ push!(LOAD_PATH, joinpath(Pkg.dir("MeshMovement"), "src"))
 push!(LOAD_PATH, joinpath(Pkg.dir("PDESolver"), "src/Utils"))
 
 using FreeFormDeformation  # have FFD initialize MPI
-using PDESolver
+#using PDESolver
 using PdePumiInterface
 using SummationByParts
 using ODLCommonTools
 using ArrayViews
-using Utils
+#using Utils
 using MPI
 # using MeshMovement
 using FactCheck
