@@ -134,23 +134,6 @@ end
 function test_jac(map, mesh)
 
   facts("----- Testing Transposed Jacobian-vector product -----") do
-    #=
-    mesh, sbp, opts = getTestMesh(2, Complex128)
-
-
-    # Free Form deformation parameters
-    ndim = 2
-    order = [2,2,2]  # Order of B-splines in the 3 directions
-    nControlPts = [2,2,2]
-    offset = [0.25, 0.25, 0.25]
-    full_geom = false
-    geom_faces = opts["BC1"]
-    @assert length(geom_faces) == 1
-
-    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
-                             geom_faces)
-
-    =#
     # compute entire jacbian
     Xs_orig = evalSurface(map, mesh)
     nXs = length(Xs_orig[1])
@@ -204,18 +187,18 @@ function runtests()
   nControlPts = [6,6,6]
   offset = [0.25, 0.25, 0.25]
   full_geom = false
-  geom_faces = opts["BC1"]
-  @assert length(geom_faces) == 1
+  bc_nums = [1] # = opts["BC1"]
+#  @assert length(geom_faces) == 1
 
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
-                           geom_faces)
+                           bc_nums)
 
   test_surface(map, mesh)
 
   # make new objects in case test_surface modified the old ones
   mesh, sbp, opts = getTestMesh(2, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
-                           geom_faces)
+                           bc_nums)
 
   test_jac(map, mesh)
 
@@ -230,17 +213,18 @@ function runtests()
   nControlPts = [6,6,6]
   offset = [0.25, 0.25, 0.25]
   full_geom = false
-  geom_faces = opts["BC1"]
-  @assert length(geom_faces) == 1
+  bc_nums = [1] # opts["BC1"]
+#  @assert length(geom_faces) == 1
 
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
-                           geom_faces)
+                           bc_nums)
 
   test_surface(map, mesh)
 
   mesh, sbp, opts = getTestMesh(3, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
-                           geom_faces)
+                           bc_nums)
+                           
   test_jac(map, mesh)
 
 

@@ -58,7 +58,7 @@ in sequence
 **Method 2 constructor**
   function PumiMapping(ndim::Int, order::AbstractArray{Int,1},
                        nctl::AbstractArray{Int,1}, mesh_info::AbstractArray{Int,1};
-                       full_geom=true, geom_faces=[0])
+                       full_geom=true, bc_nums=[0])
 
 *  `ndim` : Number of dimensions
 *  `order`: Aray of B-spline order in the 3 dimenstions
@@ -74,7 +74,8 @@ in sequence
 ```
 *  `full_geom` : Bool. `true` for embedding the entire geometry. `false` if you
                  want to embedded only certain faces of a geometry
-*  `geom_faces` : Array of geometric face numbers being embedded in the FFD box
+*  `bc_nums` : Array of boundary condition numbers that identify the surface 
+               being embedded in the FFD box
 
 **Members**
 
@@ -166,6 +167,7 @@ type Mapping <: AbstractMappingType
 
 end  # End Mapping
 
+#TODO: get rid of abstract types
 @doc """
 ### PumiMapping
 
@@ -181,7 +183,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
   xi::AbstractArray       # Paramaetric coordinates of input geometry
   cp_xyz::AbstractArray{Tffd, 4} # Cartesian coordinates of control points
   edge_knot::AbstractArray{Vector{Tffd}, 1}  # edge knot vectors
-  geom_faces::AbstractArray{Int,1}
+  bc_nums::AbstractArray{Int,1}
   cp_idx::AbstractArray{Int,4}  # index assigned to each CP coordinate
 
   # Working arrays
@@ -194,7 +196,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
 
   function PumiMapping(ndim::Int, order::AbstractArray{Int,1},
                        nctl::AbstractArray{Int,1}, mesh::AbstractMesh;
-                       full_geom=true, geom_faces::AbstractArray{Int,1}=[0])
+                       full_geom=true, bc_nums::AbstractArray{Int,1}=[0])
 
     map = new()
     # Check if the input arguments are valid
@@ -222,9 +224,9 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     if full_geom == true
       map.xi = zeros(Tffd, 3, mesh.dim+1, mesh.numEl) # Only valid for simplex elements
     else
-      map.geom_faces = geom_faces
-      map.xi = Array(Array{Tffd,3}, length(geom_faces))
-      defineMapXi(mesh, geom_faces, map.xi)
+      map.bc_nums = bc_nums
+      map.xi = Array(Array{Tffd,3}, length(bc_nums))
+      defineMapXi(mesh, bc_nums, map.xi)
     end
 
     # Allocate and initialize mapping arrays
@@ -260,7 +262,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     order = Int[]
     cp_xyz = zeros(Tffd, 0, 0, 0, 0)
     edge_knot = Array(Vector{TFFD}, 0)
-    geom_faces = Int[]
+    bc_nums = Int[]
     cp_idx = zeros(Tffd, 0, 0, 0, 0)
     aj = zeros(Tffd, 0, 0, 0)
     dl = zeros(Tffd, 0, 0)
@@ -269,7 +271,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     evalVolume = () -> nothing
     
 
-    return new(ndim, full_geom, nctl, order, cp_xyz, edge_know, geom_faces,
+    return new(ndim, full_geom, nctl, order, cp_xyz, edge_know, bc_nums,
                cp_idx, aj, dl, dr, work, evalVolume)
 end
 
@@ -303,7 +305,7 @@ Routine to be called externally for initializing FreeFormDeformation
              physical directions (x, y, z)
 * `full_geom` : Whether the full geometry or a portion of geometry is being
                 embedded. (True or false)
-* `geom_faces`: (Optional Argument) If partial geometry embedded, give the
+* `bc_nums`: (Optional Argument) If partial geometry embedded, give the
                 face/edge numbers of the embedded gemetry
 
 """->
@@ -312,12 +314,12 @@ function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
                        order::AbstractArray{Int,1},
                        nControlPts::AbstractArray{Int,1},
                        offset::AbstractArray{Float64,1}, full_geom::Bool,
-                       geom_faces::AbstractArray{Int,1}=[0])
+                       bc_nums::AbstractArray{Int,1}=[0])
 
   # Create Mapping object
   ndim = mesh.dim
   map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=full_geom,
-                              geom_faces=geom_faces)
+                              bc_nums=bc_nums)
 
   # Create knot vector
   calcKnot(map)
@@ -332,7 +334,7 @@ function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
   if full_geom == true
     calcParametricMappingNonlinear(map, ffd_box, mesh)
   else
-    calcParametricMappingNonlinear(map, ffd_box, mesh, geom_faces)
+    calcParametricMappingNonlinear(map, ffd_box, mesh, bc_nums)
   end
 
   return map, ffd_box
@@ -343,24 +345,16 @@ end
 
 """->
 
-function defineMapXi(mesh::AbstractMesh, geom_faces::AbstractArray{Int,1},
+function defineMapXi(mesh::AbstractMesh, bc_nums::AbstractArray{Int,1},
                      xi::AbstractArray)
 
-  for itr = 1:length(geom_faces)
-    geom_face_number = geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
+  for (idx, itr) in enumerate(bc_nums)
+    start_index = mesh.bndry_offsets[itr]
+    end_index = mesh.bndry_offsets[itr+1]
     idx_range = start_index:(end_index-1)
     bndry_facenums = view(mesh.bndryfaces, idx_range)
     nfaces = length(bndry_facenums)
-    xi[itr] = zeros(3,mesh.coord_numNodesPerFace,nfaces)
+    xi[idx] = zeros(3,mesh.coord_numNodesPerFace,nfaces)
   end
 
   return nothing
@@ -375,37 +369,29 @@ the Pumi mesh after FFD when a geometric face is paramtereized.
 **Arguments**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
+* `bc_nums` : Array of boundary condition numbers over which the number
                  of element faces needs to be computed
 * `vertices` : Array of arrays holding the coodinates of the updated vertices
-               shape = vertices[n_geom_faces][mesh.dim, mesh.coord_numNodesPerFace, n_elem_faces]
+               shape = vertices[n_bc_nums][mesh.dim, mesh.coord_numNodesPerFace, n_elem_faces]
 
 """->
 
-function defineVertices{Tmsh}(mesh::AbstractDGMesh{Tmsh}, geom_faces::AbstractArray{Int,1},
+function defineVertices{Tmsh}(mesh::AbstractDGMesh{Tmsh}, bc_nums::AbstractArray{Int,1},
                         vertices::AbstractArray)
 
-  for itr = 1:length(geom_faces)
-    geom_face_number = geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
+  for (idx, itr) in enumerate(bc_nums)
+    start_index = mesh.bndry_offsets[itr]
+    end_index = mesh.bndry_offsets[itr+1]
     idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range)
+    bndry_facenums = sview(mesh.bndryfaces, idx_range)
     nfaces = length(bndry_facenums)
     arr_dim = mesh.dim
-    vertices[itr] = zeros(Tmsh, arr_dim, mesh.coord_numNodesPerFace, nfaces)
+    vertices[idx] = zeros(Tmsh, arr_dim, mesh.coord_numNodesPerFace, nfaces)
     for i = 1:nfaces
       bndry_i = bndry_facenums[i]
       for j=1:mesh.coord_numNodesPerFace
         v_j = mesh.topo.face_verts[j, bndry_i.face]
-        vertices[itr][1:mesh.dim,j,i] = mesh.vert_coords[1:mesh.dim,v_j,bndry_i.element]
+        vertices[idx][1:mesh.dim,j,i] = mesh.vert_coords[1:mesh.dim,v_j,bndry_i.element]
       end
     end # End for i = 1:nfaces
   end

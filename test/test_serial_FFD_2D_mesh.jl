@@ -288,7 +288,8 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
   context("--- Checking Linear Mapping for 2D DG Mesh ---") do
 
     # geometry faces to be embedded in FFD Box
-    geom_faces = opts["BC2"]
+#    geom_faces = opts["BC2"]
+    bc_nums =[2]
 
     # Free Form deformation parameters
     ndim = 2
@@ -296,7 +297,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     nControlPts = [4,4,2]
 
     # Create Mapping object
-    map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false, geom_faces=geom_faces)
+    map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false, bc_nums=bc_nums)
 
     # Create knot vector
     calcKnot(map)
@@ -308,7 +309,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     # Control points
     controlPoint(map, box)
 
-    calcParametricMappingLinear(map, box, mesh, geom_faces)
+    calcParametricMappingLinear(map, box, mesh, bc_nums)
 
     @fact map.ndim --> 2
     @fact map.full_geom --> false
@@ -360,7 +361,8 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
   end # End context("--- Checking Linear Mapping for DG Mesh ---")
 
   # geometry faces to be embedded in FFD Box
-  geom_faces = opts["BC2"]
+#  geom_faces = opts["BC2"]
+  bc_nums =[2]
 
   # Free Form deformation parameters
   ndim = 2
@@ -368,7 +370,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
   nControlPts = [4,4,2]
 
   # Create Mapping object
-  map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false, geom_faces=geom_faces)
+  map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false, bc_nums=bc_nums)
 
   # Create knot vector
   calcKnot(map)

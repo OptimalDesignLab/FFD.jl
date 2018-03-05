@@ -107,10 +107,11 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
     order = [4,4,2]  # Order of B-splines in the 3 directions
     nControlPts = [4,4,2]
     offset = [0.1, 0.1, 0.1] # No offset in the X & Y direction
-    geom_faces = opts["BC2"]
+#    geom_faces = opts["BC2"]
+    bc_nums = [2]
 
     # Create a mapping object using nonlinear mapping
-    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
+    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, false, bc_nums)
     writeControlPointsVTS(map)
 
     # Rigid body rotation
@@ -164,18 +165,19 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
     order = [4,4,2]  # Order of B-splines in the 3 directions
     nControlPts = [4,4,2]
     offset = [0.5, 0.5, 0.5] # No offset in the X & Y direction
-    geom_faces = opts["BC2"]
+#    geom_faces = opts["BC2"]
+    bc_nums = [2]
 
     # Create a mapping object using nonlinear mapping
-    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, false, geom_faces)
+    map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, false, bc_nums)
 
     fill!(map.work, 0.0)
     pert = 1e-6
 
     # Create seed vector
     # - Get original wall coordinates
-    orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
-    nwall_faces = FreeFormDeformation.getnWallFaces(mesh, geom_faces)
+    orig_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, bc_nums)
+    nwall_faces = FreeFormDeformation.getnWallFaces(mesh, bc_nums)
     # Xs_bar = randn(3, size(orig_wallCoords,2))
     Xs_bar = ones(3, size(orig_wallCoords,2))
     cp_xyz_bar = zeros(map.cp_xyz)
@@ -201,7 +203,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
       map.cp_xyz[i] += pert
       vertices = evalSurface(map, mesh)
       commitToPumi(map, mesh, sbp, vertices, opts)
-      new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, geom_faces)
+      new_wallCoords = FreeFormDeformation.getUniqueWallCoordsArray(mesh, bc_nums)
       cp_jacobian[:,i] = (vec(new_wallCoords) - vec(orig_wallCoords))/pert
       map.cp_xyz[i] -= pert
     end # End for i = 1:length(map.cp_xyz)

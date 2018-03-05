@@ -10,32 +10,24 @@ despite the name of the function
 **Inputs**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
-                 of element faces needs to be computed
+* `bc_nums` : Array of boundary condition numbers that define the surface over
+              which the number of element faces needs to be computed
 
 **Output**
 
 * `nwall_faces` : Number of element faces(edges in 2D) on each geometric face
 """->
 
-function getnWallFaces(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1})
+function getnWallFaces(mesh::AbstractDGMesh, bc_nums::AbstractArray{Int,1})
 
   # Prepare the wall coordinates array for mesh warping
-  nwall_faces = zeros(Int,length(geom_faces))
+  nwall_faces = zeros(Int,length(bc_nums))
   vtx_per_face = mesh.dim # only true for simplex elements
-  for itr = 1:length(geom_faces)
-    geom_face_number = geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
+  for (idx, itr) in enumerate(bc_nums)
+    start_index = mesh.bndry_offsets[itr]
+    end_index = mesh.bndry_offsets[itr+1]
     idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nwall_faces[itr] = length(bndry_facenums)
   end      # End for itr = 1:length(geomfaces)
 
@@ -88,8 +80,8 @@ NOTE: Use this ONLY to compute the unique wall vertices on a given MPI rank.
 **Inputs**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
-                 of element faces needs to be computed
+* `bc_nums` : Array of boundary condition numbers that define hte surface over
+              which the number of element faces needs to be computed
 
 **Outputs**
 
@@ -98,36 +90,28 @@ NOTE: Use this ONLY to compute the unique wall vertices on a given MPI rank.
 """->
 
 function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
-                                  geom_faces::AbstractArray{Int,1})
+                                  bc_nums::AbstractArray{Int,1})
 
   vtx_arr = getUniqueVertexArray(mesh) # Get Unique vertex Array
-  wallCoords = getUniqueWallCoordsArray(mesh, vtx_arr, geom_faces)
+  wallCoords = getUniqueWallCoordsArray(mesh, vtx_arr, bc_nums)
 
   return wallCoords
 end
 
 function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
                                   vtx_arr::AbstractArray{Tmsh,2},
-                                  geom_faces::AbstractArray{Int,1})
+                                  bc_nums::AbstractArray{Int,1})
 
-  nface_verts = getLocalNumFaceVerts_unique(mesh, geom_faces)
+  nface_verts = getLocalNumFaceVerts_unique(mesh, bc_nums)
   wallCoords = zeros(Tmsh, 3, nface_verts)
 
   local_vertnum_history = Int[]
   ctr = 1
-  for itr = 1:length(geom_faces)
-    geom_face_number = geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
+  for (idx, itr) in enumerate(bc_nums)
+    start_index = mesh.bndry_offsets[itr]
+    end_index = mesh.bndry_offsets[itr+1]
     idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
     for i = 1:nfaces
       bndry_i = bndry_facenums[i]
@@ -144,7 +128,7 @@ function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
         push!(local_vertnum_history, local_vertnum)
       end     # for j = 1:length(face_vtx_arr)
     end       # for i = 1:nfaces
-  end # End for itr = 1:length(geom_faces)
+  end # End for itr = 1:length(bc_nums)
 
   return wallCoords
 end
@@ -162,7 +146,7 @@ only the lowest rank.
 **Input**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
+* `bc_nums` : Array of geometric faces (edges in 2D) over which the number
                  of element faces needs to be computed
 
 **Output**
@@ -173,7 +157,7 @@ only the lowest rank.
 """->
 
 function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
-                                  geom_faces::AbstractArray{Int,1})
+                                  bc_nums::AbstractArray{Int,1})
 
   # Objective is to identify which MPI ranks have the boundary faces that lie
   # on a geometric face
@@ -189,7 +173,7 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
   vtx_arr = getUniqueVertexArray(mesh) # Get Unique vertex Array
 
   # Gather nface_verts from all ranks
-  nlocal_face_verts = getLocalNumFaceVerts_unique(mesh, geom_faces)
+  nlocal_face_verts = getLocalNumFaceVerts_unique(mesh, bc_nums)
   nlocal_face_verts_arr = MPI.Allgather(nlocal_face_verts, comm)
   ranks_for_bndry_faces = Int[]
   for i = 1:length(nlocal_face_verts_arr)
@@ -200,18 +184,11 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
   # println("rank = $my_rank, ranks_for_bndry_faces = $(ranks_for_bndry_faces)")
   if nlocal_face_verts != 0
     local_vertnum_history = Int[]
-    for itr = 1:length(geom_faces)
-      geom_face_number = geom_faces[itr]
-      itr2 = 0
-      for itr2 = 1:mesh.numBC
-        if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-          break
-        end
-      end
-      start_index = mesh.bndry_offsets[itr2]
-      end_index = mesh.bndry_offsets[itr2+1]
+    for (idx, itr) in enumerate(bc_nums)
+      start_index = mesh.bndry_offsets[itr]
+      end_index = mesh.bndry_offsets[itr+1]
       idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range)
+      bndry_facenums = sview(mesh.bndryfaces, idx_range)
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -264,7 +241,7 @@ function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
           push!(local_vertnum_history, local_vertnum)
         end     # for j = 1:length(face_vtx_arr)
       end       # for i = 1:nfaces
-    end # End for itr = 1:length(geom_faces)
+    end # End for itr = 1:length(bc_nums)
   end
 
   MPI.Barrier(comm)
@@ -305,30 +282,22 @@ multiple MPI ranks.
 **Inputs**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
-                 of element faces needs to be computed
+* `bc_nums : Array of boundary condition numbers that define the surface over
+             which the number of element faces needs to be computed
 
 **Output** :
 
 * `ctr` : Number of unique vertices on a particular MPI rank
 """->
-function getLocalNumFaceVerts_unique(mesh::AbstractDGMesh, geom_faces::AbstractArray{Int,1})
+function getLocalNumFaceVerts_unique(mesh::AbstractDGMesh, bc_nums::AbstractArray{Int,1})
 
   local_vertnum_history = Int[]
   ctr = 0
-  for itr = 1:length(geom_faces)
-    geom_face_number = geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
+  for (idx, itr) in enumerate(bc_nums)
+    start_index = mesh.bndry_offsets[itr]
+    end_index = mesh.bndry_offsets[itr+1]
     idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
     for i = 1:nfaces
       bndry_i = bndry_facenums[i]
@@ -357,8 +326,8 @@ a common vertex or across MPI ranks that share a vertex.
 **Inputs**
 
 * `mesh` : Pumi DG mesh
-* `geom_faces` : Array of geometric faces (edges in 2D) over which the number
-                 of element faces needs to be computed
+* `bc_nums` : Array of boundary condition numbers that define the surface over
+              which the number of element faces needs to be computed
 
 **Output**
 
@@ -367,28 +336,20 @@ a common vertex or across MPI ranks that share a vertex.
 
 """->
 
-function getWallCoords(mesh::PumiMeshDG2, geom_faces::AbstractArray{Int, 1})
+function getWallCoords(mesh::PumiMeshDG2, bc_nums::AbstractArray{Int, 1})
 
-  nwall_faces = getnWallFaces(mesh, geom_faces)
+  nwall_faces = getnWallFaces(mesh, bc_nums)
 
   # Populate wallCoords
   vtx_per_face = mesh.dim # only true for simplex elements
   nWallCoords = sum(nwall_faces)*vtx_per_face
   wallCoords = zeros(3, nWallCoords)
   ctr = 1 # Counter for wall coordinates
-  for itr = 1:length(geom_faces)
-    geom_face_number = geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
+  for (idx, itr) in enumerate(bc_nums)
+    start_index = mesh.bndry_offsets[itr]
+    end_index = mesh.bndry_offsets[itr+1]
     idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
     for i = 1:nfaces
       bndry_i = bndry_facenums[i]

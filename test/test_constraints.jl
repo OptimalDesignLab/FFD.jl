@@ -69,8 +69,8 @@ mesh = PumiMeshDG2(Tmsh, sbp, opts, sbpface, dofpernode=dofpernode,
 #                         coloring_distance=opts["coloring_distance"],
 #                         shape_type=shape_type)
 
-geom_faces = opts["BC2"]
-
+#geom_faces = opts["BC2"]
+bc_nums = [2]
 # Free Form deformation parameters
 ndim = 3
 order = [2,4,2]  # Order of B-splines in the 3 directions
@@ -79,7 +79,7 @@ nControlPts = [2,4,2]
 # code here for creating rectilinear map
 # Create Mapping object
 map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false,
-                            geom_faces=geom_faces)
+                            bc_nums=bc_nums)
 
 # Create knot vector
 calcKnot(map)
@@ -92,7 +92,7 @@ ffd_box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
 controlPoint(map, ffd_box)
 
 # Populate map.xi
-calcParametricMappingNonlinear(map, ffd_box, mesh, geom_faces)
+calcParametricMappingNonlinear(map, ffd_box, mesh, bc_nums)
 
 facts("--- Checking Linear-Plane Constraints ---") do
 

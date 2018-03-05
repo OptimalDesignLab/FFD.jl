@@ -199,25 +199,17 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
 
   @assert mesh.coord_order == 1
 
-  nwall_faces = getnWallFaces(mesh, map.geom_faces)
-  vertices = Array(Array{Tffd,3}, length(map.geom_faces))
-  defineVertices(mesh, map.geom_faces, vertices)
+  nwall_faces = getnWallFaces(mesh, map.bc_nums)
+  vertices = Array(Array{Tffd,3}, length(map.bc_nums))
+  defineVertices(mesh, map.bc_nums, vertices)
 
   # vertices = zeros(Tffd, size(mesh.vert_coords))
   x = zeros(Tffd, 3)
-  for itr = 1:length(map.geom_faces)
-    geom_face_number = map.geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
+  for (idx, itr) in enumerate(map.bc_nums)
+    start_index = mesh.bndry_offsets[itr]
+    end_index = mesh.bndry_offsets[itr+1]
     idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
     for i = 1:nfaces
       bndry_i = bndry_facenums[i]
@@ -225,13 +217,13 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
       # map.xi has the xi coordinates of the face nodes only
       for j = 1:mesh.coord_numNodesPerFace
         fill!(x, 0.0)
-        evalVolumePoint(map, map.xi[itr][:,j,i], x)
+        evalVolumePoint(map, map.xi[idx][:,j,i], x)
         for k = 1:map.ndim
-          vertices[itr][k, j, i] = x[k]
+          vertices[idx][k, j, i] = x[k]
         end
       end  # End for j = 1:length(vtx_arr)
     end    # End for i = 1:nfaces
-  end  # End for itr = 1:length(map.geom_faces)
+  end  # End for itr = 1:length(map.bc_nums)
 
   return vertices
 end
@@ -380,7 +372,7 @@ function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::Abstr
   @assert size(Xcp_bar, 3) == map.nctl[2]
   @assert size(Xcp_bar, 4) == map.nctl[3]
 
-  @assert length(Xs_bar) == length(map.geom_faces)
+  @assert length(Xs_bar) == length(map.bc_nums)
   for i=1:length(Xs_bar)
     @assert size(Xs_bar[i], 1) == mesh.dim
     @assert size(Xs_bar[i], 2) == mesh.coord_numNodesPerFace
@@ -388,21 +380,13 @@ function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::Abstr
   end
   
   fill!(map.work, 0.0)  # prepare for accumulation
-  for itr = 1:length(map.geom_faces)
-    geom_face_number = map.geom_faces[itr]
-    # get the boundary array associated with the geometric edge
-    itr2 = 0
-    for itr2 = 1:mesh.numBC
-      if findfirst(mesh.bndry_geo_nums[itr2],geom_face_number) > 0
-        break
-      end
-    end
-    start_index = mesh.bndry_offsets[itr2]
-    end_index = mesh.bndry_offsets[itr2+1]
+  for (idx, itr) in enumerate(map.bc_nums)
+    start_index = mesh.bndry_offsets[itr]
+    end_index = mesh.bndry_offsets[itr+1]
     idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
-    Xs_bar_itr = Xs_bar[itr]
+    Xs_bar_itr = Xs_bar[idx]
     Xs_bar_j = zeros(Tmsh, 3)  # vector of length 3 gives compatability between
                                # 2D and 3D
 
@@ -412,7 +396,7 @@ function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::Abstr
         for k=1:mesh.dim
           Xs_bar_j[k] = Xs_bar_itr[k, j, i]
         end
-        contractWithdGdB(map, map.xi[itr][:, j, i], Xs_bar_j)
+        contractWithdGdB(map, map.xi[idx][:, j, i], Xs_bar_j)
 
         # contractWithdGdB(map, map.xi[itr][:,j,i], dJdVert_arr[:,ctr])
       end  # end loop j
