@@ -28,7 +28,7 @@ function getnWallFaces(mesh::AbstractDGMesh, bc_nums::AbstractArray{Int,1})
     end_index = mesh.bndry_offsets[itr+1]
     idx_range = start_index:(end_index-1)
     bndry_facenums = sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
-    nwall_faces[itr] = length(bndry_facenums)
+    nwall_faces[idx] = length(bndry_facenums)
   end      # End for itr = 1:length(geomfaces)
 
   return nwall_faces

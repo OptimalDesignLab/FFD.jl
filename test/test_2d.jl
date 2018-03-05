@@ -1,3 +1,4 @@
+# tests the Pumi interface to FFD
 
 push!(LOAD_PATH, "../src/")
 
@@ -80,9 +81,6 @@ function test_surface(map, mesh)
 
       rotMat = rotMat1*rotMat2
     end
-
-
-
     
     cp_orig = copy(map.cp_xyz)
     # Rotate the control points
@@ -134,44 +132,52 @@ end
 function test_jac(map, mesh)
 
   facts("----- Testing Transposed Jacobian-vector product -----") do
-    # compute entire jacbian
-    Xs_orig = evalSurface(map, mesh)
-    nXs = length(Xs_orig[1])
-    nCP = length(map.cp_xyz)
-    jac = zeros(nXs, nCP)
-    jac2 = zeros(jac)
 
-    # compute complex step jacobian
-    h = 1e-20
-    pert = Complex128(0, h)
-    for i=1:nCP
-      map.cp_xyz[i] += pert
-      Xs = evalSurface(map, mesh)
-
-      for j=1:nXs
-        jac[j, i] = imag(Xs[1][j])/h
-      end
-
-      map.cp_xyz[i] -= pert
+    Xs_dot = Array(Array{Complex128, 3}, length(map.bc_nums))
+    nfaces = FreeFormDeformation.getnWallFaces(mesh, map.bc_nums)
+    for bc=1:length(map.bc_nums)
+      Xs_dot[bc] = zeros(mesh.dim, mesh.coord_numNodesPerFace, nfaces[bc])
     end
 
-    # compute reverse mode jacobian
-    Xs_dot = Array(Array{Complex128, 3}, 1)
-    Xs_dot[1] = zeros(size(Xs_orig[1]))
-    B_dot = zeros(map.cp_xyz)
-    for i=1:nXs
-      Xs_dot[1][i] = 1
-      fill!(B_dot, 0.0)
-      FreeFormDeformation.evaldXdControlPointTransposeProduct(map, mesh, Xs_dot, B_dot)
 
-      for j=1:nCP
-        jac2[i, j] = real(B_dot[j])
+    for bc=1:length(map.bc_nums)
+      # compute entire jacbian
+      Xs_orig = evalSurface(map, mesh)[bc]
+      nXs = length(Xs_orig[bc])
+      nCP = length(map.cp_xyz)
+      jac = zeros(nXs, nCP)
+      jac2 = zeros(jac)
+
+      # compute complex step jacobian
+      h = 1e-20
+      pert = Complex128(0, h)
+      for i=1:nCP
+        map.cp_xyz[i] += pert
+        Xs = evalSurface(map, mesh)
+
+        for j=1:nXs
+          jac[j, i] = imag(Xs[bc][j])/h
+        end
+
+        map.cp_xyz[i] -= pert
       end
-      Xs_dot[1][i] = 0
-    end
 
-    @fact norm(jac - jac2) --> roughly(0.0, atol=1e-13)
-  end
+      # compute reverse mode jacobian
+      B_dot = zeros(map.cp_xyz)
+      for i=1:nXs
+        Xs_dot[bc][i] = 1
+        fill!(B_dot, 0.0)
+        FreeFormDeformation.evaldXdControlPointTransposeProduct(map, mesh, Xs_dot, B_dot)
+
+        for j=1:nCP
+          jac2[i, j] = real(B_dot[j])
+        end
+        Xs_dot[bc][i] = 0
+      end
+
+      @fact norm(jac - jac2) --> roughly(0.0, atol=1e-13)
+    end  # end loop over bcs
+  end  # end facts block
 
   return nothing
 end
@@ -202,6 +208,34 @@ function runtests()
 
   test_jac(map, mesh)
 
+  # test with one boundary condition with several geometric entities
+  bc_nums = [2]
+
+  mesh, sbp, opts = getTestMesh(2, Complex128)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+                           bc_nums)
+
+  test_surface(map, mesh)
+
+  mesh, sbp, opts = getTestMesh(2, Complex128)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+                           bc_nums)
+  test_jac(map, mesh)
+
+  # test multiple BCs
+  bc_nums = [1, 2]
+  mesh, sbp, opts = getTestMesh(2, Complex128)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+                           bc_nums)
+
+  test_surface(map, mesh)
+
+  mesh, sbp, opts = getTestMesh(2, Complex128)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+                           bc_nums)
+  test_jac(map, mesh)
+
+
 
   println("\nTesting 3D")
   # now test 3D
@@ -227,6 +261,20 @@ function runtests()
                            
   test_jac(map, mesh)
 
+
+  # test multiple BCs
+  bc_nums = [1, 2]
+
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+                           bc_nums)
+
+  test_surface(map, mesh)
+
+  mesh, sbp, opts = getTestMesh(3, Complex128)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+                           bc_nums)
+                           
+  test_jac(map, mesh)
 
 
   return nothing
