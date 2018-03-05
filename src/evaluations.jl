@@ -175,8 +175,29 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
   return nothing
 end
 =#
+"""
+  Computes the surface node coordinates based on the current control point
+  positions.  Users should update the values in `map.cp_xyz` and then call this
+  function.
 
+  **Inputs**
+  
+   * map: the PumiMappping object
+   * mesh: the Pumi mesh object
+
+  **Outputs**
+
+   * vertices: An array of arrays holding the new surface coordinates.
+               The length of the outer array is the number of geometric
+               entities the FFD box encapsulates.  Each inner array is
+               `mesh.dim` x `mesh.coord_numNodesPerFace` x the number of faces
+               on the geometric entity
+
+  Note this function is currently limited to linear coordinate fields.
+"""
 function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
+
+  @assert mesh.coord_order == 1
 
   nwall_faces = getnWallFaces(mesh, map.geom_faces)
   vertices = Array(Array{Tffd,3}, length(map.geom_faces))
@@ -205,7 +226,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
       for j = 1:mesh.coord_numNodesPerFace
         fill!(x, 0.0)
         evalVolumePoint(map, map.xi[itr][:,j,i], x)
-        for k = 1:3 #map.ndim
+        for k = 1:map.ndim
           vertices[itr][k, j, i] = x[k]
         end
       end  # End for j = 1:length(vtx_arr)
@@ -326,13 +347,30 @@ end  # End function contractWithdGdB(map, dJdGrid)
 
 
 """
-  evaluates (dG/dB)^T v, where v is a user-supplied vector, G are the
-  surface grid points and B are the control points.
+  evaluates (dXs/dXcp)^T v, where v is a user-supplied vector, Xs are the
+  surface grid points and Xcp are the control points (note that Xs is called
+  G and Xcp is called B in other parts of the code).
 
-  Specifically, G is the non-unqiue representation of the surface vertices
-  (it is per-geometric entity)
+  Specifically, Xs is the non-unqiue representation of the surface vertices
+  (it is per-geometric entity).
 
-  Note: Xs_bar allows duplicate entries, but only one entry can be non-zero
+  **Inputs**
+
+   * map: the PumiMapping object
+   * mesh: the Pumi mesh object
+   * Xs_bar: the v vector that the transposed jacobian is multiplied against.
+             It is an array of arrays, where the outer array has length equal to
+             the number of geometric entities the FFD box encapsulates.  Each
+             inner array has dimensions `mesh.dim` x `mesh.coord_numNodesPerFace`
+             x the number of faces on the geometric entity.
+
+  **Inputs/Outputs**
+
+   * Xcp_bar: array, same shape as map.cp_xyz.  This array will be overwritten
+              with the result
+
+  Note: Xs_bar allows duplicate entries (if a vertex is on the intersection of 
+        two geometric entites), but only one entry can be non-zero
         in order to get the correct result
 """
 function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::AbstractDGMesh{Tmsh}, Xs_bar::Array{Array{Complex128, 3}, 1}, Xcp_bar::AbstractArray{Complex128, 4})
@@ -344,17 +382,11 @@ function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::Abstr
 
   @assert length(Xs_bar) == length(map.geom_faces)
   for i=1:length(Xs_bar)
-    @assert size(Xs_bar[i], 1) == 3 #mesh.dim
+    @assert size(Xs_bar[i], 1) == mesh.dim
     @assert size(Xs_bar[i], 2) == mesh.coord_numNodesPerFace
     @assert size(Xs_bar[i], 3) == size(map.xi[i], 3)
   end
-#=
-  if mesh.dim == 2 # do not allow differentiating wrt z
-    for i=3:3:length(Xcp_bar)
-      Xcp_bar[i] = 0
-    end
-  end
-=#
+  
   fill!(map.work, 0.0)  # prepare for accumulation
   for itr = 1:length(map.geom_faces)
     geom_face_number = map.geom_faces[itr]
@@ -377,7 +409,7 @@ function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::Abstr
     for i=1:nfaces
       for j=1:mesh.coord_numNodesPerFace
         # copy value into Xs_bar_j
-        for k=1:3  #mesh.dim
+        for k=1:mesh.dim
           Xs_bar_j[k] = Xs_bar_itr[k, j, i]
         end
         contractWithdGdB(map, map.xi[itr][:, j, i], Xs_bar_j)
@@ -403,7 +435,7 @@ end
 
 
 
-
+#=
 """
 ### evaldXdControlPointProduct
 
@@ -507,3 +539,4 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
 
   return nothing
 end
+=#

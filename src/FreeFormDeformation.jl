@@ -399,7 +399,7 @@ function defineVertices{Tmsh}(mesh::AbstractDGMesh{Tmsh}, geom_faces::AbstractAr
     idx_range = start_index:(end_index-1)
     bndry_facenums = view(mesh.bndryfaces, idx_range)
     nfaces = length(bndry_facenums)
-    arr_dim = 3
+    arr_dim = mesh.dim
     vertices[itr] = zeros(Tmsh, arr_dim, mesh.coord_numNodesPerFace, nfaces)
     for i = 1:nfaces
       bndry_i = bndry_facenums[i]
