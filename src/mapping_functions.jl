@@ -76,7 +76,15 @@ function nonlinearMap{Tffd}(map::AbstractMappingType{Tffd},
   pointVal = zeros(Tffd, box.ndim)
   xi = zeros(Tffd, box.ndim)
   xi_new = zeros(xi)
+
+  println("length(xi) = ", length(xi))
+  println("length(pX) = ", length(pX))
+  println("length(x) = ", length(X))
   xi[:] = pX
+
+  println("typeof(map) = ", typeof(map))
+  println("typeof(xi) = ", typeof(xi))
+  println("typeof(pointVal) = ", typeof(pointVal))
 
   # Do the newton solve to get the (s,t,u coordinates)
   for itr = 1:50
@@ -140,6 +148,8 @@ end  # End function calcParametricLinear
 function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractCGMesh)
 
+  @assert false "CG meshes not supported"
+
   if mesh.dim == 2
     X = zeros(Tffd,3)
     for i = 1:mesh.numEl
@@ -191,6 +201,7 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractCGMesh,
                                      bc_nums::AbstractArray{Int,1})
 
+  @assert false "CG meshes not supported"
   if mesh.dim == 2
     x = zeros(Tffd,3)
     for (idx, itr) in enumerate(bc_nums)
@@ -310,9 +321,11 @@ function calcParametricMappingNonlinear(map::Mapping, box,
   return nothing
 end
 
+# unused now that full_geom is no more?
 function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
                                         box::PumiBoundingBox, mesh::AbstractCGMesh)
 
+  @assert false "CG meshes not supported"
   if mesh.dim == 2
     X = zeros(Tffd,3)
     for i = 1:mesh.numEl
@@ -335,6 +348,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
+# unused now that full_geom is no more?
 function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
                                         box::PumiBoundingBox, mesh::AbstractDGMesh)
 
@@ -355,7 +369,7 @@ end
 function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractCGMesh,
                                      bc_nums::AbstractArray{Int,1})
-
+  @assert false "CG Meshes not supported"
   if mesh.dim == 2
     x = zeros(Tffd,3)
     for (idx, itr) in enumerate(bc_nums)
@@ -389,7 +403,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
           X = view(mesh.coords,:,vtx_arr[j],bndry_i.element)
-          pX = view(map.xi, :, j, i)   # what if full_geom == false?
+          pX = view(map.xi, :, j, i)  
           nonlinearMap(map, box, X, pX)
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -404,7 +418,15 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractDGMesh,
                                      bc_nums::AbstractArray{Int,1})
 
-  x = zeros(Tffd,3)
+  x_real = zeros(Float64, 3)
+  for i=1:map.numFacePts
+    v_i = map.face_verts[i]
+
+    getPoint(mesh.m_ptr, v_i, 0, x_real)
+    pX = sview(map.xi, :, i)
+    nonlinearMap(map, box, sview(x_real, 1:mesh.dim), pX)
+  end
+#=
   for (idx, itr) in enumerate(bc_nums)
     start_index = mesh.bndry_offsets[itr]
     end_index = mesh.bndry_offsets[itr+1]
@@ -428,8 +450,9 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
 
   return nothing
 end
-
-
+=#
+  return nothing
+end
 @doc """
 ### calcdXdxi
 

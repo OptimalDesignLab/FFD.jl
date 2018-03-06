@@ -28,9 +28,10 @@ export numLinearCornerConstraints, countVarsLinearCornerConstraints!, setLinearC
 export numLinearStretchConstraints, countVarsLinearStretchConstraints!, setLinearStretchConstraints!
 export numLinearRootConstraints, countVarsLinearRootConstraints!, setLinearRootConstraints!
 
-push!(LOAD_PATH, joinpath(Pkg.dir("PumiInterface"), "src"))
+#push!(LOAD_PATH, joinpath(Pkg.dir("PumiInterface"), "src"))
 
 using ArrayViews
+using PumiInterface
 using PdePumiInterface
 using ODLCommonTools
 using SummationByParts
@@ -176,7 +177,6 @@ end  # End Mapping
 type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
-  full_geom::Bool               # Embed entire geometry or only certain faces
   nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
   order::AbstractArray{Int, 1}  # Order of B-spline in each direction
 
@@ -192,11 +192,15 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
   dr::AbstractArray{Tffd, 2}
   work::AbstractArray{Tffd, 4}
 
+  n_face::Ptr{Void}  # apf::Numbering*, numbering the face points
+  numFacePts::Int  # number of face points
+  face_verts::Array{Ptr{Void}, 1}  # face points, in order
+
   evalVolume::Function
 
   function PumiMapping(ndim::Int, order::AbstractArray{Int,1},
-                       nctl::AbstractArray{Int,1}, mesh::AbstractMesh;
-                       full_geom=true, bc_nums::AbstractArray{Int,1}=[0])
+                       nctl::AbstractArray{Int,1}, mesh::AbstractMesh,
+                       n_face::Ptr{Void}=C_NULL, numFacePts=0; bc_nums::AbstractArray{Int,1}=[0])
 
     map = new()
     # Check if the input arguments are valid
@@ -211,7 +215,6 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     const max_work = 2*6  # 2*n_variables
 
     map.ndim = mesh.dim
-    map.full_geom = full_geom
     map.order = order
     map.nctl = nctl
     map.cp_xyz = zeros(3, nctl[1], nctl[2], nctl[3])
@@ -221,13 +224,24 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
       map.edge_knot[i] = zeros(Tffd, nctl[i]+order[i])
     end
 
-    if full_geom == true
-      map.xi = zeros(Tffd, 3, mesh.dim+1, mesh.numEl) # Only valid for simplex elements
-    else
-      map.bc_nums = bc_nums
-      map.xi = Array(Array{Tffd,3}, length(bc_nums))
-      defineMapXi(mesh, bc_nums, map.xi)
+    # if the user didn't provide a surface point numbering, make one ourselves
+    if n_face == C_NULL
+      numFacePts, n_face, face_verts = numberSurfacePoints(mesh, bc_nums)
+    else  # get the face_verts array
+      face_verts = Array(Ptr{Void}, numFacePts)
+      for vert in mesh.verts
+        n_v = getNumberJ(n_face, vert, 0, 0)
+        if n_v <= numFacePts
+          face_verts[n_v] = vert
+        end
+      end
     end
+    map.n_face = n_face
+    map.numFacePts = numFacePts
+    map.face_verts = face_verts
+    map.xi = Array(Tffd, 3, numFacePts)
+    map.bc_nums = bc_nums
+
 
     # Allocate and initialize mapping arrays
     max_order = maximum(order)  # Highest order among 3 dimensions
@@ -271,7 +285,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     evalVolume = () -> nothing
     
 
-    return new(ndim, full_geom, nctl, order, cp_xyz, edge_know, bc_nums,
+    return new(ndim, nctl, order, cp_xyz, edge_know, bc_nums,
                cp_idx, aj, dl, dr, work, evalVolume)
 end
 
@@ -303,22 +317,26 @@ Routine to be called externally for initializing FreeFormDeformation
                   directions (ξ, η, ζ)
 * `offset` : FFD Bounding box offset form the embedded geometry along the 3
              physical directions (x, y, z)
-* `full_geom` : Whether the full geometry or a portion of geometry is being
-                embedded. (True or false)
 * `bc_nums`: (Optional Argument) If partial geometry embedded, give the
                 face/edge numbers of the embedded gemetry
+* `n_face`: an apf::Numbering* (Ptr{Void}) numbering the face nodes, if
+            not supplied a new numbering will be created
+* `numFacePts`: the number of face points on the surface defined by
+                `bc_nums` and numbered by `n_face`
 
 """->
 
 function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
                        order::AbstractArray{Int,1},
                        nControlPts::AbstractArray{Int,1},
-                       offset::AbstractArray{Float64,1}, full_geom::Bool,
-                       bc_nums::AbstractArray{Int,1}=[0])
+                       offset::AbstractArray{Float64,1},
+                       bc_nums::AbstractArray{Int,1}=[0],
+                       n_face::Ptr{Void}=C_NULL,
+                       numFacePts::Integer=0)
 
   # Create Mapping object
   ndim = mesh.dim
-  map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=full_geom,
+  map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, n_face, numFacePts,
                               bc_nums=bc_nums)
 
   # Create knot vector
@@ -331,15 +349,12 @@ function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
   controlPoint(map, ffd_box)
 
   # Populate map.xi
-  if full_geom == true
-    calcParametricMappingNonlinear(map, ffd_box, mesh)
-  else
-    calcParametricMappingNonlinear(map, ffd_box, mesh, bc_nums)
-  end
+  calcParametricMappingNonlinear(map, ffd_box, mesh, bc_nums)
 
   return map, ffd_box
 end
 
+#=
 @doc """
 ### FreeFormDeformation.defineMapXi
 
@@ -359,6 +374,7 @@ function defineMapXi(mesh::AbstractMesh, bc_nums::AbstractArray{Int,1},
 
   return nothing
 end
+=#
 
 @doc """
 ###FreeFormDeformation.defineVertices

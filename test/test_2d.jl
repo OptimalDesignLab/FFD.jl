@@ -62,7 +62,9 @@ function test_surface(map, mesh)
 
   facts("----- Testing FFD Surface Evaluation -----") do
     println("mesh.dim = ", mesh.dim)
-    vertices_orig = evalSurface(map, mesh)
+    vertices_orig = zeros(Complex128, mesh.dim, map.numFacePts)
+    evalSurface(map, mesh, vertices_orig)
+#    vertices_orig = evalSurface(map, mesh)
 
     # Rigid body rotation
     theta = -20*pi/180  # Rotate wall coordinates by 10 degrees
@@ -104,8 +106,21 @@ function test_surface(map, mesh)
     map.cp_xyz[2,:,:,:] += yfac
     map.cp_xyz[3,:,:,:] += zfac
 
-    vertices = evalSurface(map, mesh)
+    vertices = zeros(Complex128, mesh.dim, map.numFacePts)
+    evalSurface(map, mesh, vertices)
+#    vertices = evalSurface(map, mesh)
 
+    for i=1:map.numFacePts
+      if mesh.dim == 2
+        verts_exact = rotMat[1:2, 1:2]*vertices_orig[:, i] + [xfac; yfac]
+      else
+        verts_exact = rotMat*vertices_orig[:, i] + [xfac; yfac; zfac]
+      end
+
+      @fact norm(verts_exact - verticesc[:, i]) --> roughly(0.0, atol=1e-13)
+    end
+
+#=
     rotMat2 = rotMat[1:2, 1:2]
     for bc=1:length(vertices)
       verts_bc = vertices[bc]
@@ -123,8 +138,8 @@ function test_surface(map, mesh)
         end
       end
     end
+=#
   end  # end facts block
-
   return nothing
 end
 
@@ -196,14 +211,14 @@ function runtests()
   bc_nums = [1] # = opts["BC1"]
 #  @assert length(geom_faces) == 1
 
-  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset,
                            bc_nums)
 
   test_surface(map, mesh)
-
+#=
   # make new objects in case test_surface modified the old ones
   mesh, sbp, opts = getTestMesh(2, Complex128)
-  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
   test_jac(map, mesh)
@@ -212,26 +227,26 @@ function runtests()
   bc_nums = [2]
 
   mesh, sbp, opts = getTestMesh(2, Complex128)
-  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
   test_surface(map, mesh)
 
   mesh, sbp, opts = getTestMesh(2, Complex128)
-  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
   test_jac(map, mesh)
 
   # test multiple BCs
   bc_nums = [1, 2]
   mesh, sbp, opts = getTestMesh(2, Complex128)
-  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
   test_surface(map, mesh)
 
   mesh, sbp, opts = getTestMesh(2, Complex128)
-  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
   test_jac(map, mesh)
 
@@ -250,13 +265,13 @@ function runtests()
   bc_nums = [1] # opts["BC1"]
 #  @assert length(geom_faces) == 1
 
-  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
   test_surface(map, mesh)
 
   mesh, sbp, opts = getTestMesh(3, Complex128)
-  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
                            
   test_jac(map, mesh)
@@ -265,17 +280,17 @@ function runtests()
   # test multiple BCs
   bc_nums = [1, 2]
 
-  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
   test_surface(map, mesh)
 
   mesh, sbp, opts = getTestMesh(3, Complex128)
-  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom,
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
                            
   test_jac(map, mesh)
-
+=#
 
   return nothing
 end

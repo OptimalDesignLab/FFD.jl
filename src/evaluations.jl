@@ -83,7 +83,7 @@ function evalVolume{Tmsh}(map::Mapping, Vol::AbstractArray{Tmsh,4})
 
   return nothing
 end
-
+#=
 function evalVolume{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
 
   vertices = zeros(Tffd, size(mesh.vert_coords))
@@ -100,7 +100,7 @@ function evalVolume{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
 
   return vertices
 end
-
+=#
 #=
 @doc """
 evalSurface
@@ -175,6 +175,43 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
   return nothing
 end
 =#
+
+"""
+  Evalutes the new locations of the surface points.  Users should update
+  `map.cp_xyz` and then call this function.
+
+  **Inputs**
+
+   * map: a PumiMapping object
+   * mesh: a PumiMesh object
+
+  **Inputs/Outputs**
+
+   * pts: a mesh.dim x map.numFacePts array to be overwritten with the new
+          surface points (ordered according to the numbering supplied to
+          the `PumiMapping` constructor.
+"""
+function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh, pts::Array{Tffd, 2})
+
+  @assert size(pts, 1) == mesh.dim
+  @assert size(pts, 2) == map.numFacePts
+
+  x = zeros(Tffd, 3)  # compatability between 2D and 3D
+  for i=1:map.numFacePts
+
+    xi_i = sview(map.xi, :, i)
+    evalVolumePoint(map, xi_i, x)
+
+    for j=1:mesh.dim
+      pts[j, i] = x[i]
+    end
+  end
+
+  return nothing
+end
+
+
+#=
 """
   Computes the surface node coordinates based on the current control point
   positions.  Users should update the values in `map.cp_xyz` and then call this
@@ -227,7 +264,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
 
   return vertices
 end
-
+=#
 @doc """
 ### evalVolumePoint
 
@@ -250,6 +287,7 @@ function evalVolumePoint{Tffd}(map::AbstractMappingType, xi::AbstractArray{Tffd,
   Nv = zeros(map.order[2])
   Nw = zeros(map.order[3])
 
+  println("typeof(Nu) = ", typeof(Nu))
   # Work with u
   span = findSpan(xi[1], map.edge_knot[1], map.order[1], map.nctl[1])
   basisFunctions(map.edge_knot[1], map.order[1], xi[1], span, Nu)
@@ -339,6 +377,50 @@ end  # End function contractWithdGdB(map, dJdGrid)
 
 
 """
+  Evalutes a transposed Jacobian-vector product
+
+  Xcp_bar =  (dXs/dXcp)^T Xs_bar
+
+  where Xs are the surface coordinates, and Xcp are the control point
+  coordinates.
+
+  **Inputs**
+
+   * map: a PumiMapping object
+   * mesh: a PumiMeshDG
+   * Xs_bar: the array to multiply the transposed jacobian against,
+             size 3 x `map.numFacePts`
+
+  **Inputs/Outputs**
+
+   * Xcp_bar: arrayto be overwritten with results, same size as `map.cp_xyz`
+"""
+function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::AbstractDGMesh{Tmsh}, Xs_bar::Array{Array{Complex128, 3}, 1}, Xcp_bar::AbstractArray{Complex128, 4})
+
+  @assert size(Xcp_bar, 1) == 3  # all meshes are 3 dimensional to FFD
+  @assert size(Xcp_bar, 2) == map.nctl[1]
+  @assert size(Xcp_bar, 3) == map.nctl[2]
+  @assert size(Xcp_bar, 4) == map.nctl[3]
+
+  @assert size(Xs_bar, 1) == mesh.dim
+  @assert size(Xs_bar, 2) == map.numFacePts
+
+  fill!(work, 0.0)
+  for i=1:map.numFacePts
+    Xs_bar_i = sview(Xs_bar, :, i)
+    xi_i = sview(map.xi, :, i)
+    contractWithdGdB(map, xi_i, Xs_bar_i)
+  end
+
+  work_slice = sview(map.work, 1:3, :, :, :)
+  copy!(Xcp_bar, work_slice)
+
+  return nothing
+end
+
+
+#=
+"""
   evaluates (dXs/dXcp)^T v, where v is a user-supplied vector, Xs are the
   surface grid points and Xcp are the control points (note that Xs is called
   G and Xcp is called B in other parts of the code).
@@ -410,7 +492,7 @@ function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::Abstr
 
   return nothing
 end
-
+=#
 
 
 

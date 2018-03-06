@@ -78,16 +78,7 @@ type PumiBoundingBox{Tffd} <: AbstractBoundingBox{Tffd}
     box_bounds = zeros(Tffd, 2, ndim)  # same as above
     lengths = zeros(Tffd, ndim) # same as above
 
-    # Populate members of BoundingBox
-    if map.full_geom == true
-      if mesh.isDG == true
-        calcEntireGeometryBounds(mesh.vert_coords, geom_bounds)
-      else
-        calcEntireGeometryBounds(mesh.coords, geom_bounds)
-      end  # End if mesh.isDG == true
-    else
-      calcSurfaceGeomBounds(mesh, sbp, geom_bounds,map.bc_nums)
-    end  # End if map.full_geom == true
+    calcSurfaceGeomBounds(mesh, sbp, geom_bounds,map.bc_nums)
 
     # Get the boumding box coordinates and dimensions
     for i = 1:size(geom_bounds,2)  # TODO: Come up with a better definition of box_bound and lengths
