@@ -404,6 +404,7 @@ function evaldXdControlPointTransposeProduct{Tmsh, T}(map::PumiMapping, mesh::Ab
   @assert size(Xs_bar, 1) == mesh.dim
   @assert size(Xs_bar, 2) == map.numFacePts
 
+  println("size(Xs_bar) = ", size(Xs_bar))
   fill!(map.work, 0.0)
   for i=1:map.numFacePts
     Xs_bar_i = sview(Xs_bar, :, i)
