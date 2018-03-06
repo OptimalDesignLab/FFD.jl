@@ -424,7 +424,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
 
     getPoint(mesh.m_ptr, v_i, 0, x_real)
     pX = sview(map.xi, :, i)
-    nonlinearMap(map, box, sview(x_real, 1:mesh.dim), pX)
+    nonlinearMap(map, box, sview(x_real, :), pX)
   end
 #=
   for (idx, itr) in enumerate(bc_nums)

@@ -117,7 +117,7 @@ function test_surface(map, mesh)
         verts_exact = rotMat*vertices_orig[:, i] + [xfac; yfac; zfac]
       end
 
-      @fact norm(verts_exact - verticesc[:, i]) --> roughly(0.0, atol=1e-13)
+      @fact norm(verts_exact - vertices[:, i]) --> roughly(0.0, atol=1e-13)
     end
 
 #=

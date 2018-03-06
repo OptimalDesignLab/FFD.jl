@@ -37,6 +37,9 @@ function basisFunctions(U, order, u, span, N)
   println("typeof(u) = ", typeof(u))
   println("typeof(delta_r) = ", typeof(delta_r))
   for j = 1:(order-1)
+    println("j = ", j)
+    println("U = ", U)
+    println("u = ", u)
     delta_r[j] = U[span+j] - u
     delta_l[j] = u - U[span+1-j]
     saved = 0.0

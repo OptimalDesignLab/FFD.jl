@@ -239,7 +239,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map.n_face = n_face
     map.numFacePts = numFacePts
     map.face_verts = face_verts
-    map.xi = Array(Tffd, 3, numFacePts)
+    map.xi = zeros(Tffd, 3, numFacePts)
     map.bc_nums = bc_nums
 
 

@@ -203,7 +203,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh, pts::Ar
     evalVolumePoint(map, xi_i, x)
 
     for j=1:mesh.dim
-      pts[j, i] = x[i]
+      pts[j, i] = x[j]
     end
   end
 
