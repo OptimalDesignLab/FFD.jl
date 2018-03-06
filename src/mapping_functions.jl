@@ -76,15 +76,7 @@ function nonlinearMap{Tffd}(map::AbstractMappingType{Tffd},
   pointVal = zeros(Tffd, box.ndim)
   xi = zeros(Tffd, box.ndim)
   xi_new = zeros(xi)
-
-  println("length(xi) = ", length(xi))
-  println("length(pX) = ", length(pX))
-  println("length(x) = ", length(X))
   xi[:] = pX
-
-  println("typeof(map) = ", typeof(map))
-  println("typeof(xi) = ", typeof(xi))
-  println("typeof(pointVal) = ", typeof(pointVal))
 
   # Do the newton solve to get the (s,t,u coordinates)
   for itr = 1:50

@@ -283,11 +283,10 @@ function evalVolumePoint{Tffd}(map::AbstractMappingType, xi::AbstractArray{Tffd,
 
   fill!(xyz, 0.0)
 
-  Nu = zeros(map.order[1])
-  Nv = zeros(map.order[2])
-  Nw = zeros(map.order[3])
+  Nu = zeros(Tffd, map.order[1])
+  Nv = zeros(Tffd, map.order[2])
+  Nw = zeros(Tffd, map.order[3])
 
-  println("typeof(Nu) = ", typeof(Nu))
   # Work with u
   span = findSpan(xi[1], map.edge_knot[1], map.order[1], map.nctl[1])
   basisFunctions(map.edge_knot[1], map.order[1], xi[1], span, Nu)
@@ -338,12 +337,12 @@ flow residual.
 
 """->
 
-function contractWithdGdB(map::AbstractMappingType, xi, dJdG)
+function contractWithdGdB{Tffd}(map::AbstractMappingType{Tffd}, xi, dJdG)
 
   # Evaluate the knot vectors and basis values
-  Nu = zeros(map.order[1])
-  Nv = zeros(map.order[2])
-  Nw = zeros(map.order[3])
+  Nu = zeros(Tffd, map.order[1])
+  Nv = zeros(Tffd, map.order[2])
+  Nw = zeros(Tffd, map.order[3])
   span = zeros(Int, 3)
 
   # Work with u
@@ -395,7 +394,7 @@ end  # End function contractWithdGdB(map, dJdGrid)
 
    * Xcp_bar: arrayto be overwritten with results, same size as `map.cp_xyz`
 """
-function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::AbstractDGMesh{Tmsh}, Xs_bar::Array{Array{Complex128, 3}, 1}, Xcp_bar::AbstractArray{Complex128, 4})
+function evaldXdControlPointTransposeProduct{Tmsh, T}(map::PumiMapping, mesh::AbstractDGMesh{Tmsh}, Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, 4})
 
   @assert size(Xcp_bar, 1) == 3  # all meshes are 3 dimensional to FFD
   @assert size(Xcp_bar, 2) == map.nctl[1]
@@ -405,7 +404,7 @@ function evaldXdControlPointTransposeProduct{Tmsh}(map::PumiMapping, mesh::Abstr
   @assert size(Xs_bar, 1) == mesh.dim
   @assert size(Xs_bar, 2) == map.numFacePts
 
-  fill!(work, 0.0)
+  fill!(map.work, 0.0)
   for i=1:map.numFacePts
     Xs_bar_i = sview(Xs_bar, :, i)
     xi_i = sview(map.xi, :, i)

@@ -21,25 +21,20 @@ from scratch and the entire triangular array of B-spline values of orders
 SOURCE: "A practical guide to splines" bt C. de Boor Page 112 BSPLVB
 
 """->
-function basisFunctions(U, order, u, span, N)
+function basisFunctions{T, T2}(U::AbstractVector{T}, order, u::T2, span, N::AbstractVector{T})
 
   # (U, order, u, span, N)
   #order = map.order[di]
   # U = map.edge_knot[di]
 
+  Tffd = promote_type(T, T2)
   jmax = 20 # arbitrarily imposed
-  delta_l = zeros(Float64, jmax)
-  delta_r = zeros(Float64, jmax)
+  delta_l = zeros(Tffd, jmax)
+  delta_r = zeros(Tffd, jmax)
 
   N[1] = 1.0
 
-  println("typeof(U) = ", typeof(U))
-  println("typeof(u) = ", typeof(u))
-  println("typeof(delta_r) = ", typeof(delta_r))
   for j = 1:(order-1)
-    println("j = ", j)
-    println("U = ", U)
-    println("u = ", u)
     delta_r[j] = U[span+j] - u
     delta_l[j] = u - U[span+1-j]
     saved = 0.0
@@ -75,7 +70,10 @@ particular point u.
 
 """->
 
-function derivBasisFunctions(u, U, order, span, N, Nderiv)
+function derivBasisFunctions{T, T2}(u::AbstractVector{T}, U::AbstractVector{T2},
+                                    order, span, N, Nderiv)
+
+  Tffd = promote_type(T, T2)
 
   # order = map.order[di]
   N[1] = 1.0
@@ -84,8 +82,8 @@ function derivBasisFunctions(u, U, order, span, N, Nderiv)
   # dr = view(map.dr, :, :)
   # dl = view(map.dl, :, :)
 
-  dr = zeros(AbstractFloat, order-1)
-  dl = zeros(AbstractFloat, order-1)
+  dr = zeros(Tffd, order-1)
+  dl = zeros(Tffd, order-1)
 
   if order > 1
     for k = 1:order-1

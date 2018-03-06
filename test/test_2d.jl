@@ -148,50 +148,41 @@ function test_jac(map, mesh)
 
   facts("----- Testing Transposed Jacobian-vector product -----") do
 
-    Xs_dot = Array(Array{Complex128, 3}, length(map.bc_nums))
-    nfaces = FFD.getnWallFaces(mesh, map.bc_nums)
-    for bc=1:length(map.bc_nums)
-      Xs_dot[bc] = zeros(mesh.dim, mesh.coord_numNodesPerFace, nfaces[bc])
-    end
+    jac = zeros(mesh.dim*map.numFacePts, length(map.cp_xyz))
+    jac2 = zeros(jac)
 
+    h = 1e-20
+    pert = Complex128(0, h)
+    Xs = zeros(Complex128, mesh.dim, map.numFacePts)
+    for i=1:length(map.cp_xyz)
+      map.cp_xyz[i] += pert
+      evalSurface(map, mesh, Xs)
 
-    for bc=1:length(map.bc_nums)
-      # compute entire jacbian
-      Xs_orig = evalSurface(map, mesh)[bc]
-      nXs = length(Xs_orig[bc])
-      nCP = length(map.cp_xyz)
-      jac = zeros(nXs, nCP)
-      jac2 = zeros(jac)
-
-      # compute complex step jacobian
-      h = 1e-20
-      pert = Complex128(0, h)
-      for i=1:nCP
-        map.cp_xyz[i] += pert
-        Xs = evalSurface(map, mesh)
-
-        for j=1:nXs
-          jac[j, i] = imag(Xs[bc][j])/h
-        end
-
-        map.cp_xyz[i] -= pert
+      for j=1:length(Xs)
+        jac[j, i] = imag(Xs[j])/h
       end
 
+      map.cp_xyz[i] -= pert
+    end
+
       # compute reverse mode jacobian
+      Xs_dot = zeros(Complex128, mesh.dim, map.numFacePts)
       B_dot = zeros(map.cp_xyz)
-      for i=1:nXs
-        Xs_dot[bc][i] = 1
+      for i=1:length(Xs_dot)
+        Xs_dot[i] = 1
         fill!(B_dot, 0.0)
         FFD.evaldXdControlPointTransposeProduct(map, mesh, Xs_dot, B_dot)
 
-        for j=1:nCP
+        for j=1:length(B_dot)
           jac2[i, j] = real(B_dot[j])
         end
-        Xs_dot[bc][i] = 0
+        Xs_dot[i] = 0
       end
 
+      println("jac = \n", jac)
+      println("jac2 = \n", jac2)
+      println("diff = \n", jac - jac2)
       @fact norm(jac - jac2) --> roughly(0.0, atol=1e-13)
-    end  # end loop over bcs
   end  # end facts block
 
   return nothing
@@ -204,8 +195,8 @@ function runtests()
 
   # Free Form deformation parameters
   ndim = 2
-  order = [3,3,3]  # Order of B-splines in the 3 directions
-  nControlPts = [6,6,6]
+  order = [2,2,2]  # Order of B-splines in the 3 directions
+  nControlPts = [2,2,2]
   offset = [0.25, 0.25, 0.25]
   full_geom = false
   bc_nums = [1] # = opts["BC1"]
@@ -215,14 +206,14 @@ function runtests()
                            bc_nums)
 
   test_surface(map, mesh)
-#=
+
   # make new objects in case test_surface modified the old ones
   mesh, sbp, opts = getTestMesh(2, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
   test_jac(map, mesh)
-
+#=
   # test with one boundary condition with several geometric entities
   bc_nums = [2]
 
