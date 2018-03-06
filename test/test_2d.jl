@@ -179,9 +179,6 @@ function test_jac(map, mesh)
         Xs_dot[i] = 0
       end
 
-      println("jac = \n", jac)
-      println("jac2 = \n", jac2)
-      println("diff = \n", jac - jac2)
       @fact norm(jac - jac2) --> roughly(0.0, atol=1e-13)
   end  # end facts block
 
@@ -195,8 +192,8 @@ function runtests()
 
   # Free Form deformation parameters
   ndim = 2
-  order = [2,2,2]  # Order of B-splines in the 3 directions
-  nControlPts = [2,2,2]
+  order = [3,3,3]  # Order of B-splines in the 3 directions
+  nControlPts = [6,6,6]
   offset = [0.25, 0.25, 0.25]
   full_geom = false
   bc_nums = [1] # = opts["BC1"]
@@ -213,7 +210,7 @@ function runtests()
                            bc_nums)
 
   test_jac(map, mesh)
-#=
+
   # test with one boundary condition with several geometric entities
   bc_nums = [2]
 
@@ -281,7 +278,7 @@ function runtests()
                            bc_nums)
                            
   test_jac(map, mesh)
-=#
+
 
   return nothing
 end

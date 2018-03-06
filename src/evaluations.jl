@@ -394,7 +394,7 @@ end  # End function contractWithdGdB(map, dJdGrid)
 
    * Xcp_bar: arrayto be overwritten with results, same size as `map.cp_xyz`
 """
-function evaldXdControlPointTransposeProduct{Tmsh, T}(map::PumiMapping, mesh::AbstractDGMesh{Tmsh}, Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, 4})
+function evaldXdControlPointTransposeProduct{Tmsh, T, Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh{Tmsh}, Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, 4})
 
   @assert size(Xcp_bar, 1) == 3  # all meshes are 3 dimensional to FFD
   @assert size(Xcp_bar, 2) == map.nctl[1]
@@ -404,11 +404,13 @@ function evaldXdControlPointTransposeProduct{Tmsh, T}(map::PumiMapping, mesh::Ab
   @assert size(Xs_bar, 1) == mesh.dim
   @assert size(Xs_bar, 2) == map.numFacePts
 
-  println("size(Xs_bar) = ", size(Xs_bar))
+  Xs_bar_i = zeros(Tffd, 3)  # compatability with 2D and 3D
   fill!(map.work, 0.0)
   for i=1:map.numFacePts
-    Xs_bar_i = sview(Xs_bar, :, i)
     xi_i = sview(map.xi, :, i)
+    for j=1:mesh.dim
+      Xs_bar_i[j] = Xs_bar[j, i]
+    end
     contractWithdGdB(map, xi_i, Xs_bar_i)
   end
 
