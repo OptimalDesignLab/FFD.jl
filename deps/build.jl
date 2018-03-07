@@ -1,6 +1,6 @@
 # install PkgFix if not present
 if !isdir(joinpath(Pkg.dir(), "PkgFix"))
-  Pkg.clone("PkgFix")
+  Pkg.clone("https://github.com/OptimalDesignLab/PkgFix.jl.git")
 end
 
 using PkgFix  # from now on, use PkgFix instead of Pkg for everything
