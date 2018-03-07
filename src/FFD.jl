@@ -1,21 +1,6 @@
 module FFD
 
 using MPI
-# initialize MPI, and arrange for its finalization if so
-function finalizeMPI()
-#  println("running atexit hook for MPI")
-  if MPI.Initialized()
-#    println("finalizing MPI")
-    MPI.Finalize()
-  end
-end
-
-if !MPI.Initialized()
-  println("initialiing MPI")
-  MPI.Init()
-  atexit(finalizeMPI)
-end
-
 
 export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
@@ -37,6 +22,21 @@ using PdePumiInterface
 using ODLCommonTools
 using SummationByParts
 using WriteVTK
+
+# initialize MPI, and arrange for its finalization if so
+function finalizeMPI()
+#  println("running atexit hook for MPI")
+  if MPI.Initialized()
+#    println("finalizing MPI")
+    MPI.Finalize()
+  end
+end
+
+if !MPI.Initialized()
+  MPI.Init()
+  atexit(finalizeMPI)
+end
+
 
 
 # Abstract Type definition
