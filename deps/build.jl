@@ -19,7 +19,7 @@ pkg_dict = PkgFix.installed()
 for i=1:size(pkgs, 1)
   pkg_name = PkgFix.getRepoName(pkgs[i, 1])
   if !haskey(pkg_dict, pkg_name)
-    Pkg.add(pkgs[i, 1], branch_ish=pkgs[i, 2])
+    PkgFix.add(pkgs[i, 1], branch_ish=pkgs[i, 2])
   end
 end
 
