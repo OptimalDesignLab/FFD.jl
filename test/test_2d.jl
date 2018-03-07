@@ -237,7 +237,7 @@ function test_jac(map, mesh)
       for i=1:length(Xs_dot)
         Xs_dot[i] = 1
         fill!(B_dot, 0.0)
-        FFD.evaldXdControlPointTransposeProduct(map, mesh, Xs_dot, B_dot)
+        evaldXdControlPointTransposeProduct(map, mesh, Xs_dot, B_dot)
 
         for j=1:length(B_dot)
           jac2[i, j] = real(B_dot[j])

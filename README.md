@@ -110,3 +110,47 @@ evalVolume(map, Vol)
 
 ## VOILA!!!
 ```
+
+When using FFD with a Pumi mesh, an example usage is
+```
+  mesh, sbp, opts = getTestMesh()  # get mesh, sbp, options dictionary from somewhere
+  Tmsh = eltype(mesh.jac)  # get the element type of the mesh arrays
+
+  # create the FFD around the specified surface
+  order = [3,3,3]  # Order of B-splines in the 3 directions
+  nControlPts = [6,6,6]
+  offset = [0.25, 0.25, 0.25]
+  bc_nums = [1]  # envelop the surface that boundary condition 1 is applied
+                 # to in the FFD volume
+
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+
+
+  # evaluate surface point locations
+  vertices_orig = zeros(Tmsh, mesh.dim, map.numFacePts)
+  evalSurface(map, mesh, vertices_orig)
+
+  # change control points locations
+  map.cp_xyz[1,:,:,:] += 0.1
+  map.cp_xyz[2,:,:,:] += 0.2
+  map.cp_xyz[3,:,:,:] += 0.3
+
+  # get updated coordinates
+  vertices_new = zeros(Tmsh, mesh.dim, map.numFacePts)
+  evalSurface(map, mesh, vertices_new)
+
+  # compute the Jacobian-vector product with a random vector
+  Xcp_dot = rand(map.cp_xyz)
+  Xs_dot = zeros(vertices_new)
+  evaldXdControlPointProduct(map, mesh, Xcp_dot, Xs_dot)
+  # Xs_dot now contains the result
+
+  # evaluate the transposed Jacobian-vector product with a random vector
+  Xcp_bar = zeros(map.cp_xyz)
+  Xs_bar = rand(vertices_new)
+  evaldXdControlPointTransposeProduct(map, mesh, Xs_bar, Xcp_bar)
+  # Xcp_bar now has contains the results
+```
+
+See the docstrings of these functions for more details

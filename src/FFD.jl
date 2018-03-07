@@ -20,7 +20,8 @@ end
 export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
 export calcParametricMappingNonlinear, evalVolume, evalSurface
-export writeControlPointsVTS, evaldXdControlPointProduct
+export writeControlPointsVTS, evaldXdControlPointProduct, evaldXdControlPointTransposeProduct
+
 export initializeFFD, commitToPumi
 
 export numLinearPlaneConstraints, countVarsLinearPlaneConstraints!, setLinearPlaneConstraints!
