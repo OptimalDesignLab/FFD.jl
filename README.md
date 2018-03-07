@@ -153,4 +153,4 @@ When using FFD with a Pumi mesh, an example usage is
   # Xcp_bar now has contains the results
 ```
 
-See the docstrings of these functions for more details
+See the docstrings of these functions for more details.
