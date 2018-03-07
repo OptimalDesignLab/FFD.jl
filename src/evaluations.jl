@@ -197,6 +197,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh, pts::Ar
   @assert size(pts, 2) == map.numFacePts
 
   x = zeros(Tffd, 3)  # compatability between 2D and 3D
+
   for i=1:map.numFacePts
 
     xi_i = sview(map.xi, :, i)
@@ -419,6 +420,73 @@ function evaldXdControlPointTransposeProduct{Tmsh, T, Tffd}(map::PumiMapping{Tff
 
   return nothing
 end
+
+"""
+  Evaluates the Jacobian-vector product
+
+  Xs_dot = (dXs/dXcp) Xcp_dot
+
+  where Xs are the surface coordinates, and Xcp are the control point
+  coordinates.
+
+  It is not safe to complex step this function.
+
+  **Inputs**
+
+   * map: a PumiMapping object
+   * mesh: a PumiMeshDG
+   * Xcp_dot: array to multiply the jacobian against, same size as `map.cp_xyz`
+
+  **Inputs/Outputs**
+
+   * Xs_dot: the array to be overwritten with the results
+             size 3 x `map.numFacePts`
+
+  **Implementation Notes**
+
+  This function uses complex step internally to do the calculation, using
+  `map.map_cs`.  `Tffd` does not have to be a complex type for the `map`
+  passed to this function.
+
+
+"""
+function evaldXdControlPointProduct{Tmsh, T, Tffd}(map::PumiMapping{Tffd},
+               mesh::AbstractDGMesh{Tmsh}, Xcp_dot::AbstractArray{T, 4},
+               Xs_dot::AbstractMatrix )
+#TODO: add some simd
+
+  @assert size(Xs_dot, 1) == map.ndim
+  @assert size(Xs_dot, 2) == map.numFacePts
+  for i=1:4
+    @assert size(Xcp_dot, i) == size(map.cp_xyz, i)
+  end
+
+  # copy things into map.map_cs
+  map_cs = map.map_cs
+  copy!(map_cs.cp_xyz, map.cp_xyz)
+#  copy!(map_cs.xi, map.xi)
+
+  h = 1e-20
+  pert = Complex128(0, h)
+  @simd for i=1:length(Xcp_dot)
+    map_cs.cp_xyz[i] += Xcp_dot[i]*pert
+  end
+
+  vertices = map_cs.vertices
+  evalSurface(map_cs, mesh, vertices)
+
+  @simd for i=1:length(Xs_dot)
+    Xs_dot[i] = imag(vertices[i])/h
+  end
+
+  # remove the perturbation
+  @simd for i=1:length(Xcp_dot)
+    map_cs.cp_xyz[i] -= Xcp_dot[i]*pert
+  end
+
+  return nothing
+end
+
 
 
 #=

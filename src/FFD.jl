@@ -172,6 +172,67 @@ end  # End Mapping
 @doc """
 ### PumiMapping
 
+  This subtype of [`AbstractMapping`](@ref) enables the use of Free Form
+  Deformation with a Pumi mesh.
+
+  Users should *not* call this function directly, they should call
+  [`initializeFFD`](@ref) instead.
+
+  **Public Fields**
+
+   * ndim: dimensionality of the mesh
+   * cp_xyz: a 3 x `nctl[1]` x `nctl[2]` x `nctl[3]` array containing the
+             x,y, and z coordinates of each control point.  Note that 
+             the control point grid is always 3 dimensional, even when the
+             mesh is 2 dimensional.
+    * n_face: a Pumi apf::Numbering object that numbers the face nodes
+    * numFacePts: the number of points on the face
+
+  **Private Fields*
+
+   * bc_nums: the array of boundary condition numbers that define the
+              surface enveloped by the FFD control points
+   * face_verts: vector of apf::MeshEntity* (Ptr{Void}) containing the
+                 vertices in the order defined by `n_face`.  Length
+                 `numFacePts`
+   * map_cs: a PumiMapping{Complex128}, used for doing complex step when
+             Tffd is real
+
+
+  **Constructors**
+
+   ***Constructor 1***
+   
+    This zero argument constructor produces an object with all fields
+    zero.  Useful for constructing a dummy object
+
+   ***Constructor 2***
+
+    This constructor is the main constructor.  Its argument are:
+
+     * ndims: number of dimensions (must be the same as mesh.dim
+     * order: array of length 3 specifying the degree of the B-splines in
+              each direction
+     * nctl: array of length 3 specifying the number of control points in
+             each direction
+     * mesh: the Pumi mesh object
+     * n_face: a Pumi apf::Numbering* hat numbers the surface points, default
+               to C_NULL.  If unspecified, a new surface numbering will be
+               created.
+     * numFacePts: number of face points numbered by n_face.  Defaults to
+                   zero.  This argument should only be specified in `n_face` is
+                   as well.
+     * bc_nums: array of integers specifying the boundary condition numbers
+                (used in the construction of the `mesh`) that identify the
+                surface to envelop in the FFD volume.  This is a keyword
+                argument
+
+  ***Constructor 3***
+
+  Copy constructor.  Allows copying a PumiMapping.  The new one can have a
+  different type parameter `Tffd`.  Arguments:
+
+   * map: a PumiMapping
 """->
 
 type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
@@ -196,12 +257,16 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
   numFacePts::Int  # number of face points
   face_verts::Array{Ptr{Void}, 1}  # face points, in order
 
-  evalVolume::Function
+  map_cs::PumiMapping{Complex128}  # map for complex stepping even when Tffd
+                                   # is real
+  vertices::Array{Tffd, 2}  # dim x numFacePts array, used by map_cs
 
   function PumiMapping(ndim::Int, order::AbstractArray{Int,1},
                        nctl::AbstractArray{Int,1}, mesh::AbstractMesh,
-                       n_face::Ptr{Void}=C_NULL, numFacePts=0; bc_nums::AbstractArray{Int,1}=[0])
+                       n_face::Ptr{Void}=C_NULL, numFacePts=0;
+                       bc_nums::AbstractArray{Int,1}=[0])
 
+    #TODO: remove dims, use mesh.dim instead
     map = new()
     # Check if the input arguments are valid
     @assert ndim >= 2 "Only 2D and 3D valid"
@@ -266,30 +331,69 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map.dr = zeros(max_order-1, 3)
     map.work = zeros(max_work, nctl[1], nctl[2], nctl[3])
 
+    # do this in initializeFFD because map isn't fully initialized yet
+#    map.map_cs = PumiMapping{Complex128}(map)
+    map.vertices = Array(Tffd, 0, 0)
+
     return map
   end
 
   function PumiMapping()
-    ndim = 0
-    full_geom = false
-    nctl = Int[]
-    order = Int[]
-    cp_xyz = zeros(Tffd, 0, 0, 0, 0)
-    edge_knot = Array(Vector{TFFD}, 0)
-    bc_nums = Int[]
-    cp_idx = zeros(Tffd, 0, 0, 0, 0)
-    aj = zeros(Tffd, 0, 0, 0)
-    dl = zeros(Tffd, 0, 0)
-    dr = zeros(Tffd, 0, 0)
-    work = zeros(Tffd, 0, 0, 0, 0)
-    evalVolume = () -> nothing
-    
+    map = new()
+    map.ndim = 0
+    map.nctl = Int[]
+    map.order = Int[]
+    map.xi = zeros(Tffd, 0, 0)
+    map.cp_xyz = zeros(Tffd, 0, 0, 0, 0)
+    map.edge_knot = Array(Vector{Tffd}, 0)
+    map.bc_nums = Int[]
+    map.cp_idx = zeros(Tffd, 0, 0, 0, 0)
+    map.aj = zeros(Tffd, 0, 0, 0)
+    map.dl = zeros(Tffd, 0, 0)
+    map.dr = zeros(Tffd, 0, 0)
+    map.work = zeros(Tffd, 0, 0, 0, 0)
+
+    map.n_face = C_NULL
+    map.numFacePts = 0
+    map.face_verts = Ptr{Void}[]
+    map.map_cs = PumiMapping{Tffd}(map)
+    map.vertices = Array(Tffd, 0, 0)
 
     return new(ndim, nctl, order, cp_xyz, edge_know, bc_nums,
-               cp_idx, aj, dl, dr, work, evalVolume)
-end
+               cp_idx, aj, dl, dr, work)
+  end
 
+  # constructs a new mapping from a fully initialized one, with possibly
+  # different parameter Tffd
+  function PumiMapping(map_old::PumiMapping)
 
+    map = new()
+    map.ndim = map_old.ndim
+    map.nctl = copy(map_old.nctl)
+    map.order = copy(map_old.order)
+    map.xi = zeros(Tffd, size(map_old.xi)); copy!(map.xi, map_old.xi)
+    map.cp_xyz = zeros(Tffd, size(map_old.cp_xyz)); copy!(map.cp_xyz, map_old.cp_xyz)
+    map.edge_knot = Array(Vector{Tffd}, length(map_old.edge_knot))
+    for i=1:length(map.edge_knot)
+      map.edge_knot[i] = copy(map_old.edge_knot[i])
+    end
+    map.bc_nums = copy(map_old.bc_nums)
+    map.cp_idx = copy(map_old.cp_idx)
+
+    map.aj = zeros(Tffd, size(map_old.aj)); copy!(map.aj, map_old.aj)
+    map.dl = zeros(Tffd, size(map_old.dl)); copy!(map.dl, map_old.dl)
+    map.dr = zeros(Tffd, size(map_old.dr)); copy!(map.dr, map_old.dr)
+    map.work = zeros(Tffd, size(map_old.work)); copy!(map.work, map_old.work)
+
+    map.n_face = map_old.n_face
+    map.numFacePts = map_old.numFacePts
+    map.face_verts = map_old.face_verts  # reference, don't copy for this one
+                                         # because it is large
+    # leave map_cs uninitialized
+
+    map.vertices = Array(Tffd, map_old.ndim, map.numFacePts)
+    return map
+  end
 
 end  # End type PumiMapping
 
@@ -351,6 +455,8 @@ function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
   # Populate map.xi
   calcParametricMappingNonlinear(map, ffd_box, mesh, bc_nums)
 
+  # now that map is fully initialized, copy it for the complex step calculations
+  map.map_cs = PumiMapping{Complex128}(map)
   return map, ffd_box
 end
 

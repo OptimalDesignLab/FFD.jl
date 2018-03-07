@@ -61,7 +61,6 @@ function test_surface(map, mesh)
 
 
   facts("----- Testing FFD Surface Evaluation -----") do
-    println("mesh.dim = ", mesh.dim)
     vertices_orig = zeros(Complex128, mesh.dim, map.numFacePts)
     evalSurface(map, mesh, vertices_orig)
 #    vertices_orig = evalSurface(map, mesh)
@@ -144,6 +143,73 @@ function test_surface(map, mesh)
 end
 
 
+function test_jac2{Tffd}(map::PumiMapping{Tffd}, mesh)
+
+  facts("----- Testing Jacobian-vector product -----") do
+
+    Xs_dot = zeros(Tffd, mesh.dim, map.numFacePts)
+    Xs_dot2 = zeros(Xs_dot)
+
+    vertices_orig = zeros(Xs_dot)
+    evalSurface(map, mesh, vertices_orig)
+
+    if Tffd <: Complex
+      # test that map.cs produces the same coordinates as map
+      map_cs = map.map_cs
+      copy!(map_cs.cp_xyz, map.cp_xyz)
+      vertices_cs = zeros(Xs_dot)
+      evalSurface(map, mesh, vertices_cs)
+
+      @fact maximum(abs(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
+
+      for i=1:length(map.cp_xyz)
+        map.cp_xyz[i] += 1
+      end
+
+      copy!(map_cs.cp_xyz, map.cp_xyz)
+      evalSurface(map, mesh, vertices_orig)
+      evalSurface(map_cs, mesh, vertices_cs)
+      @fact maximum(abs(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
+    end
+
+
+
+    for i=1:10
+      fill!(Xs_dot, 0.0)
+      fill!(Xs_dot2, 0.0)
+      Xcp_dot = rand(size(map.cp_xyz))
+
+      # finite difference
+      h = 1e-7
+      for j=1:length(Xcp_dot)
+        map.cp_xyz[j] += Xcp_dot[j]*h
+      end
+
+      vertices_new = zeros(vertices_orig)
+      evalSurface(map, mesh, vertices_new)
+
+      for j=1:length(Xcp_dot)
+        map.cp_xyz[j] -= Xcp_dot[j]*h
+      end
+
+      for j=1:length(Xs_dot)
+        Xs_dot[j] = (vertices_new[j] - vertices_orig[j])/h
+      end
+
+      # complex step
+      evaldXdControlPointProduct(map, mesh, Xcp_dot, Xs_dot2)
+
+      for j=1:length(Xs_dot)
+        @fact Xs_dot[j] --> roughly(Xs_dot2[j], atol=1e-7)
+      end
+    end
+
+  end  # end facts block
+
+  return nothing
+end
+
+
 function test_jac(map, mesh)
 
   facts("----- Testing Transposed Jacobian-vector product -----") do
@@ -209,6 +275,23 @@ function runtests()
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
+  test_jac2(map, mesh)
+
+  # test with real values map
+
+  mesh, sbp, opts = getTestMesh(2, Float64)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+
+  test_jac2(map, mesh)
+
+
+  # make new objects in case test_surface modified the old ones
+  mesh, sbp, opts = getTestMesh(2, Complex128)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+
+
   test_jac(map, mesh)
 
   # test with one boundary condition with several geometric entities
@@ -232,6 +315,12 @@ function runtests()
                            bc_nums)
 
   test_surface(map, mesh)
+
+  mesh, sbp, opts = getTestMesh(2, Complex128)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+  test_jac2(map, mesh)
+
 
   mesh, sbp, opts = getTestMesh(2, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
@@ -268,10 +357,18 @@ function runtests()
   # test multiple BCs
   bc_nums = [1, 2]
 
+  mesh, sbp, opts = getTestMesh(3, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
   test_surface(map, mesh)
+
+  mesh, sbp, opts = getTestMesh(3, Complex128)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+                           
+  test_jac2(map, mesh)
+
 
   mesh, sbp, opts = getTestMesh(3, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
