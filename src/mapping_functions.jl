@@ -167,6 +167,7 @@ end
 function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractDGMesh)
 
+  @assert false "this function is broken"
   if mesh.dim == 2
     X = zeros(Tffd,3)
     for i = 1:mesh.numEl
@@ -243,6 +244,7 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractDGMesh,
                                      bc_nums::AbstractArray{Int,1})
 
+  @assert false "This function is broken"
   # Check if the knot vectors are for Bezier Curves with Bernstein polynomial
   # basis functions
   for i = 1:length(map.edge_knot)
@@ -344,6 +346,7 @@ end
 function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
                                         box::PumiBoundingBox, mesh::AbstractDGMesh)
 
+  @assert false "This function is broken"
   X = zeros(Tffd,3)
   for i = 1:mesh.numEl
     for j = 1:mesh.numNodesPerElement

@@ -70,7 +70,7 @@ particular point u.
 
 """->
 
-function derivBasisFunctions{T, T2}(u::AbstractVector{T}, U::AbstractVector{T2},
+function derivBasisFunctions{T, T2}(u::T, U::AbstractVector{T2},
                                     order, span, N, Nderiv)
 
   Tffd = promote_type(T, T2)

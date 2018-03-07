@@ -238,20 +238,20 @@ end  # End Mapping
 type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
-  nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
-  order::AbstractArray{Int, 1}  # Order of B-spline in each direction
+  nctl::Array{Int, 1}   # Number of control points in each of the 3 dimensions
+  order::Array{Int, 1}  # Order of B-spline in each direction
 
-  xi::AbstractArray       # Paramaetric coordinates of input geometry
-  cp_xyz::AbstractArray{Tffd, 4} # Cartesian coordinates of control points
-  edge_knot::AbstractArray{Vector{Tffd}, 1}  # edge knot vectors
-  bc_nums::AbstractArray{Int,1}
-  cp_idx::AbstractArray{Int,4}  # index assigned to each CP coordinate
+  xi::Array       # Paramaetric coordinates of input geometry
+  cp_xyz::Array{Tffd, 4} # Cartesian coordinates of control points
+  edge_knot::Array{Vector{Tffd}, 1}  # edge knot vectors
+  bc_nums::Array{Int,1}
+  cp_idx::Array{Int,4}  # index assigned to each CP coordinate
 
   # Working arrays
-  aj::AbstractArray{Tffd, 3}
-  dl::AbstractArray{Tffd, 2}
-  dr::AbstractArray{Tffd, 2}
-  work::AbstractArray{Tffd, 4}
+  aj::Array{Tffd, 3}
+  dl::Array{Tffd, 2}
+  dr::Array{Tffd, 2}
+  work::Array{Tffd, 4}
 
   n_face::Ptr{Void}  # apf::Numbering*, numbering the face points
   numFacePts::Int  # number of face points

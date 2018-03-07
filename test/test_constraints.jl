@@ -78,7 +78,7 @@ nControlPts = [2,4,2]
 
 # code here for creating rectilinear map
 # Create Mapping object
-map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh, full_geom=false,
+map = PumiMapping{Tmsh}(ndim, order, nControlPts, mesh,
                             bc_nums=bc_nums)
 
 # Create knot vector
