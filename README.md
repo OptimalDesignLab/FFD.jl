@@ -154,3 +154,5 @@ When using FFD with a Pumi mesh, an example usage is
 ```
 
 See the docstrings of these functions for more details.
+
+[![Build Status](https://travis-ci.org/OptimalDesignLab/FFD.jl.svg?branch=master)](https://travis-ci.org/OptimalDesignLab/FFD.jl)
