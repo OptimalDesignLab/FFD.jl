@@ -62,8 +62,7 @@ function test_surface(map, mesh)
 
   facts("----- Testing FFD Surface Evaluation -----") do
     vertices_orig = zeros(Complex128, mesh.dim, map.numFacePts)
-    evalSurface(map, mesh, vertices_orig)
-#    vertices_orig = evalSurface(map, mesh)
+    evalSurface(map, vertices_orig)
 
     # Rigid body rotation
     theta = -20*pi/180  # Rotate wall coordinates by 10 degrees
@@ -106,8 +105,7 @@ function test_surface(map, mesh)
     map.cp_xyz[3,:,:,:] += zfac
 
     vertices = zeros(Complex128, mesh.dim, map.numFacePts)
-    evalSurface(map, mesh, vertices)
-#    vertices = evalSurface(map, mesh)
+    evalSurface(map, vertices)
 
     for i=1:map.numFacePts
       if mesh.dim == 2
@@ -151,14 +149,14 @@ function test_jac2{Tffd}(map::PumiMapping{Tffd}, mesh)
     Xs_dot2 = zeros(Xs_dot)
 
     vertices_orig = zeros(Xs_dot)
-    evalSurface(map, mesh, vertices_orig)
+    evalSurface(map, vertices_orig)
 
     if Tffd <: Complex
       # test that map.cs produces the same coordinates as map
       map_cs = map.map_cs
       copy!(map_cs.cp_xyz, map.cp_xyz)
       vertices_cs = zeros(Xs_dot)
-      evalSurface(map, mesh, vertices_cs)
+      evalSurface(map, vertices_cs)
 
       @fact maximum(abs(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
 
@@ -167,8 +165,8 @@ function test_jac2{Tffd}(map::PumiMapping{Tffd}, mesh)
       end
 
       copy!(map_cs.cp_xyz, map.cp_xyz)
-      evalSurface(map, mesh, vertices_orig)
-      evalSurface(map_cs, mesh, vertices_cs)
+      evalSurface(map, vertices_orig)
+      evalSurface(map_cs, vertices_cs)
       @fact maximum(abs(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
     end
 
@@ -186,7 +184,7 @@ function test_jac2{Tffd}(map::PumiMapping{Tffd}, mesh)
       end
 
       vertices_new = zeros(vertices_orig)
-      evalSurface(map, mesh, vertices_new)
+      evalSurface(map, vertices_new)
 
       for j=1:length(Xcp_dot)
         map.cp_xyz[j] -= Xcp_dot[j]*h
@@ -197,7 +195,7 @@ function test_jac2{Tffd}(map::PumiMapping{Tffd}, mesh)
       end
 
       # complex step
-      evaldXdControlPointProduct(map, mesh, Xcp_dot, Xs_dot2)
+      evaldXdControlPointProduct(map, Xcp_dot, Xs_dot2)
 
       for j=1:length(Xs_dot)
         @fact Xs_dot[j] --> roughly(Xs_dot2[j], atol=1e-7)
@@ -222,7 +220,7 @@ function test_jac(map, mesh)
     Xs = zeros(Complex128, mesh.dim, map.numFacePts)
     for i=1:length(map.cp_xyz)
       map.cp_xyz[i] += pert
-      evalSurface(map, mesh, Xs)
+      evalSurface(map, Xs)
 
       for j=1:length(Xs)
         jac[j, i] = imag(Xs[j])/h
@@ -237,7 +235,7 @@ function test_jac(map, mesh)
       for i=1:length(Xs_dot)
         Xs_dot[i] = 1
         fill!(B_dot, 0.0)
-        evaldXdControlPointTransposeProduct(map, mesh, Xs_dot, B_dot)
+        evaldXdControlPointTransposeProduct(map, Xs_dot, B_dot)
 
         for j=1:length(B_dot)
           jac2[i, j] = real(B_dot[j])

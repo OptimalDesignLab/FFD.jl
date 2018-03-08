@@ -129,7 +129,7 @@ When using FFD with a Pumi mesh, an example usage is
 
   # evaluate surface point locations
   vertices_orig = zeros(Tmsh, mesh.dim, map.numFacePts)
-  evalSurface(map, mesh, vertices_orig)
+  evalSurface(map, vertices_orig)
 
   # change control points locations
   map.cp_xyz[1,:,:,:] += 0.1
@@ -138,18 +138,18 @@ When using FFD with a Pumi mesh, an example usage is
 
   # get updated coordinates
   vertices_new = zeros(Tmsh, mesh.dim, map.numFacePts)
-  evalSurface(map, mesh, vertices_new)
+  evalSurface(map, vertices_new)
 
   # compute the Jacobian-vector product with a random vector
   Xcp_dot = rand(map.cp_xyz)
   Xs_dot = zeros(vertices_new)
-  evaldXdControlPointProduct(map, mesh, Xcp_dot, Xs_dot)
+  evaldXdControlPointProduct(map, Xcp_dot, Xs_dot)
   # Xs_dot now contains the result
 
   # evaluate the transposed Jacobian-vector product with a random vector
   Xcp_bar = zeros(map.cp_xyz)
   Xs_bar = rand(vertices_new)
-  evaldXdControlPointTransposeProduct(map, mesh, Xs_bar, Xcp_bar)
+  evaldXdControlPointTransposeProduct(map, Xs_bar, Xcp_bar)
   # Xcp_bar now has contains the results
 ```
 

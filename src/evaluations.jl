@@ -183,7 +183,6 @@ end
   **Inputs**
 
    * map: a PumiMapping object
-   * mesh: a PumiMesh object
 
   **Inputs/Outputs**
 
@@ -191,9 +190,9 @@ end
           surface points (ordered according to the numbering supplied to
           the `PumiMapping` constructor.
 """
-function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh, pts::Array{Tffd, 2})
+function evalSurface{Tffd}(map::PumiMapping{Tffd}, pts::Array{Tffd, 2})
 
-  @assert size(pts, 1) == mesh.dim
+  @assert size(pts, 1) == map.ndim
   @assert size(pts, 2) == map.numFacePts
 
   x = zeros(Tffd, 3)  # compatability between 2D and 3D
@@ -203,7 +202,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh, pts::Ar
     xi_i = sview(map.xi, :, i)
     evalVolumePoint(map, xi_i, x)
 
-    for j=1:mesh.dim
+    for j=1:map.ndim
       pts[j, i] = x[j]
     end
   end
@@ -387,7 +386,6 @@ end  # End function contractWithdGdB(map, dJdGrid)
   **Inputs**
 
    * map: a PumiMapping object
-   * mesh: a PumiMeshDG
    * Xs_bar: the array to multiply the transposed jacobian against,
              size 3 x `map.numFacePts`
 
@@ -395,21 +393,21 @@ end  # End function contractWithdGdB(map, dJdGrid)
 
    * Xcp_bar: arrayto be overwritten with results, same size as `map.cp_xyz`
 """
-function evaldXdControlPointTransposeProduct{Tmsh, T, Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh{Tmsh}, Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, 4})
+function evaldXdControlPointTransposeProduct{T, Tffd}(map::PumiMapping{Tffd}, Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, 4})
 
   @assert size(Xcp_bar, 1) == 3  # all meshes are 3 dimensional to FFD
   @assert size(Xcp_bar, 2) == map.nctl[1]
   @assert size(Xcp_bar, 3) == map.nctl[2]
   @assert size(Xcp_bar, 4) == map.nctl[3]
 
-  @assert size(Xs_bar, 1) == mesh.dim
+  @assert size(Xs_bar, 1) == map.ndim
   @assert size(Xs_bar, 2) == map.numFacePts
 
   Xs_bar_i = zeros(Tffd, 3)  # compatability with 2D and 3D
   fill!(map.work, 0.0)
   for i=1:map.numFacePts
     xi_i = sview(map.xi, :, i)
-    for j=1:mesh.dim
+    for j=1:map.ndim
       Xs_bar_i[j] = Xs_bar[j, i]
     end
     contractWithdGdB(map, xi_i, Xs_bar_i)
@@ -434,7 +432,6 @@ end
   **Inputs**
 
    * map: a PumiMapping object
-   * mesh: a PumiMeshDG
    * Xcp_dot: array to multiply the jacobian against, same size as `map.cp_xyz`
 
   **Inputs/Outputs**
@@ -450,9 +447,8 @@ end
 
 
 """
-function evaldXdControlPointProduct{Tmsh, T, Tffd}(map::PumiMapping{Tffd},
-               mesh::AbstractDGMesh{Tmsh}, Xcp_dot::AbstractArray{T, 4},
-               Xs_dot::AbstractMatrix )
+function evaldXdControlPointProduct{T, Tffd}(map::PumiMapping{Tffd},
+               Xcp_dot::AbstractArray{T, 4}, Xs_dot::AbstractMatrix )
 #TODO: add some simd
 
   @assert size(Xs_dot, 1) == map.ndim
@@ -473,7 +469,7 @@ function evaldXdControlPointProduct{Tmsh, T, Tffd}(map::PumiMapping{Tffd},
   end
 
   vertices = map_cs.vertices
-  evalSurface(map_cs, mesh, vertices)
+  evalSurface(map_cs, vertices)
 
   @simd for i=1:length(Xs_dot)
     Xs_dot[i] = imag(vertices[i])/h
