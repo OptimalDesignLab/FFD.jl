@@ -1,6 +1,5 @@
 module FFD
 
-using MPI
 
 export AbstractMappingType, Mapping, PumiMapping
 export PumiBoundingBox, calcKnot, controlPoint, calcParametricMappingLinear
@@ -14,6 +13,8 @@ export numLinearCornerConstraints, countVarsLinearCornerConstraints!, setLinearC
 export numLinearStretchConstraints, countVarsLinearStretchConstraints!, setLinearStretchConstraints!
 export numLinearRootConstraints, countVarsLinearRootConstraints!, setLinearRootConstraints!
 
+export getControlPoints, setControlPoints
+
 #push!(LOAD_PATH, joinpath(Pkg.dir("PumiInterface"), "src"))
 
 using ArrayViews
@@ -22,6 +23,8 @@ using PdePumiInterface
 using ODLCommonTools
 using SummationByParts
 using WriteVTK
+
+using MPI
 
 # initialize MPI, and arrange for its finalization if so
 function finalizeMPI()
@@ -185,9 +188,12 @@ end  # End Mapping
    * cp_xyz: a 3 x `nctl[1]` x `nctl[2]` x `nctl[3]` array containing the
              x,y, and z coordinates of each control point.  Note that 
              the control point grid is always 3 dimensional, even when the
-             mesh is 2 dimensional.
+             mesh is 2 dimensional.  This array is read-only
     * n_face: a Pumi apf::Numbering object that numbers the face nodes
     * numFacePts: the number of points on the face
+    * nctl: array of length 3, containing the number of control points in each
+            direction.  For 2D meshes, the number of control points in the
+            z direction must be 2.
 
   **Private Fields*
 
@@ -243,7 +249,8 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
   order::Array{Int, 1}  # Order of B-spline in each direction
 
   xi::Array       # Paramaetric coordinates of input geometry
-  cp_xyz::Array{Tffd, 4} # Cartesian coordinates of control points
+  cp_xyz::ROView{Tffd, 4, Array{Tffd, 4}}
+  _cp_xyz::Array{Tffd, 4} # Cartesian coordinates of control points
   edge_knot::Array{Vector{Tffd}, 1}  # edge knot vectors
   bc_nums::Array{Int,1}
   cp_idx::Array{Int,4}  # index assigned to each CP coordinate
@@ -283,7 +290,8 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map.ndim = mesh.dim
     map.order = order
     map.nctl = nctl
-    map.cp_xyz = zeros(3, nctl[1], nctl[2], nctl[3])
+    map._cp_xyz = zeros(3, nctl[1], nctl[2], nctl[3])
+    map.cp_xyz = ROView(map._cp_xyz)
 
     map.edge_knot = Array(Vector{Tffd}, 3)
     for i = 1:3
@@ -345,7 +353,8 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map.nctl = Int[]
     map.order = Int[]
     map.xi = zeros(Tffd, 0, 0)
-    map.cp_xyz = zeros(Tffd, 0, 0, 0, 0)
+    map._cp_xyz = zeros(Tffd, 0, 0, 0, 0)
+    map.cp_xyz = ROView(map._cp_xyz)
     map.edge_knot = Array(Vector{Tffd}, 0)
     map.bc_nums = Int[]
     map.cp_idx = zeros(Tffd, 0, 0, 0, 0)
@@ -360,8 +369,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map.map_cs = PumiMapping{Tffd}(map)
     map.vertices = Array(Tffd, 0, 0)
 
-    return new(ndim, nctl, order, cp_xyz, edge_know, bc_nums,
-               cp_idx, aj, dl, dr, work)
+    return map
   end
 
   # constructs a new mapping from a fully initialized one, with possibly
@@ -373,7 +381,8 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map.nctl = copy(map_old.nctl)
     map.order = copy(map_old.order)
     map.xi = zeros(Tffd, size(map_old.xi)); copy!(map.xi, map_old.xi)
-    map.cp_xyz = zeros(Tffd, size(map_old.cp_xyz)); copy!(map.cp_xyz, map_old.cp_xyz)
+    map._cp_xyz = zeros(Tffd, size(map_old.cp_xyz)); copy!(map._cp_xyz, map_old._cp_xyz)
+    map.cp_xyz = ROView(map._cp_xyz)
     map.edge_knot = Array(Vector{Tffd}, length(map_old.edge_knot))
     for i=1:length(map.edge_knot)
       map.edge_knot[i] = copy(map_old.edge_knot[i])
@@ -460,6 +469,134 @@ function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
   map.map_cs = PumiMapping{Complex128}(map)
   return map, ffd_box
 end
+
+"""
+  This function copies the supplied array into map._cp_xyz, without checking
+  the dimensionality first.
+
+  **Inputs**
+
+   * map: a PumiMapping object
+   * cp_xyz: array, same size as map.cp_xyz, with new control point coordinates.
+"""
+function _setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
+
+  for i=1:4
+    @assert size(cp_xyz, i) == size(map._cp_xyz, i)
+  end
+
+  for i=1:length(cp_xyz)
+    map._cp_xyz[i] = cp_xyz[i]
+  end
+
+  return nothing
+end
+
+"""
+  This function updates the control point locations.  Users should not modify
+  map.cp_xyz directly, they should use this function instead.  Derivative
+  values will be incorrect if map.cp_xyz is modified.
+
+  **Inputs**
+
+   * map: a PumiMapping
+   * cp_xyz: array with new control point locations.  In 2D, this array 
+             should be 2 x map.nctl[1] x map.nctl[2].  In 3D it should be
+             3 x map.nctl[1] x map.nctl[2] x map.nctl[3]
+
+  **Implementaton Notes**
+
+  The internals of FFD always assume a 3 dimensional mesh, but for running
+  2D problems having 2 control points along the z axis doesn't make sense.
+  In 2D, this function updates both planes of control points simultaneously.
+"""
+function setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
+
+  @assert map.ndim == 3
+
+  # copy everything over
+  _setControlPoints(map, cp_xyz)
+
+  return nothing
+end
+
+function setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 3})
+
+  @assert map.ndim == 2
+  @assert size(cp_xyz, 1) == 2
+  @assert size(cp_xyz, 2) == size(map.cp_xyz, 2)
+  @assert size(cp_xyz, 3) == size(map.cp_xyz, 3)
+  @assert size(map.cp_xyz, 4) == 2
+
+  # set cp_xyz for both z = zmin and z = zmax
+  # note that the derivative calculations need to take this into account
+
+  for i=1:size(cp_xyz, 3)
+    for j=1:size(cp_xyz, 2)
+      for k=1:size(cp_xyz, 1)
+        map._cp_xyz[k, j, i, 1] = cp_xyz[k, j, i]
+        map._cp_xyz[k, j, i, 2] = cp_xyz[k, j, i]
+      end
+    end
+  end
+
+  return nothing
+end
+
+"""
+  This function returns a copy of the current control point locations, suitable
+  to be passed into [`setControlPoints`](@ref)  See that function for details
+
+  Note that this function is type unstable.  Users are generally better off
+  allocating their own array.
+
+  **Inputs**
+
+   * map: PumiMapping
+
+  **Outputs**
+
+   * array of control point locations
+"""
+function getControlPoints(map::PumiMapping)
+
+  if map.ndim == 2
+    return map._cp_xyz[1:2, :, :, 1]
+  else
+    return copy(map._cp_xyz)
+  end
+
+  return nothing
+end
+
+"""
+  This function checks if an array formatted similarly to map.cp_xyz
+  has the same coordinates for the z = zmin and z = zmax.  This is the
+  condition enforced by [`setControlPoints`](@ref) for 2D arrays.
+
+  **Inputs**
+
+   * cp_xyz: array like cp_xyz
+"""
+function check2DSymmetry{T}(cp_xyz::AbstractArray{T, 4}, tol=1e-13)
+
+  @assert size(cp_xyz, 4) == 2
+
+  nonsym = false
+  for i=1:size(cp_xyz, 3)
+    for j=1:size(cp_xyz, 2)
+      for k=1:2
+        flag = abs(cp_xyz[k, j, i, 1] - cp_xyz[k, j, i, 2]) > tol
+        nonsym = nonsym || flag
+      end
+    end
+  end
+
+  @assert !nonsym "cp_xyz is non-symmetric about the x-y plane.  Did you modify PumiMapping.cp_xyz directly?"
+
+  return nothing
+end
+
 
 #=
 @doc """

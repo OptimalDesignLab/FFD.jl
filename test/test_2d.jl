@@ -64,13 +64,19 @@ function test_surface(map, mesh)
     vertices_orig = zeros(Complex128, mesh.dim, map.numFacePts)
     evalSurface(map, vertices_orig)
 
+    cp_xyz = getControlPoints(map)
     # Rigid body rotation
     theta = -20*pi/180  # Rotate wall coordinates by 10 degrees
     phi = -10*pi/180  # rotation about x axis (3D only)
     if mesh.dim == 2
-      rotMat = [cos(theta) -sin(theta) 0
-                sin(theta) cos(theta)  0
-                0          0           1] # Rotation matrix
+      rotMat = [cos(theta) -sin(theta)
+                sin(theta) cos(theta)] # Rotation matrix
+
+      for i=1:map.nctl[2]
+        for j=1:map.nctl[1]
+          cp_xyz[:, j, i] = rotMat*cp_xyz[:, j, i]
+        end
+      end
     else
       rotMat1 = [cos(theta) -sin(theta) 0
                  sin(theta) cos(theta)  0
@@ -80,18 +86,18 @@ function test_surface(map, mesh)
                  0 sin(phi)  cos(phi) ]
 
       rotMat = rotMat1*rotMat2
-    end
-    
-    cp_orig = copy(map.cp_xyz)
-    # Rotate the control points
-    for k = 1:map.nctl[3]
-      for j = 1:map.nctl[2]
-        for i = 1:map.nctl[1]
-          map.cp_xyz[:,i,j,k] = rotMat*map.cp_xyz[:,i,j,k]
+      # Rotate the control points
+      for k = 1:map.nctl[3]
+        for j = 1:map.nctl[2]
+          for i = 1:map.nctl[1]
+            cp_xyz[:,i,j,k] = rotMat*cp_xyz[:,i,j,k]
+          end
         end
       end
-    end
 
+
+    end
+    
     # Rigid body translation
     xfac = 0.2
     yfac = 0.3
@@ -100,16 +106,25 @@ function test_surface(map, mesh)
     else
       zfac = 0.0
     end
-    map.cp_xyz[1,:,:,:] += xfac
-    map.cp_xyz[2,:,:,:] += yfac
-    map.cp_xyz[3,:,:,:] += zfac
+
+    if mesh.dim == 2
+      cp_xyz[1, :, :] += xfac
+      cp_xyz[2, :, :] += yfac
+    else
+      cp_xyz[1,:,:,:] += xfac
+      cp_xyz[2,:,:,:] += yfac
+      cp_xyz[3,:,:,:] += zfac
+    end
+
+    # set new control point values
+    setControlPoints(map, cp_xyz)
 
     vertices = zeros(Complex128, mesh.dim, map.numFacePts)
     evalSurface(map, vertices)
 
     for i=1:map.numFacePts
       if mesh.dim == 2
-        verts_exact = rotMat[1:2, 1:2]*vertices_orig[:, i] + [xfac; yfac]
+        verts_exact = rotMat*vertices_orig[:, i] + [xfac; yfac]
       else
         verts_exact = rotMat*vertices_orig[:, i] + [xfac; yfac; zfac]
       end
@@ -154,17 +169,17 @@ function test_jac2{Tffd}(map::PumiMapping{Tffd}, mesh)
     if Tffd <: Complex
       # test that map.cs produces the same coordinates as map
       map_cs = map.map_cs
-      copy!(map_cs.cp_xyz, map.cp_xyz)
+      copy!(map_cs._cp_xyz, map._cp_xyz)
       vertices_cs = zeros(Xs_dot)
       evalSurface(map, vertices_cs)
 
       @fact maximum(abs(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
 
       for i=1:length(map.cp_xyz)
-        map.cp_xyz[i] += 1
+        map._cp_xyz[i] += 1
       end
 
-      copy!(map_cs.cp_xyz, map.cp_xyz)
+      copy!(map_cs._cp_xyz, map._cp_xyz)
       evalSurface(map, vertices_orig)
       evalSurface(map_cs, vertices_cs)
       @fact maximum(abs(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
@@ -175,20 +190,31 @@ function test_jac2{Tffd}(map::PumiMapping{Tffd}, mesh)
     for i=1:10
       fill!(Xs_dot, 0.0)
       fill!(Xs_dot2, 0.0)
-      Xcp_dot = rand(size(map.cp_xyz))
+
+      Xcp = getControlPoints(map)
+      _Xcp_dot = getControlPoints(map)
+      rand!(_Xcp_dot)
+      Xcp_dot = real(_Xcp_dot)
+
 
       # finite difference
       h = 1e-7
       for j=1:length(Xcp_dot)
-        map.cp_xyz[j] += Xcp_dot[j]*h
+        Xcp[j] += Xcp_dot[j]*h
+#        map.cp_xyz[j] += Xcp_dot[j]*h
       end
+
+      setControlPoints(map, Xcp)
 
       vertices_new = zeros(vertices_orig)
       evalSurface(map, vertices_new)
 
       for j=1:length(Xcp_dot)
-        map.cp_xyz[j] -= Xcp_dot[j]*h
+        Xcp[j] -= Xcp_dot[j]*h
+#        map.cp_xyz[j] -= Xcp_dot[j]*h
       end
+
+      setControlPoints(map, Xcp)
 
       for j=1:length(Xs_dot)
         Xs_dot[j] = (vertices_new[j] - vertices_orig[j])/h
@@ -212,26 +238,30 @@ function test_jac(map, mesh)
 
   facts("----- Testing Transposed Jacobian-vector product -----") do
 
-    jac = zeros(mesh.dim*map.numFacePts, length(map.cp_xyz))
+    # construct entire jacobian
+    cp_xyz = getControlPoints(map)
+    jac = zeros(mesh.dim*map.numFacePts, length(cp_xyz))
     jac2 = zeros(jac)
 
     h = 1e-20
     pert = Complex128(0, h)
     Xs = zeros(Complex128, mesh.dim, map.numFacePts)
-    for i=1:length(map.cp_xyz)
-      map.cp_xyz[i] += pert
+    for i=1:length(cp_xyz)
+      cp_xyz[i] += pert
+      setControlPoints(map, cp_xyz)
       evalSurface(map, Xs)
 
       for j=1:length(Xs)
         jac[j, i] = imag(Xs[j])/h
       end
 
-      map.cp_xyz[i] -= pert
+      cp_xyz[i] -= pert
+      setControlPoints(map, cp_xyz)
     end
 
       # compute reverse mode jacobian
       Xs_dot = zeros(Complex128, mesh.dim, map.numFacePts)
-      B_dot = zeros(map.cp_xyz)
+      B_dot = zeros(cp_xyz)
       for i=1:length(Xs_dot)
         Xs_dot[i] = 1
         fill!(B_dot, 0.0)
@@ -244,6 +274,38 @@ function test_jac(map, mesh)
       end
 
       @fact norm(jac - jac2) --> roughly(0.0, atol=1e-13)
+
+
+    println("\nTesting product")
+    # test the product using the quadratic form dXs^T dXs/dXcp dXcp
+    dXs = real(rand(size(Xs)))
+    dXcp = real(rand(size(cp_xyz)))
+
+    # forward product
+    for i=1:length(cp_xyz)
+      cp_xyz[i] += pert*dXcp[i]
+    end
+    setControlPoints(map, cp_xyz)
+    fill!(Xs, 0.0)
+    evalSurface(map, Xs)
+    val1 = sum(dXs .* imag(Xs)/h)  # contract with dXs
+
+    for i=1:length(cp_xyz)
+      cp_xyz[i] -= pert*dXcp[i]
+    end
+    setControlPoints(map, cp_xyz)
+
+    # transposed product
+    fill!(B_dot, 0.0)
+    evaldXdControlPointTransposeProduct(map, dXs, B_dot)
+    val2 = sum(dXcp .* B_dot)
+
+    @fact val1 --> roughly(val2, atol=1e-13)
+
+
+  
+
+
   end  # end facts block
 
   return nothing
@@ -256,8 +318,8 @@ function runtests()
 
   # Free Form deformation parameters
   ndim = 2
-  order = [3,3,3]  # Order of B-splines in the 3 directions
-  nControlPts = [6,6,6]
+  order = [3,3,2]  # Order of B-splines in the 3 directions
+  nControlPts = [6,6,2]
   offset = [0.25, 0.25, 0.25]
   full_geom = false
   bc_nums = [1] # = opts["BC1"]

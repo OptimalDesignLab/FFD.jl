@@ -195,6 +195,10 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, pts::Array{Tffd, 2})
   @assert size(pts, 1) == map.ndim
   @assert size(pts, 2) == map.numFacePts
 
+  if map.ndim == 2
+    check2DSymmetry(map.cp_xyz)
+  end
+
   x = zeros(Tffd, 3)  # compatability between 2D and 3D
 
   for i=1:map.numFacePts
@@ -393,13 +397,24 @@ end  # End function contractWithdGdB(map, dJdGrid)
 
    * Xcp_bar: arrayto be overwritten with results, same size as `map.cp_xyz`
 """
-function evaldXdControlPointTransposeProduct{T, Tffd}(map::PumiMapping{Tffd}, Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, 4})
+function evaldXdControlPointTransposeProduct{T, Tffd, N}(map::PumiMapping{Tffd},
+                          Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, N})
 
-  @assert size(Xcp_bar, 1) == 3  # all meshes are 3 dimensional to FFD
-  @assert size(Xcp_bar, 2) == map.nctl[1]
-  @assert size(Xcp_bar, 3) == map.nctl[2]
-  @assert size(Xcp_bar, 4) == map.nctl[3]
+  if map.ndim == 2
+    @assert N == 3
+    @assert size(Xcp_bar, 1) == 2
+    @assert size(Xcp_bar, 2) == map.nctl[1]
+    @assert size(Xcp_bar, 3) == map.nctl[2]
+    check2DSymmetry(map.cp_xyz)
 
+  else
+    @assert N == 4
+    @assert size(Xcp_bar, 1) == 3  # all meshes are 3 dimensional to FFD
+    @assert size(Xcp_bar, 2) == map.nctl[1]
+    @assert size(Xcp_bar, 3) == map.nctl[2]
+    @assert size(Xcp_bar, 4) == map.nctl[3]
+
+  end
   @assert size(Xs_bar, 1) == map.ndim
   @assert size(Xs_bar, 2) == map.numFacePts
 
@@ -414,7 +429,19 @@ function evaldXdControlPointTransposeProduct{T, Tffd}(map::PumiMapping{Tffd}, Xs
   end
 
   work_slice = sview(map.work, 1:3, :, :, :)
-  copy!(Xcp_bar, work_slice)
+
+  # in 2D, we also need to do the reverse mode of setControlPoints
+  if map.ndim == 2
+    for i=1:size(Xcp_bar, 3)
+      for j=1:size(Xcp_bar, 2)
+        for k=1:size(Xcp_bar, 1)
+          Xcp_bar[k, j, i] = work_slice[k, j, i, 1] + work_slice[k, j, i, 2]
+        end
+      end
+    end
+  else
+    copy!(Xcp_bar, work_slice)
+  end
 
   return nothing
 end
@@ -447,25 +474,49 @@ end
 
 
 """
-function evaldXdControlPointProduct{T, Tffd}(map::PumiMapping{Tffd},
-               Xcp_dot::AbstractArray{T, 4}, Xs_dot::AbstractMatrix )
-#TODO: add some simd
+function evaldXdControlPointProduct{T, Tffd, N}(map::PumiMapping{Tffd},
+               Xcp_dot::AbstractArray{T, N}, Xs_dot::AbstractMatrix )
 
   @assert size(Xs_dot, 1) == map.ndim
   @assert size(Xs_dot, 2) == map.numFacePts
-  for i=1:4
-    @assert size(Xcp_dot, i) == size(map.cp_xyz, i)
+  if map.ndim == 2
+    check2DSymmetry(map.cp_xyz)
+    @assert N == 3
+    @assert size(Xcp_dot, 1) == 2
+    for i=2:3
+      @assert size(Xcp_dot, i) == size(map.cp_xyz, i)
+    end
+
+
+  else
+    @assert N == 4
+    for i=1:4
+      @assert size(Xcp_dot, i) == size(map.cp_xyz, i)
+    end
   end
 
   # copy things into map.map_cs
   map_cs = map.map_cs
-  copy!(map_cs.cp_xyz, map.cp_xyz)
+  copy!(map_cs._cp_xyz, map._cp_xyz)
 #  copy!(map_cs.xi, map.xi)
 
   h = 1e-20
   pert = Complex128(0, h)
-  @simd for i=1:length(Xcp_dot)
-    map_cs.cp_xyz[i] += Xcp_dot[i]*pert
+  if map.ndim == 2
+    # update both planes of control points
+    for i=1:size(Xcp_dot, 3)
+      for j=1:size(Xcp_dot, 2)
+        for k=1:size(Xcp_dot, 1)
+          map_cs._cp_xyz[k, j, i, 1] += Xcp_dot[k, j, i]*pert
+          map_cs._cp_xyz[k, j, i, 2] += Xcp_dot[k, j, i]*pert
+        end
+      end
+    end
+  else
+    # update all points
+    @simd for i=1:length(Xcp_dot)
+      map_cs._cp_xyz[i] += Xcp_dot[i]*pert
+    end
   end
 
   vertices = map_cs.vertices
@@ -477,7 +528,7 @@ function evaldXdControlPointProduct{T, Tffd}(map::PumiMapping{Tffd},
 
   # remove the perturbation
   @simd for i=1:length(Xcp_dot)
-    map_cs.cp_xyz[i] -= Xcp_dot[i]*pert
+    map_cs._cp_xyz[i] = real(map_cs._cp_xyz[i])
   end
 
   return nothing
