@@ -131,14 +131,22 @@ When using FFD with a Pumi mesh, an example usage is
   vertices_orig = zeros(Tmsh, mesh.dim, map.numFacePts)
   evalSurface(map, vertices_orig)
 
+  cp_xyz = zeros(Float64, 3, map.nctl[1], map.nct[2], map.nctl[3])
   # change control points locations
-  map.cp_xyz[1,:,:,:] += 0.1
-  map.cp_xyz[2,:,:,:] += 0.2
-  map.cp_xyz[3,:,:,:] += 0.3
+  cp_xyz[1,:,:,:] += 0.1
+  cp_xyz[2,:,:,:] += 0.2
+  cp_xyz[3,:,:,:] += 0.3
+
+  setControlPoints(map, cp_xyz)
 
   # get updated coordinates
   vertices_new = zeros(Tmsh, mesh.dim, map.numFacePts)
   evalSurface(map, vertices_new)
+
+  # get control point values
+  cp_xyz2 = zeros(cp_xyz)
+  getControlPoints(map, cp_xyz2)
+  # cp_xyz2 == cp_xyz
 
   # compute the Jacobian-vector product with a random vector
   Xcp_dot = rand(map.cp_xyz)
