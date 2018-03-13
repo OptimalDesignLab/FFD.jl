@@ -570,6 +570,52 @@ function getControlPoints(map::PumiMapping)
 end
 
 """
+  Second method for getting control points, where the user supplied the array.
+  The requires size of the array is described by [`setControlPoints`](@ref)
+
+  **Inputs**
+
+   * map: PumiMapping
+
+  **Input/Outputs**
+
+   * cp_xyz: array to be overwritten with control point coordinates
+"""
+function getControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 3})
+
+  @assert map.ndim == 2
+  @assert size(cp_xyz, 1) == 2
+  @assert size(cp_xyz, 2) == map.nctl[1]
+  @assert size(cp_xyz, 3) == map.nctl[2]
+
+  for i=1:size(cp_xyz, 3)
+    for j=1:size(cp_xyz, 2)
+      for k=1:size(cp_xyz, 1)
+        cp_xyz[k, j, i] = map._cp_xyz[k, j, i, 1]
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+function getControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
+
+  @assert map.ndim == 3
+  @assert size(cp_xyz, 1) == 3
+  @assert size(cp_xyz, 2) == map.nctl[1]
+  @assert size(cp_xyz, 3) == map.nctl[2]
+  @assert size(cp_xyz, 3) == map.nctl[3]
+
+  copy!(cp_xyz, map._cp_xyz)
+
+  return nothing
+end
+
+
+
+"""
   This function checks if an array formatted similarly to map.cp_xyz
   has the same coordinates for the z = zmin and z = zmax.  This is the
   condition enforced by [`setControlPoints`](@ref) for 2D arrays.

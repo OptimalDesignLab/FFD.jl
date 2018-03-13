@@ -151,6 +151,18 @@ function test_surface(map, mesh)
       end
     end
 =#
+
+    # test getControlPoints
+    cp_xyz2 = getControlPoints(map)
+    fill!(cp_xyz2, 0.0)
+    getControlPoints(map, cp_xyz2)
+
+    if mesh.dim == 2
+      @fact maximum(abs(cp_xyz2 - map._cp_xyz[1:2, :, :, 1])) --> roughly(0.0, atol=1e-13)
+    else
+      @fact maximum(abs(cp_xyz2 - map._cp_xyz)) --> roughly(0.0, atol=1e-13)
+    end
+
   end  # end facts block
   return nothing
 end
