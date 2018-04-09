@@ -10,8 +10,10 @@ using ODLCommonTools
 using FactCheck
 
 
-function getTestMesh{Tmsh}(dim::Integer, ::Type{Tmsh})
-
+function getTestMesh{Tmsh}(dim::Integer, ::Type{Tmsh}; order::Integer=1)
+# dim: 2D or 3D
+# Tmsh: datatype for mesh arrays
+# order: linear or quadratic coordinate field
   degree = 1
   shape_type = 2
 
@@ -26,7 +28,11 @@ function getTestMesh{Tmsh}(dim::Integer, ::Type{Tmsh})
 
 
   opts = PdePumiInterface.get_defaults()
-  opts["smb_name"] = "meshes/square5.smb"
+  if order == 1
+    opts["smb_name"] = "meshes/square5.smb"
+  else
+    opts["smb_name"] = "meshes/square_quad5.smb"
+  end
   opts["dmg_name"] = ".null"
   opts["order"] = 1
   opts["coloring_distance"] = 2
@@ -324,7 +330,7 @@ function test_jac(map, mesh)
 end
 
 
-function runtests()
+#function runtests()
 
   mesh, sbp, opts = getTestMesh(2, Complex128)
 
@@ -342,12 +348,27 @@ function runtests()
 
   test_surface(map, mesh)
 
-  # make new objects in case test_surface modified the old ones
+  # test quadratic
+  mesh, sbp, opts = getTestMesh(2, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+
+  test_surface(map, mesh)
+
+  # test jacobian2
   mesh, sbp, opts = getTestMesh(2, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
   test_jac2(map, mesh)
+
+  # test jacbian2 quadratic
+  mesh, sbp, opts = getTestMesh(2, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+
+  test_jac2(map, mesh)
+
 
   # test with real values map
 
@@ -358,13 +379,21 @@ function runtests()
   test_jac2(map, mesh)
 
 
+  # test jacobian1
   # make new objects in case test_surface modified the old ones
   mesh, sbp, opts = getTestMesh(2, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
+  test_jac(map, mesh)
+
+  # test quadratic jacobian1
+  mesh, sbp, opts = getTestMesh(2, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
 
   test_jac(map, mesh)
+
 
   # test with one boundary condition with several geometric entities
   bc_nums = [2]
@@ -379,6 +408,19 @@ function runtests()
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
   test_jac(map, mesh)
+
+  # test multi-geometry entity on quadratic
+  mesh, sbp, opts = getTestMesh(2, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+
+  test_surface(map, mesh)
+
+  mesh, sbp, opts = getTestMesh(2, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+  test_jac(map, mesh)
+
 
   # test multiple BCs
   bc_nums = [1, 2]
@@ -395,6 +437,26 @@ function runtests()
 
 
   mesh, sbp, opts = getTestMesh(2, Complex128)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+  test_jac(map, mesh)
+
+
+  # test multi-BC on quadratic
+  bc_nums = [1, 2]
+  mesh, sbp, opts = getTestMesh(2, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+
+  test_surface(map, mesh)
+
+  mesh, sbp, opts = getTestMesh(2, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+  test_jac2(map, mesh)
+
+
+  mesh, sbp, opts = getTestMesh(2, Complex128, order=2)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
   test_jac(map, mesh)
@@ -450,8 +512,8 @@ function runtests()
 
 
   return nothing
-end
+#end
 
-runtests()
+#runtests()
 
 #test_surface()

@@ -172,7 +172,6 @@ type Mapping <: AbstractMappingType
 
 end  # End Mapping
 
-#TODO: get rid of abstract types
 @doc """
 ### PumiMapping
 
@@ -278,7 +277,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map = new()
     # Check if the input arguments are valid
     @assert ndim >= 2 "Only 2D and 3D valid"
-    @assert mesh.coord_order == 1
+    @assert mesh.coord_order <= 2
     for i = 1:3
       @assert order[i] > 0 "Order cannot be 0 in the $i direction"
       @assert nctl[i] > 0 "number of control points cannot be 0 in $i direction"
@@ -300,6 +299,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
 
     # if the user didn't provide a surface point numbering, make one ourselves
     if n_face == C_NULL
+      # call PdePumiInterface function
       numFacePts, n_face, face_verts = numberSurfacePoints(mesh, bc_nums)
     else  # get the face_verts array
       face_verts = Array(Ptr{Void}, numFacePts)
@@ -309,7 +309,19 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
           face_verts[n_v] = vert
         end
       end
-    end
+
+      # get edges
+      # doing all the edges after the vertices results in a non-cache
+      # optimal order
+      if hasNodesIn(mesh.coordshape_ptr, 1)
+        for edge in mesh.edges
+          n_e = getNumberJ(n_face, edge, 0, 0)
+          if n_e <= numFacePts
+            face_verts[n_e] = edge
+          end
+        end
+      end
+    end  # end if n_face = C_NULL
     map.n_face = n_face
     map.numFacePts = numFacePts
     map.face_verts = face_verts
@@ -457,6 +469,7 @@ function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
   calcKnot(map)
 
   # Create Bounding box
+  # this works for curvilinear
   ffd_box = PumiBoundingBox{Tmsh}(map, mesh, sbp, offset)
 
   # Control points

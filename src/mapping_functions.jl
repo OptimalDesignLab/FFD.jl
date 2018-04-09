@@ -412,6 +412,7 @@ end
 function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractDGMesh,
                                      bc_nums::AbstractArray{Int,1})
+# this works for quadratic coordinate fields
 
   x_real = zeros(Float64, 3)
   for i=1:map.numFacePts
