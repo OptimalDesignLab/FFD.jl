@@ -45,9 +45,20 @@ function getTestMesh{Tmsh}(dim::Integer, ::Type{Tmsh}; order::Integer=1)
   if dim == 3
     opts["dimensions"] = 3
     opts["BC2"] = [1,2,3,4,5]
-    opts["smb_name"] = "meshes/tet4.smb"
+    if order == 1
+      opts["smb_name"] = "meshes/tet4.smb"
+    else
+      opts["smb_name"] = "meshes/tet4_quad.smb"
+    end
     face_verts = SummationByParts.SymCubatures.getfacevertexindices(sbp.cub)
-    topo = ElementTopology{3}(face_verts)
+    face_verts = SummationByParts.SymCubatures.getfacevertexindices(sbp.cub)
+    edge_verts = [1 2 1 1 2 3;  # TODO: SBP should provide this
+                  2 3 3 4 4 4]
+    topo2 = ElementTopology2()   #TODO: make this the correct one for SBP
+    topo = ElementTopology{3}(face_verts, edge_verts, topo2=topo2)
+
+
+#    topo = ElementTopology{3}(face_verts)
   end
 
   if dim == 2
@@ -330,7 +341,7 @@ function test_jac(map, mesh)
 end
 
 
-#function runtests()
+function runtests()
 
   mesh, sbp, opts = getTestMesh(2, Complex128)
 
@@ -481,7 +492,22 @@ end
 
   test_surface(map, mesh)
 
+  # test surface quadratic 
+  mesh, sbp, opts = getTestMesh(3, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+ 
+  test_surface(map, mesh)
+
+  # test jacobian
   mesh, sbp, opts = getTestMesh(3, Complex128)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+                           
+  test_jac(map, mesh)
+
+  # test jacobian quadratic
+  mesh, sbp, opts = getTestMesh(3, Complex128, order=2)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
                            
@@ -491,29 +517,52 @@ end
   # test multiple BCs
   bc_nums = [1, 2]
 
+  # surface
   mesh, sbp, opts = getTestMesh(3, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
 
   test_surface(map, mesh)
 
+  # surface quadratic
+  mesh, sbp, opts = getTestMesh(3, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+
+  test_surface(map, mesh)
+
+
+
+  # jacobian 2
   mesh, sbp, opts = getTestMesh(3, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
                            
   test_jac2(map, mesh)
 
+  # jacobian 2 quadratic
+  mesh, sbp, opts = getTestMesh(3, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+                           
+  test_jac2(map, mesh)
 
+  # jacobian
   mesh, sbp, opts = getTestMesh(3, Complex128)
   map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
                            bc_nums)
                            
   test_jac(map, mesh)
 
+  # jacobian quadratic
+  mesh, sbp, opts = getTestMesh(3, Complex128, order=2)
+  map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, 
+                           bc_nums)
+                           
+  test_jac(map, mesh)
 
   return nothing
-#end
+end
 
-#runtests()
+runtests()
 
-#test_surface()
