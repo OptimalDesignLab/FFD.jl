@@ -22,4 +22,4 @@ script:
   - cd ~/.julia/v0.4/PumiInterface/src/
   - source ./use_julialib.sh
   - cd $start_dir
-  - julia -e 'cd(joinpath(Pkg.dir("FFD"), "test")); include("runtests_serial.jl")'
+  - julia -e 'cd(joinpath(Pkg.dir("FFD"), "test")); include("runtests.jl")'
