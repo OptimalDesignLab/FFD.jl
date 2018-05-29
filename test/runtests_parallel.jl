@@ -12,7 +12,7 @@ using Utils
 using MPI
 # using MeshMovement
 using FFD
-using FactCheck
+using Base.Test
 
 # Include functions that will be used for performing tests
 include("./test_parallel_FFD_2D_mesh.jl")

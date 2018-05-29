@@ -14,7 +14,7 @@ using Utils
 using MPI
 # using MeshMovement
 using FFD
-using FactCheck
+using Base.Test
 
 comm = MPI.COMM_WORLD
 comm_world = MPI.MPI_COMM_WORLD
@@ -31,7 +31,7 @@ sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 orig_vert_coords = deepcopy(mesh.vert_coords)
 geom_faces = opts["BC2"]
 
-facts("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
+@testset "--- Checking evaldXdControlPointProduct for 3D DG Mesh ---" begin
 
   # for i = 1:comm_size
   #   if my_rank == i-1
@@ -87,10 +87,10 @@ facts("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
   fname = "./testvalues/evaldXdControlPointProduct_tet8cube.dat"
 
   test_values = readdlm(fname)
-  @fact length(map.work) --> length(test_values)
+  @test ( length(map.work) )== length(test_values)
   for i = 1:length(map.work)
     err = abs.(test_values[i] - map.work[i])
-    @fact err --> less_than(1e-14) "problem at index $i"
+    @test  err  < 1e-14
   end
   
   #=

@@ -45,28 +45,28 @@ mesh = PumiMeshDG3{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"], sbp,
 
 orig_vert_coords = deepcopy(mesh.vert_coords)
 
-facts("--- Check if Unique wall coordinates are being computed correctly across all ranks ---") do
+@testset "--- Check if Unique wall coordinates are being computed correctly across all ranks ---" begin
 
   geom_faces = opts["BC2"]
   wallCoords = FFD.getGlobalUniqueWallCorrdsArray(mesh, geom_faces)
   if my_rank == 0
-    @fact wallCoords --> roughly([0.0 0.0 0.0 0.0 0.0 0.0
-                                  0.0 0.5 0.0 0.5 1.0 1.0
-                                  0.5 1.0 1.0 0.5 1.0 0.5], atol=1e-14)
+    @test norm(wallCoords -[0.0 0.0 0.0 0.0 0.0 0.0
+                            0.0 0.5 0.0 0.5 1.0 1.0
+                            0.5 1.0 1.0 0.5 1.0 0.5] ) < 1e-14
   end
 
   if my_rank == 1
-    @fact wallCoords --> roughly([0.0 0.0 0.0
-                                  0.0 0.5 1.0
-                                  0.0 0.0 0.0], atol=1e-14)
+    @test norm(wallCoords -[0.0 0.0 0.0
+                            0.0 0.5 1.0
+                            0.0 0.0 0.0]) < 1e-14
   end
 
 end # End facts
 MPI.Barrier(comm)
 
-facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
+@testset "--- Checking FFD on 3D parallel DG Pumi meshes ---" begin
 
-  context("Check control point manipulation with nonlinear mapping on full mesh") do
+  @testset "Check control point manipulation with nonlinear mapping on full mesh" begin
 
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
@@ -76,8 +76,8 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
 
     # Create a mapping object using nonlinear mapping
     map, box = initializeFFD(mesh, sbp, order, nControlPts, offset, full_geom)
-    @fact box.box_bounds --> roughly([0.0 0.0 -0.5
-                                      1.0 1.0 1.5], atol=1e-14)
+    @fact norm(box.box_bounds - [0.0 0.0 -0.5
+                                 1.0 1.0 1.5]) < 1e-14
 
     # Rigid body rotation
     theta = -20*pi/180  # Rotate wall coordinates by 20 degrees
@@ -111,7 +111,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
     test_values = readdlm(fname)
     for i = 1:length(test_values)
       err = abs.(test_values[i] - mesh.vert_coords[i])
-      @fact err --> less_than(1e-14)
+      @test  err  < 1e-14
     end
 
   end # End context("Check control point manipulation with nonlinear mapping on full mesh")
@@ -123,7 +123,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
   end
   commit_coords(mesh, sbp, opts)
 
-  context("Check control point manipulation on a geometry face") do
+  @testset "Check control point manipulation on a geometry face" begin
 
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
@@ -166,7 +166,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
     test_values = readdlm(fname)
     for i = 1:length(test_values)
       err = abs.(test_values[i] - mesh.vert_coords[i])
-      @fact err --> less_than(1e-14)
+      @test  err  < 1e-14
     end
 
   end # End context("Check control point manipulation on a geometry face")
@@ -178,7 +178,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
   end
   commit_coords(mesh, sbp, opts)
 
-  context("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
+  @testset "--- Checking evaldXdControlPointProduct for 3D DG Mesh ---" begin
 
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
@@ -200,10 +200,10 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
     fname = "./testvalues/evaldXdControlPointProduct_tet8cube.dat"
 
     test_values = readdlm(fname)
-    @fact length(map.work) --> length(test_values)
+    @test ( length(map.work) )== length(test_values)
     for i = 1:length(map.work)
       err = abs.(test_values[i] - map.work[i])
-      @fact err --> less_than(1e-14) "problem at index $i"
+      @test  err  < 1e-14
     end
 
   end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")

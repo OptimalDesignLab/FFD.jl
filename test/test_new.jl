@@ -7,7 +7,7 @@ using PumiInterface
 using PdePumiInterface
 using SummationByParts
 using ODLCommonTools
-using FactCheck
+using Base.Test
 
 
 function getTestMesh(dim::Integer, ::Type{Tmsh}; order::Integer=1) where Tmsh
@@ -77,7 +77,7 @@ end
 function test_surface(map, mesh)
 
 
-  facts("----- Testing FFD Surface Evaluation -----") do
+  @testset "----- Testing FFD Surface Evaluation -----" begin
     vertices_orig = zeros(Complex128, mesh.dim, map.numFacePts)
     evalSurface(map, vertices_orig)
 
@@ -146,7 +146,7 @@ function test_surface(map, mesh)
         verts_exact = rotMat*vertices_orig[:, i] + [xfac; yfac; zfac]
       end
 
-      @fact norm(verts_exact - vertices[:, i]) --> roughly(0.0, atol=1e-13)
+      @test isapprox( norm(verts_exact - vertices[:, i]), 0.0) atol=1e-13
     end
 
 #=
@@ -163,7 +163,7 @@ function test_surface(map, mesh)
             verts_exact = rotMat*verts_orig_bc[:, j, i] + [xfac; yfac; zfac]
           end
 
-          @fact norm(verts_exact - verts_bc[:, j, i]) --> roughly(0.0, atol=1e-13)
+          @test isapprox( norm(verts_exact - verts_bc[:, j, i]), 0.0) atol=1e-13
         end
       end
     end
@@ -175,9 +175,9 @@ function test_surface(map, mesh)
     getControlPoints(map, cp_xyz2)
 
     if mesh.dim == 2
-      @fact maximum(abs.(cp_xyz2 - map._cp_xyz[1:2, :, :, 1])) --> roughly(0.0, atol=1e-13)
+      @test isapprox( maximum(abs.(cp_xyz2 - map._cp_xyz[1:2, :, :, 1])), 0.0) atol=1e-13
     else
-      @fact maximum(abs.(cp_xyz2 - map._cp_xyz)) --> roughly(0.0, atol=1e-13)
+      @test isapprox( maximum(abs.(cp_xyz2 - map._cp_xyz)), 0.0) atol=1e-13
     end
 
   end  # end facts block
@@ -187,7 +187,7 @@ end
 
 function test_jac2(map::PumiMapping{Tffd}, mesh) where Tffd
 
-  facts("----- Testing Jacobian-vector product -----") do
+  @testset "----- Testing Jacobian-vector product -----" begin
 
     Xs_dot = zeros(Tffd, mesh.dim, map.numFacePts)
     Xs_dot2 = zeros(Xs_dot)
@@ -202,7 +202,7 @@ function test_jac2(map::PumiMapping{Tffd}, mesh) where Tffd
       vertices_cs = zeros(Xs_dot)
       evalSurface(map, vertices_cs)
 
-      @fact maximum(abs.(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
+      @test isapprox( maximum(abs.(vertices_cs - vertices_orig)), 0.0) atol=1e-13
 
       for i=1:length(map.cp_xyz)
         map._cp_xyz[i] += 1
@@ -211,7 +211,7 @@ function test_jac2(map::PumiMapping{Tffd}, mesh) where Tffd
       copy!(map_cs._cp_xyz, map._cp_xyz)
       evalSurface(map, vertices_orig)
       evalSurface(map_cs, vertices_cs)
-      @fact maximum(abs.(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
+      @test isapprox( maximum(abs.(vertices_cs - vertices_orig)), 0.0) atol=1e-13
     end
 
 
@@ -253,7 +253,7 @@ function test_jac2(map::PumiMapping{Tffd}, mesh) where Tffd
       evaldXdControlPointProduct(map, Xcp_dot, Xs_dot2)
 
       for j=1:length(Xs_dot)
-        @fact Xs_dot[j] --> roughly(Xs_dot2[j], atol=1e-7)
+        @test isapprox( Xs_dot[j], Xs_dot2[j]) atol=1e-7
       end
     end
 
@@ -265,7 +265,7 @@ end
 
 function test_jac(map, mesh)
 
-  facts("----- Testing Transposed Jacobian-vector product -----") do
+  @testset "----- Testing Transposed Jacobian-vector product -----" begin
 
     # construct entire jacobian
     cp_xyz = getControlPoints(map)
@@ -302,7 +302,7 @@ function test_jac(map, mesh)
         Xs_dot[i] = 0
       end
 
-      @fact norm(jac - jac2) --> roughly(0.0, atol=1e-13)
+      @test isapprox( norm(jac - jac2), 0.0) atol=1e-13
 
 
     println("\nTesting product")
@@ -329,7 +329,7 @@ function test_jac(map, mesh)
     evaldXdControlPointTransposeProduct(map, dXs, B_dot)
     val2 = sum(dXcp .* B_dot)
 
-    @fact val1 --> roughly(val2, atol=1e-13)
+    @test isapprox( val1, val2) atol=1e-13
 
 
   
