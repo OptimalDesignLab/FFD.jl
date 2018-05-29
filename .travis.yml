@@ -4,15 +4,15 @@ os:
   - linux
 #  - osx
 julia:
-  - 0.4
+  - 0.6
 notifications:
   email: false
 
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install build-essential gfortran perl g++ gcc cmake m4 git
-  - sudo apt-get install -y liblapack-dev liblapack-doc liblapack3gf
-  - sudo apt-get install -y libblas-dev libblas-doc libblas3gf
+  - sudo apt-get install -y liblapack-dev liblapack3gf
+  - sudo apt-get install -y libblas-dev libblas3gf
 
 # uncomment the following lines to override the default test script
 script:
