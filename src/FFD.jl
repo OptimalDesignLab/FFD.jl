@@ -18,6 +18,7 @@ export getControlPoints, setControlPoints
 #push!(LOAD_PATH, joinpath(Pkg.dir("PumiInterface"), "src"))
 
 using ArrayViews
+import ArrayViews.view
 using PumiInterface
 using PdePumiInterface
 using ODLCommonTools
