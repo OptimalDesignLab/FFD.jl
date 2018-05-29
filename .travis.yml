@@ -13,6 +13,12 @@ before_install:
   - sudo apt-get install build-essential gfortran perl g++ gcc cmake m4 git
   - sudo apt-get install -y liblapack-dev liblapack3gf
   - sudo apt-get install -y libblas-dev libblas3gf
+  # help Cmake find MPI
+  - export CC=mpicc
+  - export FC=mpif90
+  - export CXX=mpicxx
+
+
 
 # uncomment the following lines to override the default test script
 script:
