@@ -89,7 +89,7 @@ facts("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
   test_values = readdlm(fname)
   @fact length(map.work) --> length(test_values)
   for i = 1:length(map.work)
-    err = abs(test_values[i] - map.work[i])
+    err = abs.(test_values[i] - map.work[i])
     @fact err --> less_than(1e-14) "problem at index $i"
   end
   

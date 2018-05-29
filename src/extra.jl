@@ -480,7 +480,7 @@ function calcGrid(map, xyz)
   for m = 1:map.jkmmax[3]
     for k = 1:map.jkmmax[2]
       for j = 1:map.jkmmax[1]
-        xi = view(map.ki, j, k, m, :)
+        xi =sview(map.ki, j, k, m, :)
         dXdxi(map, xi, jderiv, xyz[j,k,m,:])
       end  # End for j = 1:map.jkmmax[1]
     end  # End for k = 1:map.jkmmax[2]
@@ -528,7 +528,7 @@ function contractWithdGdB(map, dJdGrid)
 
         # Store the parameter values and dJdGrid
         xi[:] = map.xi[j,k,m,:]
-        dJdG = view(dJdGrid, j, k, m, 1:3)
+        dJdG =sview(dJdGrid, j, k, m, 1:3)
 
         # Evaluate the knot vectors and basis values
         # TODO: Compute the knot vector for subsequent operations

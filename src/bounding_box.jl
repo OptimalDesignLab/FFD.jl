@@ -58,8 +58,8 @@ mutable struct PumiBoundingBox{Tffd} <: AbstractBoundingBox{Tffd}
   lengths::Array{Tffd, 1} # dimensions of the bounding box
 
   # Parametric space
-  function PumiBoundingBox(map::PumiMapping, mesh::AbstractMesh,
-                           sbp::AbstractSBP, offset) # 3D
+  function PumiBoundingBox{Tffd}(map::PumiMapping, mesh::AbstractMesh,
+                           sbp::AbstractSBP, offset) where {Tffd} # 3D  
 
     # Check Inputs
     for i = 1:3
@@ -222,7 +222,7 @@ function calcSurfaceGeomBounds(mesh::AbstractCGMesh, sbp::AbstractSBP,
         bndry_i = bndry_facenums[i]
         for j = 1:sbp.numfacenodes
           k = sbp.facenodes[j, bndry_i.face]
-          coords = view(mesh.coords, :, k, bndry_i.element)
+          coords =sview(mesh.coords, :, k, bndry_i.element)
           if xmin > coords[1]
             xmin = coords[1]
           elseif xmax < coords[1]
@@ -247,7 +247,7 @@ function calcSurfaceGeomBounds(mesh::AbstractCGMesh, sbp::AbstractSBP,
         bndry_i = bndry_facenums[i]
         for j = 1:sbp.numfacenodes
           k = sbp.facenodes[j, bndry_i.face]
-          coords = view(mesh.coords, :, k, bndry_i.element)
+          coords =sview(mesh.coords, :, k, bndry_i.element)
           if xmin > coords[1]
             xmin = coords[1]
           elseif xmax < coords[1]
@@ -329,7 +329,7 @@ function calcSurfaceGeomBounds(mesh::AbstractDGMesh, sbp::AbstractSBP,
         # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
-          coords = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.element)
+          coords =sview(mesh.vert_coords, :, vtx_arr[j], bndry_i.element)
           if xmin > coords[1]
             xmin = coords[1]
           elseif xmax < coords[1]
@@ -356,7 +356,7 @@ function calcSurfaceGeomBounds(mesh::AbstractDGMesh, sbp::AbstractSBP,
         # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
-          coords = view(mesh.vert_coords, :, vtx_arr[j], bndry_i.element)
+          coords =sview(mesh.vert_coords, :, vtx_arr[j], bndry_i.element)
           if xmin > coords[1]
             xmin = coords[1]
           elseif xmax < coords[1]

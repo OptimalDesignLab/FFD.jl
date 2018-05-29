@@ -88,7 +88,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
 
     test_values = readdlm(fname)
     for i = 1:length(test_values)
-      err = abs(test_values[i] - mesh.vert_coords[i])
+      err = abs.(test_values[i] - mesh.vert_coords[i])
       @fact err --> less_than(1e-14)
     end
 
@@ -147,7 +147,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
 
     test_values = readdlm(fname)
     for i = 1:length(test_values)
-      err = abs(test_values[i] - mesh.vert_coords[i])
+      err = abs.(test_values[i] - mesh.vert_coords[i])
       @fact err --> less_than(1e-14)
     end
 

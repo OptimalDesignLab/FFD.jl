@@ -79,8 +79,8 @@ function derivBasisFunctions(u::T, U::AbstractVector{T2},
   N[1] = 1.0
   Nderiv[1] = 0.0
 
-  # dr = view(map.dr, :, :)
-  # dl = view(map.dl, :, :)
+  # dr =sview(map.dr, :, :)
+  # dl =sview(map.dl, :, :)
 
   dr = zeros(Tffd, order-1)
   dl = zeros(Tffd, order-1)
@@ -118,8 +118,8 @@ function derivBasisFunctions(map, N, Nderiv, N2deriv, di, u, span)
   Nderiv[1] = 0.0
   N2deriv[1] = 0.0
 
-  dr = view(map.dr, :, :)
-  dl = view(map.dl, :, :)
+  dr =sview(map.dr, :, :)
+  dl =sview(map.dl, :, :)
 
   if order > 1
     for k = 1:order-1

@@ -175,9 +175,9 @@ function test_surface(map, mesh)
     getControlPoints(map, cp_xyz2)
 
     if mesh.dim == 2
-      @fact maximum(abs(cp_xyz2 - map._cp_xyz[1:2, :, :, 1])) --> roughly(0.0, atol=1e-13)
+      @fact maximum(abs.(cp_xyz2 - map._cp_xyz[1:2, :, :, 1])) --> roughly(0.0, atol=1e-13)
     else
-      @fact maximum(abs(cp_xyz2 - map._cp_xyz)) --> roughly(0.0, atol=1e-13)
+      @fact maximum(abs.(cp_xyz2 - map._cp_xyz)) --> roughly(0.0, atol=1e-13)
     end
 
   end  # end facts block
@@ -202,7 +202,7 @@ function test_jac2(map::PumiMapping{Tffd}, mesh) where Tffd
       vertices_cs = zeros(Xs_dot)
       evalSurface(map, vertices_cs)
 
-      @fact maximum(abs(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
+      @fact maximum(abs.(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
 
       for i=1:length(map.cp_xyz)
         map._cp_xyz[i] += 1
@@ -211,7 +211,7 @@ function test_jac2(map::PumiMapping{Tffd}, mesh) where Tffd
       copy!(map_cs._cp_xyz, map._cp_xyz)
       evalSurface(map, vertices_orig)
       evalSurface(map_cs, vertices_cs)
-      @fact maximum(abs(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
+      @fact maximum(abs.(vertices_cs - vertices_orig)) --> roughly(0.0, atol=1e-13)
     end
 
 

@@ -26,7 +26,7 @@ function evalCurve(u, U, order, P, C)
   @assert length(P) + order == length(U)
   p = order - 1  # Degree of B-spline basis function
   nctl = length(P)
-  N = Array(Float64, order) # Array of basis functions 1D
+  N = Array{Float64}(order) # Array of basis functions 1D
 
   for i = 1:length(u)
     span = findSpan(u[i], U, order, nctl)
@@ -75,7 +75,7 @@ function evalVolume(map::Mapping, Vol::AbstractArray{Tmsh,4}) where Tmsh
   for k = 1:map.numnodes[3]
     for j = 1:map.numnodes[2]
       for i = 1:map.numnodes[1]
-        xyz = view(Vol, i,j,k,:)
+        xyz =sview(Vol, i,j,k,:)
         evalVolumePoint(map, map.xi[i,j,k,:], xyz)
       end  # End for i = 1:map.numnodes[3]
     end    # End for j = 1:map.numnodes[2]
@@ -132,7 +132,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums =sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -165,7 +165,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
         # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
-          xyz = view(mesh.coords,:,vtx_arr[j],bndry_i.element)
+          xyz =sview(mesh.coords,:,vtx_arr[j],bndry_i.element)
           evalVolumePoint(map, map.xi[itr][:,j,i], arr)
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -241,7 +241,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
   @assert mesh.coord_order == 1
 
   nwall_faces = getnWallFaces(mesh, map.bc_nums)
-  vertices = Array(Array{Tffd,3}, length(map.bc_nums))
+  vertices = Array{Array{Tffd,3}}(length(map.bc_nums))
   defineVertices(mesh, map.bc_nums, vertices)
 
   # vertices = zeros(Tffd, size(mesh.vert_coords))
@@ -668,7 +668,7 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
     start_index = mesh.bndry_offsets[itr2]
     end_index = mesh.bndry_offsets[itr2+1]
     idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    bndry_facenums =sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
 
     for i = 1:nfaces

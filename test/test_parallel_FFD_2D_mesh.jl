@@ -95,7 +95,7 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
 
     test_vtx_coords = readdlm(string("./testvalues/", filename))
     for i = 1:length(test_vtx_coords)
-      err = abs(test_vtx_coords[i] - mesh.vert_coords[i])
+      err = abs.(test_vtx_coords[i] - mesh.vert_coords[i])
       @fact err --> less_than(1e-14)
     end
 
@@ -152,7 +152,7 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
 
     test_vtx_coords = readdlm(string("./testvalues/", filename))
     for i = 1:length(test_vtx_coords)
-      err = abs(test_vtx_coords[i] - mesh.vert_coords[i])
+      err = abs.(test_vtx_coords[i] - mesh.vert_coords[i])
       @fact err --> less_than(1e-14)
     end
 

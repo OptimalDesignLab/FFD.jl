@@ -110,7 +110,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
 
     test_values = readdlm(fname)
     for i = 1:length(test_values)
-      err = abs(test_values[i] - mesh.vert_coords[i])
+      err = abs.(test_values[i] - mesh.vert_coords[i])
       @fact err --> less_than(1e-14)
     end
 
@@ -165,7 +165,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
 
     test_values = readdlm(fname)
     for i = 1:length(test_values)
-      err = abs(test_values[i] - mesh.vert_coords[i])
+      err = abs.(test_values[i] - mesh.vert_coords[i])
       @fact err --> less_than(1e-14)
     end
 
@@ -202,7 +202,7 @@ facts("--- Checking FFD on 3D parallel DG Pumi meshes ---") do
     test_values = readdlm(fname)
     @fact length(map.work) --> length(test_values)
     for i = 1:length(map.work)
-      err = abs(test_values[i] - map.work[i])
+      err = abs.(test_values[i] - map.work[i])
       @fact err --> less_than(1e-14) "problem at index $i"
     end
 

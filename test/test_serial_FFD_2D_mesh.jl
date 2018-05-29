@@ -343,7 +343,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums =sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -406,7 +406,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums =sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -445,7 +445,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      bndry_facenums =sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -514,7 +514,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     println("size(Xs_orig) = ", size(Xs_orig))
     println("size(Xs_orig[1]) = ", size(Xs_orig[1]))
       
-    delta_S = Array(Array{Complex128, 3}, length(map.geom_faces))
+    delta_S = Array{Array{Complex128, 3}}(length(map.geom_faces))
 
     h = 1e-6
     
@@ -765,7 +765,7 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums =sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -825,7 +825,7 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums =sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -862,7 +862,7 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      bndry_facenums =sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
