@@ -68,7 +68,7 @@ Applies only to DG meshes so fae
 
 """->
 
-function evalVolume{Tmsh}(map::Mapping, Vol::AbstractArray{Tmsh,4})
+function evalVolume(map::Mapping, Vol::AbstractArray{Tmsh,4}) where Tmsh
 
   fill!(Vol, 0.0) # Zero out all entries of Vol
 
@@ -190,7 +190,7 @@ end
           surface points (ordered according to the numbering supplied to
           the `PumiMapping` constructor.
 """
-function evalSurface{Tffd}(map::PumiMapping{Tffd}, pts::Array{Tffd, 2})
+function evalSurface(map::PumiMapping{Tffd}, pts::Array{Tffd, 2}) where Tffd
 
   @assert size(pts, 1) == map.ndim
   @assert size(pts, 2) == map.numFacePts
@@ -283,7 +283,7 @@ is from "The NURBS book 2nd Edition".
 *  `xyz` : (x,y,z) coordinates of the parametric point in the FFD volume
 """->
 
-function evalVolumePoint{Tffd}(map::AbstractMappingType, xi::AbstractArray{Tffd,1}, xyz)
+function evalVolumePoint(map::AbstractMappingType, xi::AbstractArray{Tffd,1}, xyz) where Tffd
 
   fill!(xyz, 0.0)
 
@@ -341,7 +341,7 @@ flow residual.
 
 """->
 
-function contractWithdGdB{Tffd}(map::AbstractMappingType{Tffd}, xi, dJdG)
+function contractWithdGdB(map::AbstractMappingType{Tffd}, xi, dJdG) where Tffd
 
   # Evaluate the knot vectors and basis values
   Nu = zeros(Tffd, map.order[1])
@@ -397,8 +397,8 @@ end  # End function contractWithdGdB(map, dJdGrid)
 
    * Xcp_bar: arrayto be overwritten with results, same size as `map.cp_xyz`
 """
-function evaldXdControlPointTransposeProduct{T, Tffd, N}(map::PumiMapping{Tffd},
-                          Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, N})
+function evaldXdControlPointTransposeProduct(map::PumiMapping{Tffd},
+                          Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, N}) where {T, Tffd, N}
 
   if map.ndim == 2
     @assert N == 3
@@ -474,8 +474,8 @@ end
 
 
 """
-function evaldXdControlPointProduct{T, Tffd, N}(map::PumiMapping{Tffd},
-               Xcp_dot::AbstractArray{T, N}, Xs_dot::AbstractMatrix )
+function evaldXdControlPointProduct(map::PumiMapping{Tffd},
+               Xcp_dot::AbstractArray{T, N}, Xs_dot::AbstractMatrix ) where {T, Tffd, N}
 
   @assert size(Xs_dot, 1) == map.ndim
   @assert size(Xs_dot, 2) == map.numFacePts

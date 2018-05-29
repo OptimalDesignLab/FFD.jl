@@ -51,7 +51,7 @@ entire mesh.
 
 """->
 
-function getUniqueVertexArray{Tmsh}(mesh::AbstractMesh{Tmsh})
+function getUniqueVertexArray(mesh::AbstractMesh{Tmsh}) where Tmsh
 
   volNodes = zeros(Tmsh, 3, mesh.numVert)
   for i = 1:mesh.numEl
@@ -89,8 +89,8 @@ NOTE: Use this ONLY to compute the unique wall vertices on a given MPI rank.
 
 """->
 
-function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
-                                  bc_nums::AbstractArray{Int,1})
+function getUniqueWallCoordsArray(mesh::AbstractMesh{Tmsh},
+                            bc_nums::AbstractArray{Int,1}) where Tmsh
 
   vtx_arr = getUniqueVertexArray(mesh) # Get Unique vertex Array
   wallCoords = getUniqueWallCoordsArray(mesh, vtx_arr, bc_nums)
@@ -98,9 +98,9 @@ function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
   return wallCoords
 end
 
-function getUniqueWallCoordsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
-                                  vtx_arr::AbstractArray{Tmsh,2},
-                                  bc_nums::AbstractArray{Int,1})
+function getUniqueWallCoordsArray(mesh::AbstractMesh{Tmsh},
+                            vtx_arr::AbstractArray{Tmsh,2},
+                            bc_nums::AbstractArray{Int,1}) where Tmsh
 
   nface_verts = getLocalNumFaceVerts_unique(mesh, bc_nums)
   wallCoords = zeros(Tmsh, 3, nface_verts)
@@ -156,8 +156,8 @@ only the lowest rank.
 
 """->
 
-function getGlobalUniqueWallCorrdsArray{Tmsh}(mesh::AbstractMesh{Tmsh},
-                                  bc_nums::AbstractArray{Int,1})
+function getGlobalUniqueWallCorrdsArray(mesh::AbstractMesh{Tmsh},
+                                  bc_nums::AbstractArray{Int,1}) where Tmsh
 
   # Objective is to identify which MPI ranks have the boundary faces that lie
   # on a geometric face

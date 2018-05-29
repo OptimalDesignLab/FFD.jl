@@ -66,8 +66,8 @@ solve.
 
 """->
 
-function nonlinearMap{Tffd}(map::AbstractMappingType{Tffd},
-                            box::AbstractBoundingBox{Tffd}, X, pX)
+function nonlinearMap(map::AbstractMappingType{Tffd},
+                      box::AbstractBoundingBox{Tffd}, X, pX) where Tffd
 
   origin = box.origin
 
@@ -137,8 +137,8 @@ function calcParametricMappingLinear(map::Mapping, box,
   return nothing
 end  # End function calcParametricLinear
 
-function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
-                                     box::PumiBoundingBox, mesh::AbstractCGMesh)
+function calcParametricMappingLinear(map::PumiMapping{Tffd},
+                               box::PumiBoundingBox, mesh::AbstractCGMesh) where Tffd
 
   @assert false "CG meshes not supported"
 
@@ -164,8 +164,8 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
-function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
-                                     box::PumiBoundingBox, mesh::AbstractDGMesh)
+function calcParametricMappingLinear(map::PumiMapping{Tffd},
+                               box::PumiBoundingBox, mesh::AbstractDGMesh) where Tffd
 
   @assert false "this function is broken"
   if mesh.dim == 2
@@ -190,9 +190,9 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
-function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
-                                     box::PumiBoundingBox, mesh::AbstractCGMesh,
-                                     bc_nums::AbstractArray{Int,1})
+function calcParametricMappingLinear(map::PumiMapping{Tffd},
+                               box::PumiBoundingBox, mesh::AbstractCGMesh,
+                               bc_nums::AbstractArray{Int,1}) where Tffd
 
   @assert false "CG meshes not supported"
   if mesh.dim == 2
@@ -240,9 +240,9 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
-function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
-                                     box::PumiBoundingBox, mesh::AbstractDGMesh,
-                                     bc_nums::AbstractArray{Int,1})
+function calcParametricMappingLinear(map::PumiMapping{Tffd},
+                               box::PumiBoundingBox, mesh::AbstractDGMesh,
+                               bc_nums::AbstractArray{Int,1}) where Tffd
 
   @assert false "This function is broken"
   # Check if the knot vectors are for Bezier Curves with Bernstein polynomial
@@ -316,8 +316,8 @@ function calcParametricMappingNonlinear(map::Mapping, box,
 end
 
 # unused now that full_geom is no more?
-function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
-                                        box::PumiBoundingBox, mesh::AbstractCGMesh)
+function calcParametricMappingNonlinear(map::PumiMapping{Tffd},
+                                  box::PumiBoundingBox, mesh::AbstractCGMesh) where Tffd
 
   @assert false "CG meshes not supported"
   if mesh.dim == 2
@@ -343,8 +343,8 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
 end
 
 # unused now that full_geom is no more?
-function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
-                                        box::PumiBoundingBox, mesh::AbstractDGMesh)
+function calcParametricMappingNonlinear(map::PumiMapping{Tffd},
+                                  box::PumiBoundingBox, mesh::AbstractDGMesh) where Tffd
 
   @assert false "This function is broken"
   X = zeros(Tffd,3)
@@ -361,9 +361,9 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
-function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
+function calcParametricMappingNonlinear(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractCGMesh,
-                                     bc_nums::AbstractArray{Int,1})
+                                     bc_nums::AbstractArray{Int,1}) where Tffd
   @assert false "CG Meshes not supported"
   if mesh.dim == 2
     x = zeros(Tffd,3)
@@ -409,9 +409,9 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
-function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
+function calcParametricMappingNonlinear(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractDGMesh,
-                                     bc_nums::AbstractArray{Int,1})
+                                     bc_nums::AbstractArray{Int,1}) where Tffd
 # this works for quadratic coordinate fields
 
   x_real = zeros(Float64, 3)

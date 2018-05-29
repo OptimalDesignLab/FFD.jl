@@ -13,7 +13,7 @@ further details).
 * `di` : the index the defines the constrained plane (e.g. `di`=2 -> j planes)
 
 """->
-function numLinearPlaneConstraints{Tffd}(map::PumiMapping{Tffd}, di::Int)
+function numLinearPlaneConstraints(map::PumiMapping{Tffd}, di::Int) where Tffd
   it1 = mod(di,3)+1
   it2 = mod(di+1,3)+1
   num_per_plane = (map.nctl[it1]*map.nctl[it2] - 3)*3
@@ -36,9 +36,9 @@ constraint.
 **Returns** `fncidx` + number of linear-plane constraints + 1
 
 """->
-function countVarsLinearPlaneConstraints!{Tffd}(map::PumiMapping{Tffd}, di::Int,
-                                                cntEq::AbstractArray{Int,1},
-                                                fncidx::Int)
+function countVarsLinearPlaneConstraints!(map::PumiMapping{Tffd}, di::Int,
+                                          cntEq::AbstractArray{Int,1},
+                                          fncidx::Int) where Tffd
   num_cnstr = numLinearPlaneConstraints(map, di)
   cntEq[fncidx:fncidx+num_cnstr-1] = 4
   return fncidx+num_cnstr
@@ -66,11 +66,10 @@ plane, and shear and translate according to the CPs at the corners of the plane.
   number of non-zeros in the sparse contraints + 1
 
 """->
-function setLinearPlaneConstraints!{Tffd
-  }(map::PumiMapping{Tffd}, di::Int, iLfun::AbstractArray{Int,1},
+function setLinearPlaneConstraints!(map::PumiMapping{Tffd}, di::Int, iLfun::AbstractArray{Int,1},
     jLvar::AbstractArray{Int,1}, LinG::AbstractArray{Tffd,1},
     Flow::AbstractArray{Tffd,1}, Fupp::AbstractArray{Tffd,1},
-    fncidx::Int, ptr::Int)
+    fncidx::Int, ptr::Int) where Tffd
 
   it1 = mod(di,3)+1
   it2 = mod(di+1,3)+1
@@ -184,9 +183,9 @@ Basis coefficients for u1 and u2 based on an oblique projection along e1, e2.
 * `e1`,`e2` : covariant basis vectors satisfying dot(e1,u2) = 0, dot(e2,u1) = 0
 
 """->
-function calcObliqueProjection{T}(x::AbstractArray{T,1}, u1::AbstractArray{T,1},
-                                  u2::AbstractArray{T,1}, e1::AbstractArray{T,1},
-                                  e2::AbstractArray{T,1})
+function calcObliqueProjection(x::AbstractArray{T,1}, u1::AbstractArray{T,1},
+                               u2::AbstractArray{T,1}, e1::AbstractArray{T,1},
+                               e2::AbstractArray{T,1}) where T
   return dot(e1,x)/dot(e1,u1), dot(e2,x)/dot(e2,u2)
 end
 
@@ -202,7 +201,7 @@ further details).
 * `di` : the index the defines the constrained plane (e.g. `di`=2 -> j planes)
 
 """->
-function numLinearCornerConstraints{Tffd}(map::PumiMapping{Tffd}, di::Int)
+function numLinearCornerConstraints(map::PumiMapping{Tffd}, di::Int) where Tffd
   return map.nctl[di]*2
 end
 
@@ -222,9 +221,9 @@ constraint.
 **Returns** `fncidx` + number of linear-plane constraints + 1
 
 """->
-function countVarsLinearCornerConstraints!{Tffd}(map::PumiMapping{Tffd}, di::Int,
-                                                 cntEq::AbstractArray{Int,1},
-                                                 fncidx::Int)
+function countVarsLinearCornerConstraints!(map::PumiMapping{Tffd}, di::Int,
+                                           cntEq::AbstractArray{Int,1},
+                                           fncidx::Int) where Tffd
   num_cnstr = numLinearCornerConstraints(map, di)
   cntEq[fncidx:fncidx+num_cnstr-1] = 4
   return fncidx+num_cnstr
@@ -252,11 +251,10 @@ that the di coordinates of the CPs are the same.
   number of non-zeros in the sparse contraints + 1
 
 """->
-function setLinearCornerConstraints!{Tffd
-  }(map::PumiMapping{Tffd}, di::Int, iLfun::AbstractArray{Int,1},
+function setLinearCornerConstraints!(map::PumiMapping{Tffd}, di::Int, iLfun::AbstractArray{Int,1},
     jLvar::AbstractArray{Int,1}, LinG::AbstractArray{Tffd,1},
     Flow::AbstractArray{Tffd,1}, Fupp::AbstractArray{Tffd,1},
-    fncidx::Int, ptr::Int)
+    fncidx::Int, ptr::Int) where Tffd
 
   it1 = mod(di,3)+1
   it2 = mod(di+1,3)+1
@@ -375,7 +373,7 @@ further details).
 * `map` : PumiMapping object
 
 """->
-function numLinearStretchConstraints{Tffd}(map::PumiMapping{Tffd})
+function numLinearStretchConstraints(map::PumiMapping{Tffd}) where Tffd
   return map.nctl[1]*map.nctl[2]*map.nctl[3] - 1
 end
 
@@ -394,9 +392,9 @@ linear-stretch constraint.
 **Returns** `fncidx` + number of linear-plane constraints + 1
 
 """->
-function countVarsLinearStretchConstraints!{Tffd}(map::PumiMapping{Tffd},
-                                                  cntEq::AbstractArray{Int,1},
-                                                  fncidx::Int)
+function countVarsLinearStretchConstraints!(map::PumiMapping{Tffd},
+                                            cntEq::AbstractArray{Int,1},
+                                            fncidx::Int) where Tffd
   num_cnstr = numLinearStretchConstraints(map)
   cntEq[fncidx:fncidx+num_cnstr-1] = 2
   return fncidx+num_cnstr
@@ -424,11 +422,10 @@ you want each CP in a plane to stretch in proportion.
   number of non-zeros in the sparse contraints + 1
 
 """->
-function setLinearStretchConstraints!{Tffd
-  }(map::PumiMapping{Tffd}, di::Int, iLfun::AbstractArray{Int,1},
+function setLinearStretchConstraints!(map::PumiMapping{Tffd}, di::Int, iLfun::AbstractArray{Int,1},
     jLvar::AbstractArray{Int,1}, LinG::AbstractArray{Tffd,1},
     Flow::AbstractArray{Tffd,1}, Fupp::AbstractArray{Tffd,1},
-    fncidx::Int, ptr::Int)
+    fncidx::Int, ptr::Int) where Tffd
 
   # get master CP index and xyz
   master_jkm = ones(Int,3)
@@ -476,7 +473,7 @@ further details).
 * `map` : PumiMapping object
 
 """->
-function numLinearRootConstraints{Tffd}(map::PumiMapping{Tffd})
+function numLinearRootConstraints(map::PumiMapping{Tffd}) where Tffd
   return 5
 end
 
@@ -495,9 +492,9 @@ linear-root constraint.
 **Returns** `fncidx` + number of linear-plane constraints + 1
 
 """->
-function countVarsLinearRootConstraints!{Tffd}(map::PumiMapping{Tffd},
-                                               cntEq::AbstractArray{Int,1},
-                                               fncidx::Int)
+function countVarsLinearRootConstraints!(map::PumiMapping{Tffd},
+                                         cntEq::AbstractArray{Int,1},
+                                         fncidx::Int) where Tffd
   for bdi = 1:3
     cntEq[fncidx] = 1
     fncidx += 1
@@ -532,11 +529,10 @@ frozen CP.  **Assumes the symmetry plane is at the low end of the CP indices**.
   number of non-zeros in the sparse contraints + 1
 
 """->
-function setLinearRootConstraints!{Tffd
-  }(map::PumiMapping{Tffd}, di::Int, iLfun::AbstractArray{Int,1},
+function setLinearRootConstraints!(map::PumiMapping{Tffd}, di::Int, iLfun::AbstractArray{Int,1},
     jLvar::AbstractArray{Int,1}, LinG::AbstractArray{Tffd,1},
     Flow::AbstractArray{Tffd,1}, Fupp::AbstractArray{Tffd,1},
-    fncidx::Int, ptr::Int)
+    fncidx::Int, ptr::Int) where Tffd
 
   # frozen CP constraint
   for bdi = 1:3

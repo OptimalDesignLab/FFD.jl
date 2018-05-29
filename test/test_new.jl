@@ -10,7 +10,7 @@ using ODLCommonTools
 using FactCheck
 
 
-function getTestMesh{Tmsh}(dim::Integer, ::Type{Tmsh}; order::Integer=1)
+function getTestMesh(dim::Integer, ::Type{Tmsh}; order::Integer=1) where Tmsh
 # dim: 2D or 3D
 # Tmsh: datatype for mesh arrays
 # order: linear or quadratic coordinate field
@@ -185,7 +185,7 @@ function test_surface(map, mesh)
 end
 
 
-function test_jac2{Tffd}(map::PumiMapping{Tffd}, mesh)
+function test_jac2(map::PumiMapping{Tffd}, mesh) where Tffd
 
   facts("----- Testing Jacobian-vector product -----") do
 

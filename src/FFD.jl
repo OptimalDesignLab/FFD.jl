@@ -44,8 +44,8 @@ end
 
 
 # Abstract Type definition
-abstract AbstractMappingType{Tffd} <: Any # Abstract Mapping type for creating a different Mapping type
-abstract AbstractBoundingBox{Tffd} <: Any
+abstract type AbstractMappingType{Tffd} <: Any end # Abstract Mapping type for creating a different Mapping type
+abstract type AbstractBoundingBox{Tffd} <: Any end
 
 
 @doc """
@@ -103,7 +103,7 @@ in sequence
 
 """->
 
-type Mapping <: AbstractMappingType
+mutable struct Mapping <: AbstractMappingType
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
   nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
@@ -242,7 +242,7 @@ end  # End Mapping
    * map: a PumiMapping
 """->
 
-type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
+mutable struct PumiMapping{Tffd} <: AbstractMappingType{Tffd}
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
   nctl::Array{Int, 1}   # Number of control points in each of the 3 dimensions
@@ -453,13 +453,13 @@ Routine to be called externally for initializing FreeFormDeformation
 
 """->
 
-function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
-                       order::AbstractArray{Int,1},
-                       nControlPts::AbstractArray{Int,1},
-                       offset::AbstractArray{Float64,1},
-                       bc_nums::AbstractArray{Int,1}=[0],
-                       n_face::Ptr{Void}=C_NULL,
-                       numFacePts::Integer=0)
+function initializeFFD(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
+                 order::AbstractArray{Int,1},
+                 nControlPts::AbstractArray{Int,1},
+                 offset::AbstractArray{Float64,1},
+                 bc_nums::AbstractArray{Int,1}=[0],
+                 n_face::Ptr{Void}=C_NULL,
+                 numFacePts::Integer=0) where Tmsh
 
   # Create Mapping object
   ndim = mesh.dim
@@ -493,7 +493,7 @@ end
    * map: a PumiMapping object
    * cp_xyz: array, same size as map.cp_xyz, with new control point coordinates.
 """
-function _setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
+function _setControlPoints(map::PumiMapping, cp_xyz::AbstractArray{T, 4}) where T
 
   for i=1:4
     @assert size(cp_xyz, i) == size(map._cp_xyz, i)
@@ -524,7 +524,7 @@ end
   2D problems having 2 control points along the z axis doesn't make sense.
   In 2D, this function updates both planes of control points simultaneously.
 """
-function setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
+function setControlPoints(map::PumiMapping, cp_xyz::AbstractArray{T, 4}) where T
 
   @assert map.ndim == 3
 
@@ -534,7 +534,7 @@ function setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
   return nothing
 end
 
-function setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 3})
+function setControlPoints(map::PumiMapping, cp_xyz::AbstractArray{T, 3}) where T
 
   @assert map.ndim == 2
   @assert size(cp_xyz, 1) == 2
@@ -595,7 +595,7 @@ end
 
    * cp_xyz: array to be overwritten with control point coordinates
 """
-function getControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 3})
+function getControlPoints(map::PumiMapping, cp_xyz::AbstractArray{T, 3}) where T
 
   @assert map.ndim == 2
   @assert size(cp_xyz, 1) == 2
@@ -614,7 +614,7 @@ function getControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 3})
 end
 
 
-function getControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
+function getControlPoints(map::PumiMapping, cp_xyz::AbstractArray{T, 4}) where T
 
   @assert map.ndim == 3
   @assert size(cp_xyz, 1) == 3
@@ -638,7 +638,7 @@ end
 
    * cp_xyz: array like cp_xyz
 """
-function check2DSymmetry{T}(cp_xyz::AbstractArray{T, 4}, tol=1e-13)
+function check2DSymmetry(cp_xyz::AbstractArray{T, 4}, tol=1e-13) where T
 
   @assert size(cp_xyz, 4) == 2
 
@@ -696,8 +696,8 @@ the Pumi mesh after FFD when a geometric face is paramtereized.
 
 """->
 
-function defineVertices{Tmsh}(mesh::AbstractDGMesh{Tmsh}, bc_nums::AbstractArray{Int,1},
-                        vertices::AbstractArray)
+function defineVertices(mesh::AbstractDGMesh{Tmsh}, bc_nums::AbstractArray{Int,1},
+                  vertices::AbstractArray) where Tmsh
 
   for (idx, itr) in enumerate(bc_nums)
     start_index = mesh.bndry_offsets[itr]

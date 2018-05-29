@@ -21,7 +21,7 @@ from scratch and the entire triangular array of B-spline values of orders
 SOURCE: "A practical guide to splines" bt C. de Boor Page 112 BSPLVB
 
 """->
-function basisFunctions{T, T2}(U::AbstractVector{T}, order, u::T2, span, N::AbstractVector{T})
+function basisFunctions(U::AbstractVector{T}, order, u::T2, span, N::AbstractVector{T}) where {T, T2}
 
   # (U, order, u, span, N)
   #order = map.order[di]
@@ -70,8 +70,8 @@ particular point u.
 
 """->
 
-function derivBasisFunctions{T, T2}(u::T, U::AbstractVector{T2},
-                                    order, span, N, Nderiv)
+function derivBasisFunctions(u::T, U::AbstractVector{T2},
+                             order, span, N, Nderiv) where {T, T2}
 
   Tffd = promote_type(T, T2)
 

@@ -44,7 +44,7 @@ orientation as the physical coordinate system.
 
 """->
 
-type PumiBoundingBox{Tffd} <: AbstractBoundingBox{Tffd}
+mutable struct PumiBoundingBox{Tffd} <: AbstractBoundingBox{Tffd}
 
   # Physical space
   ndim::Integer # 2D or 3D
@@ -113,8 +113,8 @@ function works for both 2D and 3D pumi mesh objects
 
 """->
 
-function calcEntireGeometryBounds{Tffd}(coords::AbstractArray{Tffd,3},
-                                        geom_bounds::AbstractArray{Tffd,2})
+function calcEntireGeometryBounds(coords::AbstractArray{Tffd,3},
+                                  geom_bounds::AbstractArray{Tffd,2}) where Tffd
 
   fill!(geom_bounds, 0.0)
 
@@ -197,9 +197,9 @@ function calcEntireGeometryBounds{Tffd}(coords::AbstractArray{Tffd,3},
   return nothing
 end
 
-function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
-                                     geom_bounds::AbstractArray{Tffd,2},
-                                     bc_nums::AbstractArray{Int,1})
+function calcSurfaceGeomBounds(mesh::AbstractCGMesh, sbp::AbstractSBP,
+                               geom_bounds::AbstractArray{Tffd,2},
+                               bc_nums::AbstractArray{Int,1}) where Tffd
 
   fill!(geom_bounds, 0.0)
 
@@ -303,9 +303,9 @@ function calcSurfaceGeomBounds{Tffd}(mesh::AbstractCGMesh, sbp::AbstractSBP,
   return nothing
 end
 
-function calcSurfaceGeomBounds{Tffd}(mesh::AbstractDGMesh, sbp::AbstractSBP,
-                                     geom_bounds::AbstractArray{Tffd,2},
-                                     bc_nums::AbstractArray{Int,1})
+function calcSurfaceGeomBounds(mesh::AbstractDGMesh, sbp::AbstractSBP,
+                               geom_bounds::AbstractArray{Tffd,2},
+                               bc_nums::AbstractArray{Int,1}) where Tffd
 
   fill!(geom_bounds, 0.0)
 
