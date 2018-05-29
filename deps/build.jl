@@ -6,7 +6,7 @@ Pkg.checkout("PkgFix", "upgrade_0.6")
 
 using PkgFix  # from now on, use PkgFix instead of Pkg for everything
 
-pkgs = ["https://github.com/OptimalDesignLab/PumiInterface.jl.git" "upgrade_0.6";
+pkgs = ["https://github.com/OptimalDesignLab/PumiInterface.jl.git" "update_0.6";
 #        "https://github.com/JuliaParallel/MPI.jl.git"  "v0.5.0";
         "https://github.com/OptimalDesignLab/SummationByParts.jl.git"  "jc_update_0.6";
 #        "https://github.com/JuliaLang/ArrayViews.jl.git" "93e80390aeedb1dbcd90281b6dff7f760f430bc8";
