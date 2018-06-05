@@ -10,12 +10,12 @@ cd(start_dir)
 
 using PkgFix  # from now on, use PkgFix instead of Pkg for everything
 
-pkgs = ["https://github.com/OptimalDesignLab/PumiInterface.jl.git" "v0.8";
+pkgs = ["https://github.com/OptimalDesignLab/PumiInterface.jl.git" "master";
 #        "https://github.com/JuliaParallel/MPI.jl.git"  "v0.5.0";
-        "https://github.com/OptimalDesignLab/SummationByParts.jl.git"  "jc_v0.3";
+        "https://github.com/OptimalDesignLab/SummationByParts.jl.git"  "jcwork";
 #        "https://github.com/JuliaLang/ArrayViews.jl.git" "93e80390aeedb1dbcd90281b6dff7f760f430bc8";
 #        "https://github.com/jipolanco/WriteVTK.jl.git"  "v0.6.1";
-        "https://github.com/OptimalDesignLab/ODLCommonTools.jl.git" "v0.4"]
+        "https://github.com/OptimalDesignLab/ODLCommonTools.jl.git" "master"]
 
 
 
