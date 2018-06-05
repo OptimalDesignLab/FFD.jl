@@ -94,21 +94,21 @@ controlPoint(map, ffd_box)
 # Populate map.xi
 calcParametricMappingNonlinear(map, ffd_box, mesh, bc_nums)
 
-facts("--- Checking Linear-Plane Constraints ---") do
+@testset "--- Checking Linear-Plane Constraints ---" begin
 
   di = 2
 
   # test function for counting number of constraints
   numCnstr = numLinearPlaneConstraints(map, di)
-  @fact numCnstr --> 1*3*4
+  @test ( numCnstr )== 1*3*4
 
   # test function for counting variables in each constraint
   cntEq = zeros(Int, numCnstr)
   fncidx = 1
   fncidx = countVarsLinearPlaneConstraints!(map, di, cntEq, fncidx)
-  @fact fncidx --> numCnstr+1
+  @test ( fncidx )== numCnstr+1
   for k = 1:numCnstr
-    @fact cntEq[k] --> 4
+    @test ( cntEq[k] )== 4
   end
 
   # test function for filling sparse constraint Jacobian
@@ -121,35 +121,35 @@ facts("--- Checking Linear-Plane Constraints ---") do
   Fupp = rand(numCnstr) + 0im
   fncidx, ptr = setLinearPlaneConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                            Fupp, fncidx, ptr)
-  @fact fncidx --> numCnstr+1
-  @fact ptr --> sum(cntEq)+1
-  @fact Flow --> roughly(zeros(numCnstr), 1e-15)
-  @fact Fupp --> roughly(zeros(numCnstr), 1e-15)
+  @test ( fncidx )== numCnstr+1
+  @test ( ptr )== sum(cntEq)+1
+  @test isapprox( Flow, zeros(numCnstr), 1e-15) 
+  @test isapprox( Fupp, zeros(numCnstr), 1e-15) 
   ptr = 1
   for k = 1:numCnstr
     for i = 1:cntEq[k]
-      @fact iLfun[ptr] --> k
+      @test ( iLfun[ptr] )== k
       ptr += 1
     end
   end
   # !!!!!!!!!! should also include checks on jLvar and LinG, eventually
 end
 
-facts("--- Checking Linear-Corner Constraints ---") do
+@testset "--- Checking Linear-Corner Constraints ---" begin
 
   di = 2
 
   # test function for counting number of constraints
   numCnstr = numLinearCornerConstraints(map, di)
-  @fact numCnstr --> 8
+  @test ( numCnstr )== 8
 
   # test function for counting variables in each constraint
   cntEq = zeros(Int, numCnstr)
   fncidx = 1
   fncidx = countVarsLinearCornerConstraints!(map, di, cntEq, fncidx)
-  @fact fncidx --> numCnstr+1
+  @test ( fncidx )== numCnstr+1
   for k = 1:numCnstr
-    @fact cntEq[k] --> 4
+    @test ( cntEq[k] )== 4
   end
 
   # test function for filling sparse constraint Jacobian
@@ -162,35 +162,35 @@ facts("--- Checking Linear-Corner Constraints ---") do
   Fupp = rand(numCnstr) + 0im
   fncidx, ptr = setLinearCornerConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                             Fupp, fncidx, ptr)
-  @fact fncidx --> numCnstr+1
-  @fact ptr --> sum(cntEq)+1
-  @fact Flow --> roughly(zeros(numCnstr), 1e-15)
-  @fact Fupp --> roughly(zeros(numCnstr), 1e-15)
+  @test ( fncidx )== numCnstr+1
+  @test ( ptr )== sum(cntEq)+1
+  @test isapprox( Flow, zeros(numCnstr), 1e-15) 
+  @test isapprox( Fupp, zeros(numCnstr), 1e-15) 
   ptr = 1
   for k = 1:numCnstr
     for i = 1:cntEq[k]
-      @fact iLfun[ptr] --> k
+      @test ( iLfun[ptr] )== k
       ptr += 1
     end
   end
   # !!!!!!!!!! should also include checks on jLvar and LinG, eventually
 end
 
-facts("--- Checking Linear-Stretch Constraints ---") do
+@testset "--- Checking Linear-Stretch Constraints ---" begin
 
   di = 2
 
   # test function for counting number of constraints
   numCnstr = numLinearStretchConstraints(map)
-  @fact numCnstr --> (2*4*2 - 1)
+  @test ( numCnstr )== (2*4*2 - 1)
 
   # test function for counting variables in each constraint
   cntEq = zeros(Int, numCnstr)
   fncidx = 1
   fncidx = countVarsLinearStretchConstraints!(map, cntEq, fncidx)
-  @fact fncidx --> numCnstr+1
+  @test ( fncidx )== numCnstr+1
   for k = 1:numCnstr
-    @fact cntEq[k] --> 2
+    @test ( cntEq[k] )== 2
   end
 
   # test function for filling sparse constraint Jacobian
@@ -204,38 +204,38 @@ facts("--- Checking Linear-Stretch Constraints ---") do
   fncidx, ptr = setLinearStretchConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                              Fupp, fncidx, ptr)
 
-  @fact fncidx --> numCnstr+1
-  @fact ptr --> sum(cntEq)+1
-  @fact Flow --> roughly(zeros(numCnstr), 1e-15)
-  @fact Fupp --> roughly(zeros(numCnstr), 1e-15)
+  @test ( fncidx )== numCnstr+1
+  @test ( ptr )== sum(cntEq)+1
+  @test isapprox( Flow, zeros(numCnstr), 1e-15) 
+  @test isapprox( Fupp, zeros(numCnstr), 1e-15) 
   ptr = 1
   for k = 1:numCnstr
     for i = 1:cntEq[k]
-      @fact iLfun[ptr] --> k
+      @test ( iLfun[ptr] )== k
       ptr += 1
     end
   end
   # !!!!!!!!!! should also include checks on jLvar and LinG, eventually
 end
 
-facts("--- Checking Linear-Root Constraints ---") do
+@testset "--- Checking Linear-Root Constraints ---" begin
 
   di = 2
 
   # test function for counting number of constraints
   numCnstr = numLinearRootConstraints(map)
-  @fact numCnstr --> 5
+  @test ( numCnstr )== 5
 
   # test function for counting variables in each constraint
   cntEq = zeros(Int, numCnstr)
   fncidx = 1
   fncidx = countVarsLinearRootConstraints!(map, cntEq, fncidx)
-  @fact fncidx --> numCnstr+1
+  @test ( fncidx )== numCnstr+1
   for k = 1:3
-    @fact cntEq[k] --> 1
+    @test ( cntEq[k] )== 1
   end
-  @fact cntEq[4] --> 2
-  @fact cntEq[5] --> 2
+  @test ( cntEq[4] )== 2
+  @test ( cntEq[5] )== 2
 
   # test function for filling sparse constraint Jacobian
   fncidx = 1
@@ -247,20 +247,20 @@ facts("--- Checking Linear-Root Constraints ---") do
   Fupp = rand(numCnstr) + 0im
   fncidx, ptr = setLinearRootConstraints!(map, di, iLfun, jLvar, LinG, Flow,
                                           Fupp, fncidx, ptr)
-  @fact fncidx --> numCnstr+1
-  @fact ptr --> sum(cntEq)+1
+  @test ( fncidx )== numCnstr+1
+  @test ( ptr )== sum(cntEq)+1
   ptr = 1
   for k = 1:numCnstr
     for i = 1:cntEq[k]
-      @fact iLfun[ptr] --> k
+      @test ( iLfun[ptr] )== k
       ptr += 1
     end
   end
   for k = 1:3
-    @fact LinG[k] --> 1.0
+    @test ( LinG[k] )== 1.0
   end
-  @fact LinG[4] --> 1.0
-  @fact LinG[5] --> -1.0
-  @fact LinG[6] --> 1.0
-  @fact LinG[7] --> -1.0
+  @test ( LinG[4] )== 1.0
+  @test ( LinG[5] )== -1.0
+  @test ( LinG[6] )== 1.0
+  @test ( LinG[7] )== -1.0
 end

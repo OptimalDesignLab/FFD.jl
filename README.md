@@ -163,4 +163,9 @@ When using FFD with a Pumi mesh, an example usage is
 
 See the docstrings of these functions for more details.
 
+# Versions
+
+v0.1: before upgrading Julia 0.4 to Julia 0.6
+v0.2: after upgrading Julia 0.4 to Julia 0.6
+
 [![Build Status](https://travis-ci.org/OptimalDesignLab/FFD.jl.svg?branch=master)](https://travis-ci.org/OptimalDesignLab/FFD.jl)

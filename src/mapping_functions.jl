@@ -66,8 +66,8 @@ solve.
 
 """->
 
-function nonlinearMap{Tffd}(map::AbstractMappingType{Tffd},
-                            box::AbstractBoundingBox{Tffd}, X, pX)
+function nonlinearMap(map::AbstractMappingType{Tffd},
+                      box::AbstractBoundingBox{Tffd}, X, pX) where Tffd
 
   origin = box.origin
 
@@ -91,7 +91,7 @@ function nonlinearMap{Tffd}(map::AbstractMappingType{Tffd},
     for i = 1:box.ndim
       fill!(jderiv, 0)
       jderiv[i] = 1
-      Jrow = view(J,i,:)
+      Jrow =sview(J,i,:)
       calcdXdxi(map, xi, jderiv, Jrow)
     end
     xi_new = xi + J\res
@@ -128,7 +128,7 @@ function calcParametricMappingLinear(map::Mapping, box,
     for j = 1:map.numnodes[2]
       for i = 1:map.numnodes[1]
         X[:] = nodes_xyz[i,j,k,:]
-        pX = view(map.xi,i,j,k,:)
+        pX =sview(map.xi,i,j,k,:)
         linearMap(map, box, X, pX)
       end
     end
@@ -137,8 +137,8 @@ function calcParametricMappingLinear(map::Mapping, box,
   return nothing
 end  # End function calcParametricLinear
 
-function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
-                                     box::PumiBoundingBox, mesh::AbstractCGMesh)
+function calcParametricMappingLinear(map::PumiMapping{Tffd},
+                               box::PumiBoundingBox, mesh::AbstractCGMesh) where Tffd
 
   @assert false "CG meshes not supported"
 
@@ -147,15 +147,15 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
     for i = 1:mesh.numEl
       for j = 1:mesh.numNodesPerElement
         X[1:2] = mesh.coords[:,j,i]
-        pX = view(map.xi,:,j,i)
+        pX =sview(map.xi,:,j,i)
         linearMap(map, box, X, pX)
       end
     end
   else
     for i = 1:mesh.numEl
       for j = 1:mesh.numNodesPerElement
-        X = view(mesh.coords,:,j,i)
-        pX = view(map.xi,:,j,i)
+        X =sview(mesh.coords,:,j,i)
+        pX =sview(map.xi,:,j,i)
         linearMap(map, box, X, pX)
       end
     end
@@ -164,8 +164,8 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
-function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
-                                     box::PumiBoundingBox, mesh::AbstractDGMesh)
+function calcParametricMappingLinear(map::PumiMapping{Tffd},
+                               box::PumiBoundingBox, mesh::AbstractDGMesh) where Tffd
 
   @assert false "this function is broken"
   if mesh.dim == 2
@@ -173,15 +173,15 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
     for i = 1:mesh.numEl
       for j = 1:size(mesh.vert_coords,2) # 1:mesh.numNodesPerElement
         X[1:2] = mesh.vert_coords[:,j,i]
-        pX = view(map.xi,:,j,i)
+        pX =sview(map.xi,:,j,i)
         linearMap(map, box, X, pX)
       end
     end
   else
     for i = 1:mesh.numEl
       for j = 1:size(mesh.vert_coords,2) # 1:mesh.numNodesPerElement
-        X = view(mesh.vert_coords,:,j,i)
-        pX = view(map.xi,:,j,i)
+        X =sview(mesh.vert_coords,:,j,i)
+        pX =sview(map.xi,:,j,i)
         linearMap(map, box, X, pX)
       end
     end
@@ -190,9 +190,9 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
-function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
-                                     box::PumiBoundingBox, mesh::AbstractCGMesh,
-                                     bc_nums::AbstractArray{Int,1})
+function calcParametricMappingLinear(map::PumiMapping{Tffd},
+                               box::PumiBoundingBox, mesh::AbstractCGMesh,
+                               bc_nums::AbstractArray{Int,1}) where Tffd
 
   @assert false "CG meshes not supported"
   if mesh.dim == 2
@@ -228,8 +228,8 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
           fill!(x, 0.0)
-          X = view(mesh.coords,:,vtx_arr,bndry_i.elements)
-          pX = view(map.xi[idx], :, j, i)
+          X =sview(mesh.coords,:,vtx_arr,bndry_i.elements)
+          pX =sview(map.xi[idx], :, j, i)
           linearMap(map, box, X, pX)
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -240,9 +240,9 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
-function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
-                                     box::PumiBoundingBox, mesh::AbstractDGMesh,
-                                     bc_nums::AbstractArray{Int,1})
+function calcParametricMappingLinear(map::PumiMapping{Tffd},
+                               box::PumiBoundingBox, mesh::AbstractDGMesh,
+                               bc_nums::AbstractArray{Int,1}) where Tffd
 
   @assert false "This function is broken"
   # Check if the knot vectors are for Bezier Curves with Bernstein polynomial
@@ -273,7 +273,7 @@ function calcParametricMappingLinear{Tffd}(map::PumiMapping{Tffd},
         for k = 1:mesh.dim
           x[k] = mesh.vert_coords[k,vtx_arr[j],bndry_i.element]
         end
-        pX = view(map.xi[idx], :, j, i)
+        pX =sview(map.xi[idx], :, j, i)
         linearMap(map, box, x, pX)
       end  # End for j = 1:length(vtx_arr)
     end    # End for i = 1:nfaces
@@ -316,8 +316,8 @@ function calcParametricMappingNonlinear(map::Mapping, box,
 end
 
 # unused now that full_geom is no more?
-function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
-                                        box::PumiBoundingBox, mesh::AbstractCGMesh)
+function calcParametricMappingNonlinear(map::PumiMapping{Tffd},
+                                  box::PumiBoundingBox, mesh::AbstractCGMesh) where Tffd
 
   @assert false "CG meshes not supported"
   if mesh.dim == 2
@@ -325,15 +325,15 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
     for i = 1:mesh.numEl
       for j = 1:mesh.numNodesPerElement
         X[1:2] = mesh.coords[:,j,i]
-        pX = view(map.xi,:,j,i)
+        pX =sview(map.xi,:,j,i)
         nonlinearMap(map, box, X, pX)
       end
     end
   else
     for i = 1:mesh.numEl
       for j = 1:mesh.numNodesPerElement
-        X = view(mesh.coords,:,j,i)
-        pX = view(map.xi,:,j,i)
+        X =sview(mesh.coords,:,j,i)
+        pX =sview(map.xi,:,j,i)
         nonlinearMap(map, box, X, pX)
       end
     end
@@ -343,8 +343,8 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
 end
 
 # unused now that full_geom is no more?
-function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
-                                        box::PumiBoundingBox, mesh::AbstractDGMesh)
+function calcParametricMappingNonlinear(map::PumiMapping{Tffd},
+                                  box::PumiBoundingBox, mesh::AbstractDGMesh) where Tffd
 
   @assert false "This function is broken"
   X = zeros(Tffd,3)
@@ -353,7 +353,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       for k = 1:mesh.dim
         X[k] = mesh.vert_coords[k,j,i]
       end
-      pX = view(map.xi,:,j,i)
+      pX =sview(map.xi,:,j,i)
       nonlinearMap(map, box, X, pX)
     end
   end
@@ -361,9 +361,9 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
-function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
+function calcParametricMappingNonlinear(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractCGMesh,
-                                     bc_nums::AbstractArray{Int,1})
+                                     bc_nums::AbstractArray{Int,1}) where Tffd
   @assert false "CG Meshes not supported"
   if mesh.dim == 2
     x = zeros(Tffd,3)
@@ -371,7 +371,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       start_index = mesh.bndry_offsets[itr]
       end_index = mesh.bndry_offsets[itr+1]
       idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range)
+      bndry_facenums =sview(mesh.bndryfaces, idx_range)
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -380,7 +380,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
         for j = 1:length(vtx_arr)
           fill!(x, 0.0)
           x[1:2] = mesh.coords[:,vtx_arr[j],bndry_i.element]
-          pX = view(map.xi[idx], :, j, i)
+          pX =sview(map.xi[idx], :, j, i)
           nonlinearMap(map, box, x, pX)
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -390,15 +390,15 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
       start_index = mesh.bndry_offsets[itr]
       end_index = mesh.bndry_offsets[itr+1]
       idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range)
+      bndry_facenums =sview(mesh.bndryfaces, idx_range)
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
         # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
-          X = view(mesh.coords,:,vtx_arr[j],bndry_i.element)
-          pX = view(map.xi, :, j, i)  
+          X =sview(mesh.coords,:,vtx_arr[j],bndry_i.element)
+          pX =sview(map.xi, :, j, i)  
           nonlinearMap(map, box, X, pX)
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -409,9 +409,9 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
   return nothing
 end
 
-function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
+function calcParametricMappingNonlinear(map::PumiMapping{Tffd},
                                      box::PumiBoundingBox, mesh::AbstractDGMesh,
-                                     bc_nums::AbstractArray{Int,1})
+                                     bc_nums::AbstractArray{Int,1}) where Tffd
 # this works for quadratic coordinate fields
 
   x_real = zeros(Float64, 3)
@@ -438,7 +438,7 @@ function calcParametricMappingNonlinear{Tffd}(map::PumiMapping{Tffd},
         for k = 1:mesh.dim
           x[k] = mesh.vert_coords[k,vtx_arr[j],bndry_i.element]
         end
-        pX = view(map.xi[idx], :, j, i)
+        pX =sview(map.xi[idx], :, j, i)
         nonlinearMap(map, box, x, pX)
       end  # End for j = 1:length(vtx_arr)
     end    # End for i = 1:nfaces

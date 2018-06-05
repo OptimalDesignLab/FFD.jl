@@ -3,7 +3,7 @@
 #         the geometric point
 
 
-facts("--- Checking B-spline Formulation ---") do
+@testset "--- Checking B-spline Formulation ---" begin
 
   U = [0,0,0,0,2/5,3/5,3/5,1,1,1,1]
   order = 4
@@ -11,35 +11,35 @@ facts("--- Checking B-spline Formulation ---") do
   u = 0.42
   nctl = length(U) - order
 
-  @fact nctl --> 7
+  @test ( nctl )== 7
 
-  context("Checking knot span index evaluation") do
+  @testset "Checking knot span index evaluation" begin
     span = FFD.findSpan(u, U, order, nctl)
-    @fact span --> 5
+    @test ( span )== 5
   end
 
-  context("Checking basis function evaluations") do
+  @testset "Checking basis function evaluations" begin
     N = zeros(order)
     span = FFD.findSpan(u, U, order, nctl)
     FFD.basisFunctions(U, order, u, span, N)
-    @fact N[1] --> roughly(0.081, atol = 1e-15)
-    @fact N[2] --> roughly(0.405, atol = 1e-15)
-    @fact N[3] --> roughly(0.5136666666666666, atol = 1e-15)
-    @fact N[4] --> roughly(0.00033333333333333153, atol = 1e-15)
+    @test isapprox( N[1], 0.081) atol= 1e-15
+    @test isapprox( N[2], 0.405) atol= 1e-15
+    @test isapprox( N[3], 0.5136666666666666) atol= 1e-15
+    @test isapprox( N[4], 0.00033333333333333153) atol= 1e-15
   end
 
-  context("Checking curve point evaluation") do
+  @testset "Checking curve point evaluation" begin
     P = 0:1/(nctl-1):1
     C = [0.0]
     FFD.evalCurve([u], U, order, P, C)
-    @fact C[1] --> roughly(0.40555555555555556, atol = 1e-16)
+    @test isapprox( C[1], 0.40555555555555556) atol= 1e-16
   end
 
 end  # End facts("--- Check Basis Function Calculations ---")
 
-facts("--- Checking B-spline Derivatives ---") do
+@testset "--- Checking B-spline Derivatives ---" begin
 
-  context("Checking Basis Function Derivatives") do
+  @testset "Checking Basis Function Derivatives" begin
 
     U = [0,0,0,0,2/5,3/5,3/5,1,1,1,1]
     order = 4
@@ -51,14 +51,14 @@ facts("--- Checking B-spline Derivatives ---") do
     span = FFD.findSpan(u, U, order, nctl)
     FFD.derivBasisFunctions(u, U, order, span, N, Nderiv)
 
-    @fact N[1] --> roughly(0.081, atol = 1e-15)
-    @fact N[2] --> roughly(0.405, atol = 1e-15)
-    @fact N[3] --> roughly(0.5136666666666666, atol = 1e-15)
-    @fact N[4] --> roughly(0.00033333333333333153, atol = 1e-15)
-    @fact Nderiv[1] --> roughly(-1.3500000000000003, atol = 1e-15)
-    @fact Nderiv[2] --> roughly(-2.25, atol = 1e-15)
-    @fact Nderiv[3] --> roughly(3.55, atol = 1e-15)
-    @fact Nderiv[4] --> roughly(0.04999999999999982, atol = 1e-15)
+    @test isapprox( N[1], 0.081) atol= 1e-15
+    @test isapprox( N[2], 0.405) atol= 1e-15
+    @test isapprox( N[3], 0.5136666666666666) atol= 1e-15
+    @test isapprox( N[4], 0.00033333333333333153) atol= 1e-15
+    @test isapprox( Nderiv[1], -1.3500000000000003) atol= 1e-15
+    @test isapprox( Nderiv[2], -2.25) atol= 1e-15
+    @test isapprox( Nderiv[3], 3.55) atol= 1e-15
+    @test isapprox( Nderiv[4], 0.04999999999999982) atol= 1e-15
 
   end  # End context("Checking Basis Function Derivatives")
 

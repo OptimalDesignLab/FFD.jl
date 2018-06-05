@@ -64,7 +64,7 @@ close(f)
 
 =#
 
-facts("---Checking contractWithdGdB ---") do
+@testset "---Checking contractWithdGdB ---" begin
 #=
   # opts = PdePumiInterface.get_defaults()
   # # 2D mesh
@@ -195,7 +195,7 @@ facts("---Checking contractWithdGdB ---") do
   # Compute the error between reverse mode and finite difference
   error = vec(cp_xyz_bar) - prod_val
   for i = 1:length(error)
-    @fact error[i] --> roughly(0.0, atol=1e-10)
+    @test isapprox( error[i], 0.0) atol=1e-10
   end
 =#
 end # End facts("---Checking contractWithdGdB ---")

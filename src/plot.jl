@@ -36,7 +36,7 @@ N = zeros(Float64, length(u), nbases)
 # println("sixe(N,2) = ", size(N,2))
 for i = 1:size(N,2)
   concerned_index = i
-  evaluateBasis(U, u, order, nctl, concerned_index, view(N,:,i))
+  evaluateBasis(U, u, order, nctl, concerned_index,sview(N,:,i))
 end
 
 # println("N = \n$N")

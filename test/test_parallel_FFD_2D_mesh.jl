@@ -53,9 +53,9 @@ mesh = PumiMeshDG2{Tmsh}(opts["dmg_name"], opts["smb_name"], opts["order"],
 
 orig_vert_coords = deepcopy(mesh.vert_coords)
 
-facts("--- Checking control point manipulation for 2D parallel mesh") do
+@testset "--- Checking control point manipulation for 2D parallel mesh" begin
 
-  context("Check for the entire mesh") do
+  @testset "Check for the entire mesh" begin
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
     nControlPts = [4,4,2]
@@ -95,8 +95,8 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
 
     test_vtx_coords = readdlm(string("./testvalues/", filename))
     for i = 1:length(test_vtx_coords)
-      err = abs(test_vtx_coords[i] - mesh.vert_coords[i])
-      @fact err --> less_than(1e-14)
+      err = abs.(test_vtx_coords[i] - mesh.vert_coords[i])
+      @test  err  < 1e-14
     end
 
     # writeVisFiles(mesh, "translation_plus_rotation_DG_parallel_fullmesh")
@@ -109,7 +109,7 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
   end
   commit_coords(mesh, sbp, opts)
 
-  context("Check for a geometric surface") do
+  @testset "Check for a geometric surface" begin
 
     # Free Form deformation parameters
     ndim = mesh.dim
@@ -152,8 +152,8 @@ facts("--- Checking control point manipulation for 2D parallel mesh") do
 
     test_vtx_coords = readdlm(string("./testvalues/", filename))
     for i = 1:length(test_vtx_coords)
-      err = abs(test_vtx_coords[i] - mesh.vert_coords[i])
-      @fact err --> less_than(1e-14)
+      err = abs.(test_vtx_coords[i] - mesh.vert_coords[i])
+      @test  err  < 1e-14
     end
 
     writeVisFiles(mesh, "translation_plus_rotation_DG_parallel_surface")
@@ -170,7 +170,7 @@ end
 commit_coords(mesh, sbp, opts)
 MPI.Barrier(comm)
 
-facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
+@testset "--- Checking evaldXdControlPointProduct for 2D DG Mesh ---" begin
 
   # Free Form deformation parameters
   ndim = mesh.dim
@@ -198,7 +198,7 @@ facts("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
   test_values = readdlm(filename)
   for i = 1:length(test_values)
     err = test_values[i] - map.work[i]
-    @fact err --> less_than(1e-14)
+    @test  err  < 1e-14
   end
 
 

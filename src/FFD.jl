@@ -43,8 +43,8 @@ end
 
 
 # Abstract Type definition
-abstract AbstractMappingType{Tffd} <: Any # Abstract Mapping type for creating a different Mapping type
-abstract AbstractBoundingBox{Tffd} <: Any
+abstract type AbstractMappingType{Tffd} <: Any end # Abstract Mapping type for creating a different Mapping type
+abstract type AbstractBoundingBox{Tffd} <: Any end
 
 
 @doc """
@@ -102,7 +102,7 @@ in sequence
 
 """->
 
-type Mapping <: AbstractMappingType
+mutable struct Mapping{Tffd} <: AbstractMappingType{Tffd}
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
   nctl::AbstractArray{Int, 1}   # Number of control points in each of the 3 dimensions
@@ -121,7 +121,7 @@ type Mapping <: AbstractMappingType
 
   evalVolume::Function
 
-  function Mapping(dim, k, ncpts, nnodes)
+  function Mapping{Tffd}(dim, k, ncpts, nnodes) where {Tffd}
 
     # Assertion statements to prevent errors
     @assert dim >= 2 "Only 2D and 3D valid"
@@ -156,7 +156,7 @@ type Mapping <: AbstractMappingType
 
     xi = zeros(numnodes[1], numnodes[2], numnodes[3], 3)
     cp_xyz = zeros(3,nctl[1], nctl[2], nctl[3])
-    edge_knot = Array(Vector{AbstractFloat}, 3)
+    edge_knot = Array{Vector{AbstractFloat}}(3)
     for i = 1:3
       edge_knot[i] = zeros(AbstractFloat, nctl[i]+order[i])
     end
@@ -241,7 +241,7 @@ end  # End Mapping
    * map: a PumiMapping
 """->
 
-type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
+mutable struct PumiMapping{Tffd} <: AbstractMappingType{Tffd}
 
   ndim::Int                     # Mapping object to indicate 2D or 3D
   nctl::Array{Int, 1}   # Number of control points in each of the 3 dimensions
@@ -268,10 +268,10 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
                                    # is real
   vertices::Array{Tffd, 2}  # dim x numFacePts array, used by map_cs
 
-  function PumiMapping(ndim::Int, order::AbstractArray{Int,1},
+  function PumiMapping{Tffd}(ndim::Int, order::AbstractArray{Int,1},
                        nctl::AbstractArray{Int,1}, mesh::AbstractMesh,
                        n_face::Ptr{Void}=C_NULL, numFacePts=0;
-                       bc_nums::AbstractArray{Int,1}=[0])
+                       bc_nums::AbstractArray{Int,1}=[0]) where {Tffd}
 
     #TODO: remove dims, use mesh.dim instead
     map = new()
@@ -292,7 +292,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map._cp_xyz = zeros(3, nctl[1], nctl[2], nctl[3])
     map.cp_xyz = ROView(map._cp_xyz)
 
-    map.edge_knot = Array(Vector{Tffd}, 3)
+    map.edge_knot = Array{Vector{Tffd}}(3)
     for i = 1:3
       map.edge_knot[i] = zeros(Tffd, nctl[i]+order[i])
     end
@@ -302,7 +302,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
       # call PdePumiInterface function
       numFacePts, n_face, face_verts = numberSurfacePoints(mesh, bc_nums)
     else  # get the face_verts array
-      face_verts = Array(Ptr{Void}, numFacePts)
+      face_verts = Array{Ptr{Void}}(numFacePts)
       for vert in mesh.verts
         n_v = getNumberJ(n_face, vert, 0, 0)
         if n_v <= numFacePts
@@ -354,12 +354,12 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
 
     # do this in initializeFFD because map isn't fully initialized yet
 #    map.map_cs = PumiMapping{Complex128}(map)
-    map.vertices = Array(Tffd, 0, 0)
+    map.vertices = Array{Tffd}(0, 0)
 
     return map
   end
 
-  function PumiMapping()
+  function PumiMapping{Tffd}()  where {Tffd}
     map = new()
     map.ndim = 0
     map.nctl = Int[]
@@ -367,7 +367,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map.xi = zeros(Tffd, 0, 0)
     map._cp_xyz = zeros(Tffd, 0, 0, 0, 0)
     map.cp_xyz = ROView(map._cp_xyz)
-    map.edge_knot = Array(Vector{Tffd}, 0)
+    map.edge_knot = Array{Vector{Tffd}}(0)
     map.bc_nums = Int[]
     map.cp_idx = zeros(Tffd, 0, 0, 0, 0)
     map.aj = zeros(Tffd, 0, 0, 0)
@@ -379,14 +379,14 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map.numFacePts = 0
     map.face_verts = Ptr{Void}[]
     map.map_cs = PumiMapping{Tffd}(map)
-    map.vertices = Array(Tffd, 0, 0)
+    map.vertices = Array{Tffd}(0, 0)
 
     return map
   end
 
   # constructs a new mapping from a fully initialized one, with possibly
   # different parameter Tffd
-  function PumiMapping(map_old::PumiMapping)
+  function PumiMapping{Tffd}(map_old::PumiMapping)  where {Tffd}
 
     map = new()
     map.ndim = map_old.ndim
@@ -395,7 +395,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
     map.xi = zeros(Tffd, size(map_old.xi)); copy!(map.xi, map_old.xi)
     map._cp_xyz = zeros(Tffd, size(map_old.cp_xyz)); copy!(map._cp_xyz, map_old._cp_xyz)
     map.cp_xyz = ROView(map._cp_xyz)
-    map.edge_knot = Array(Vector{Tffd}, length(map_old.edge_knot))
+    map.edge_knot = Array{Vector{Tffd}}(length(map_old.edge_knot))
     for i=1:length(map.edge_knot)
       map.edge_knot[i] = copy(map_old.edge_knot[i])
     end
@@ -413,7 +413,7 @@ type PumiMapping{Tffd} <: AbstractMappingType{Tffd}
                                          # because it is large
     # leave map_cs uninitialized
 
-    map.vertices = Array(Tffd, map_old.ndim, map.numFacePts)
+    map.vertices = Array{Tffd}(map_old.ndim, map.numFacePts)
     return map
   end
 
@@ -452,13 +452,13 @@ Routine to be called externally for initializing FreeFormDeformation
 
 """->
 
-function initializeFFD{Tmsh}(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
-                       order::AbstractArray{Int,1},
-                       nControlPts::AbstractArray{Int,1},
-                       offset::AbstractArray{Float64,1},
-                       bc_nums::AbstractArray{Int,1}=[0],
-                       n_face::Ptr{Void}=C_NULL,
-                       numFacePts::Integer=0)
+function initializeFFD(mesh::AbstractMesh{Tmsh}, sbp::AbstractSBP,
+                 order::AbstractArray{Int,1},
+                 nControlPts::AbstractArray{Int,1},
+                 offset::AbstractArray{Float64,1},
+                 bc_nums::AbstractArray{Int,1}=[0],
+                 n_face::Ptr{Void}=C_NULL,
+                 numFacePts::Integer=0) where Tmsh
 
   # Create Mapping object
   ndim = mesh.dim
@@ -492,7 +492,7 @@ end
    * map: a PumiMapping object
    * cp_xyz: array, same size as map.cp_xyz, with new control point coordinates.
 """
-function _setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
+function _setControlPoints(map::PumiMapping, cp_xyz::AbstractArray{T, 4}) where T
 
   for i=1:4
     @assert size(cp_xyz, i) == size(map._cp_xyz, i)
@@ -523,7 +523,7 @@ end
   2D problems having 2 control points along the z axis doesn't make sense.
   In 2D, this function updates both planes of control points simultaneously.
 """
-function setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
+function setControlPoints(map::PumiMapping, cp_xyz::AbstractArray{T, 4}) where T
 
   @assert map.ndim == 3
 
@@ -533,7 +533,7 @@ function setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
   return nothing
 end
 
-function setControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 3})
+function setControlPoints(map::PumiMapping, cp_xyz::AbstractArray{T, 3}) where T
 
   @assert map.ndim == 2
   @assert size(cp_xyz, 1) == 2
@@ -594,7 +594,7 @@ end
 
    * cp_xyz: array to be overwritten with control point coordinates
 """
-function getControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 3})
+function getControlPoints(map::PumiMapping, cp_xyz::AbstractArray{T, 3}) where T
 
   @assert map.ndim == 2
   @assert size(cp_xyz, 1) == 2
@@ -613,7 +613,7 @@ function getControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 3})
 end
 
 
-function getControlPoints{T}(map::PumiMapping, cp_xyz::AbstractArray{T, 4})
+function getControlPoints(map::PumiMapping, cp_xyz::AbstractArray{T, 4}) where T
 
   @assert map.ndim == 3
   @assert size(cp_xyz, 1) == 3
@@ -637,7 +637,7 @@ end
 
    * cp_xyz: array like cp_xyz
 """
-function check2DSymmetry{T}(cp_xyz::AbstractArray{T, 4}, tol=1e-13)
+function check2DSymmetry(cp_xyz::AbstractArray{T, 4}, tol=1e-13) where T
 
   @assert size(cp_xyz, 4) == 2
 
@@ -670,7 +670,7 @@ function defineMapXi(mesh::AbstractMesh, bc_nums::AbstractArray{Int,1},
     start_index = mesh.bndry_offsets[itr]
     end_index = mesh.bndry_offsets[itr+1]
     idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range)
+    bndry_facenums =sview(mesh.bndryfaces, idx_range)
     nfaces = length(bndry_facenums)
     xi[idx] = zeros(3,mesh.coord_numNodesPerFace,nfaces)
   end
@@ -695,8 +695,8 @@ the Pumi mesh after FFD when a geometric face is paramtereized.
 
 """->
 
-function defineVertices{Tmsh}(mesh::AbstractDGMesh{Tmsh}, bc_nums::AbstractArray{Int,1},
-                        vertices::AbstractArray)
+function defineVertices(mesh::AbstractDGMesh{Tmsh}, bc_nums::AbstractArray{Int,1},
+                  vertices::AbstractArray) where Tmsh
 
   for (idx, itr) in enumerate(bc_nums)
     start_index = mesh.bndry_offsets[itr]
@@ -747,7 +747,7 @@ function commitToPumi{Tffd, Tmsh}(map::PumiMapping{Tffd},
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      bndry_facenums =sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]

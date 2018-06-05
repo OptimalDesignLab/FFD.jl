@@ -13,7 +13,7 @@ using ArrayViews
 #using Utils
 using MPI
 # using MeshMovement
-using FactCheck
+using Base.Test
 
 # Include the actual tests
 include("./test_b-splines.jl")
@@ -27,4 +27,4 @@ include("./test_constraints.jl")
 
 #MPI.Finalize()
 
-FactCheck.exitstatus()
+Base.Test.exitstatus()

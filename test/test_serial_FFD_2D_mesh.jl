@@ -1,6 +1,6 @@
 # test components
 
-facts("--- Checking Generic Mapping object ---") do
+@testset "--- Checking Generic Mapping object ---" begin
 
   # Create Test mesh for tests
   nnodes = [3,3,3]  # Number of nodes of the FE grid that need to be mapped
@@ -28,20 +28,20 @@ facts("--- Checking Generic Mapping object ---") do
   nControlPts = [3,3,3]
   map = Mapping(ndim, order, nControlPts, nnodes)
 
-  @fact map.ndim --> 3
-  @fact map.nctl --> [3,3,3]
-  @fact map.order --> [2,2,2]
-  @fact map.numnodes --> [3,3,3]
+  @test ( map.ndim )== 3
+  @test ( map.nctl )== [3,3,3]
+  @test ( map.order )== [2,2,2]
+  @test ( map.numnodes )== [3,3,3]
 
-  context("--- Checking Knot calculations ---") do
+  @testset "--- Checking Knot calculations ---" begin
 
     calcKnot(map)
     for i = 1:map.ndim
-      @fact map.edge_knot[i][1] --> 0.0
-      @fact map.edge_knot[i][2] --> 0.0
-      @fact map.edge_knot[i][3] --> roughly(0.5, atol=1e-15)
-      @fact map.edge_knot[i][4] --> 1.0
-      @fact map.edge_knot[i][5] --> 1.0
+      @test ( map.edge_knot[i][1] )== 0.0
+      @test ( map.edge_knot[i][2] )== 0.0
+      @test isapprox( map.edge_knot[i][3], 0.5) atol=1e-15
+      @test ( map.edge_knot[i][4] )== 1.0
+      @test ( map.edge_knot[i][5] )== 1.0
     end
   end  # End context("--- Checking Knot calculations ---")
 
@@ -55,7 +55,7 @@ my_rank = MPI.Comm_rank(comm)
 comm_size = MPI.Comm_size(comm)
 
 # Pumi Specific Tests
-facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---") do
+@testset "--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---" begin
 
   # 2D mesh
   opts = Dict{ASCIIString, Any}()
@@ -96,7 +96,7 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
 #                           coloring_distance=opts["coloring_distance"],
 #                           shape_type=shape_type)
 
-  context("--- Checking Linear Mapping For DG Mesh ---") do
+  @testset "--- Checking Linear Mapping For DG Mesh ---" begin
 
     # Free Form deformation parameters
     ndim = 2
@@ -120,18 +120,18 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
     calcParametricMappingLinear(map, box, mesh, )
 
 
-    @fact map.ndim --> 2
-    @fact map.nctl --> [4,4,2]
-    @fact map.order --> [4,4,2]
-    @fact map.edge_knot[1] --> [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
-    @fact map.edge_knot[2] --> [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
-    @fact map.edge_knot[3] --> [0.0,0.0,1.0,1.0]
-    @fact size(map.aj) --> (3,4,3)
-    @fact size(map.dl) --> (3,3)
-    @fact size(map.dr) --> (3,3)
-    @fact size(map.work) --> (12,4,4,2)
-    @fact size(map.cp_xyz) --> (3,4,4,2)
-    @fact size(map.xi) --> (3,3,1498)
+    @test ( map.ndim )== 2
+    @test ( map.nctl )== [4,4,2]
+    @test ( map.order )== [4,4,2]
+    @test ( map.edge_knot[1] )== [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
+    @test ( map.edge_knot[2] )== [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
+    @test ( map.edge_knot[3] )== [0.0,0.0,1.0,1.0]
+    @test ( size(map.aj) )== (3,4,3)
+    @test ( size(map.dl) )== (3,3)
+    @test ( size(map.dr) )== (3,3)
+    @test ( size(map.work) )== (12,4,4,2)
+    @test ( size(map.cp_xyz) )== (3,4,4,2)
+    @test ( size(map.xi) )== (3,3,1498)
 =#
 #=
     # Check Control Point Coordinates
@@ -139,7 +139,7 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
     orig_control_pts = readdlm(outname)
     for i = 1:length(map.cp_xyz)
       err = norm(map.cp_xyz[i] - orig_control_pts[i], 2)
-      @fact err --> less_than(1e-14)
+      @test  err  < 1e-14
     end
 =#
 #=
@@ -148,23 +148,23 @@ facts("--- Checking FFD Types and Functions For Full Serial DG Pumi Meshes ---")
     orig_xi_vals = readdlm(outname)
     for i = 1:10:length(map.xi)
       err = norm(orig_xi_vals[i] - map.xi[i], 2)
-      @fact err --> less_than(1e-14)
+      @test  err  < 1e-14
     end
 =#
-    # Bounding Box FactCheck
-    @fact box.ndim --> 3
-    @fact box.offset --> [0.0,0.0,0.5]
-    @fact box.origin --> [-0.1,-0.1,-0.5]
-    @fact box.unitVector --> [1.0 0.0 0.0
+    # Bounding Box Base.Test
+    @test ( box.ndim )== 3
+    @test ( box.offset )== [0.0,0.0,0.5]
+    @test ( box.origin )== [-0.1,-0.1,-0.5]
+    @test ( box.unitVector )== [1.0 0.0 0.0
                               0.0 1.0 0.0
                               0.0 0.0 1.0]
-    @fact box.geom_bounds --> [-0.1 -0.1 -0.0
+    @test ( box.geom_bounds )== [-0.1 -0.1 -0.0
                                 0.2 0.1 0.0]
-    @fact box.box_bounds --> [-0.1 -0.1 -0.5
+    @test ( box.box_bounds )== [-0.1 -0.1 -0.5
                                0.2 0.1 0.5]
-    @fact box.lengths[1] --> roughly(0.3, atol = 1e-14)
-    @fact box.lengths[2] --> roughly(0.2, atol = 1e-14)
-    @fact box.lengths[3] --> roughly(1.0, atol = 1e-14)
+    @test isapprox( box.lengths[1], 0.3) atol= 1e-14
+    @test isapprox( box.lengths[2], 0.2) atol= 1e-14
+    @test isapprox( box.lengths[3], 1.0) atol= 1e-14
   end # End context("--- Checking Linear mapping For Entire DG Mesh ---")
 end  # end facts block
 #=
@@ -189,19 +189,19 @@ end  # end facts block
   # Populate map.xi
   calcParametricMappingNonlinear(map, box, mesh)
 
-  context("--- Checking Nonlinear Mapping For Entire DG Mesh ---") do
+  @testset "--- Checking Nonlinear Mapping For Entire DG Mesh ---" begin
 #=
     # Check if the values are correct
     outname = string("./testvalues/xi_full_linear_mapping_DG.dat")
     orig_xi_vals = readdlm(outname)
     for i = 1:10:length(map.xi)
       err = norm(orig_xi_vals[i] - map.xi[i], 2)
-      @fact err --> less_than(1e-14)
+      @test  err  < 1e-14
     end
 =#
   end # End context("--- Checking Nonlinear mapping For Entire DG Mesh ---")
 
-  context("--- Checking Control Point Manipulation ---") do
+  @testset "--- Checking Control Point Manipulation ---" begin
 #=
     # Rigid body rotation
     theta = -20*pi/180  # Rotate wall coordinates by 10 degrees
@@ -226,10 +226,10 @@ end  # end facts block
 
     outname = string("./testvalues/volume_coords_full_DG_mesh_2D_airfoil.dat")
     test_vert_coords = readdlm(outname)
-    @fact length(test_vert_coords) --> length(mesh.vert_coords)
+    @test ( length(test_vert_coords) )== length(mesh.vert_coords)
     for i = 1:20:length(mesh.vert_coords)
       err = norm(test_vert_coords[i] - mesh.vert_coords[i], 2)
-      @fact err --> less_than(1e-14)
+      @test  err  < 1e-14
     end
 
     writeVisFiles(mesh, "translation_plus_rotation_DG")
@@ -239,7 +239,7 @@ end  # end facts block
 
 end # End facts("--- Checking FFD Types and Functions For Serial DG Pumi Meshes ---")
 
-facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---") do
+@testset "--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---" begin
 
   comm = MPI.COMM_WORLD
   comm_world = MPI.MPI_COMM_WORLD
@@ -286,7 +286,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 #                           coloring_distance=opts["coloring_distance"],
 #                           shape_type=shape_type)
 
-  context("--- Checking Linear Mapping for 2D DG Mesh ---") do
+  @testset "--- Checking Linear Mapping for 2D DG Mesh ---" begin
 
     # geometry faces to be embedded in FFD Box
 #    geom_faces = opts["BC2"]
@@ -312,20 +312,20 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 #=
     calcParametricMappingLinear(map, box, mesh, bc_nums)
 
-    @fact map.ndim --> 2
-    @fact map.full_geom --> false
-    @fact map.nctl --> [4,4,2]
-    @fact map.order --> [4,4,2]
-    @fact map.edge_knot[1] --> [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
-    @fact map.edge_knot[2] --> [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
-    @fact map.edge_knot[3] --> [0.0,0.0,1.0,1.0]
-    @fact size(map.aj) --> (3,4,3)
-    @fact size(map.dl) --> (3,3)
-    @fact size(map.dr) --> (3,3)
-    @fact size(map.work) --> (12,4,4,2)
-    @fact size(map.cp_xyz) --> (3,4,4,2)
-    @fact size(map.xi) --> (1,)
-    @fact size(map.xi[1]) --> (3,2,102) # Essentially tests defineMapXi
+    @test ( map.ndim )== 2
+    @test ( map.full_geom )== false
+    @test ( map.nctl )== [4,4,2]
+    @test ( map.order )== [4,4,2]
+    @test ( map.edge_knot[1] )== [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
+    @test ( map.edge_knot[2] )== [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
+    @test ( map.edge_knot[3] )== [0.0,0.0,1.0,1.0]
+    @test ( size(map.aj) )== (3,4,3)
+    @test ( size(map.dl) )== (3,3)
+    @test ( size(map.dr) )== (3,3)
+    @test ( size(map.work) )== (12,4,4,2)
+    @test ( size(map.cp_xyz) )== (3,4,4,2)
+    @test ( size(map.xi) )== (1,)
+    @test ( size(map.xi[1]) )== (3,2,102) # Essentially tests defineMapXi
 =#
 #=
     outname = string("./testvalues/xi_values_2D_airfoil_face5.dat")
@@ -343,7 +343,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums =sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -352,8 +352,8 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
         for j = 1:length(vtx_arr)
           err1 = norm(map.xi[itr][1,j,i] - test_xi_values[ctr],2)
           err2 = norm(map.xi[itr][2,j,i] - test_xi_values[ctr+1],2)
-          @fact err1 --> less_than(1e-14)
-          @fact err2 --> less_than(1e-14)
+          @test  err1  < 1e-14
+          @test  err2  < 1e-14
           ctr += 2
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -384,12 +384,12 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
   # Control points
   controlPoint(map, box)
 
-  context("--- Checking Nonlinear Mapping for DG Mesh ---") do
+  @testset "--- Checking Nonlinear Mapping for DG Mesh ---" begin
 #=
     # Populate map.xi
     calcParametricMappingNonlinear(map, box, mesh, geom_faces)
-    @fact size(map.xi) --> (1,)
-    @fact size(map.xi[1]) --> (3,2,102) # Essentially tests defineMapXi
+    @test ( size(map.xi) )== (1,)
+    @test ( size(map.xi[1]) )== (3,2,102) # Essentially tests defineMapXi
 
     outname = string("./testvalues/xi_values_2D_airfoil_face5.dat")
     ctr = 1
@@ -406,7 +406,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums =sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -415,8 +415,8 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
         for j = 1:length(vtx_arr)
           err1 = norm(map.xi[itr][1,j,i] - test_xi_values[ctr],2)
           err2 = norm(map.xi[itr][2,j,i] - test_xi_values[ctr+1],2)
-          @fact err1 --> less_than(1e-14)
-          @fact err2 --> less_than(1e-14)
+          @test  err1  < 1e-14
+          @test  err2  < 1e-14
           ctr += 2
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -424,7 +424,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 =#
   end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
 
-  context("--- Checking Surface evaluation for 2D DG Mesh ---") do
+  @testset "--- Checking Surface evaluation for 2D DG Mesh ---" begin
 
 #=
 #    commitToPumi(map, mesh, sbp, vertices, opts)
@@ -445,7 +445,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      bndry_facenums =sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -456,8 +456,8 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
                  test_surface_coords[ctr], 2)
           err2 = norm(mesh.vert_coords[2,vtx_arr[j],bndry_i.element] -
                  test_surface_coords[ctr+1], 2)
-          @fact err1 --> less_than(1e-14)
-          @fact err2 --> less_than(1e-14)
+          @test  err1  < 1e-14
+          @test  err2  < 1e-14
           ctr += 2
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -465,7 +465,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 =#
   end # End context("--- Checking Surface evaluation for 2D DG Mesh ---")
 #=
-  context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---") do
+  @testset "--- Checking evaldXdControlPointProduct for 2D DG Mesh ---" begin
 
     fill!(map.work, 0.0)
     pert = 1e-6
@@ -501,12 +501,12 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 
     error = vec(cp_xyz_bar) - prod_val
     for i = 1:length(error)
-      @fact error[i] --> roughly(0.0, atol=1e-9) "Error problem at i = $i"
+      @test isapprox( error[i], 0.0) atol=1e-9
     end
 
   end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")
 =#
-  context("---- Checking Transposed Jacobian-vector Product -----") do
+  @testset "---- Checking Transposed Jacobian-vector Product -----" begin
 #=
     delta_B = zeros(eltype(map.work), 3, map.nctl[1], map.nctl[2], map.nctl[3])
     Xs_orig = evalSurface(map, mesh)
@@ -514,7 +514,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
     println("size(Xs_orig) = ", size(Xs_orig))
     println("size(Xs_orig[1]) = ", size(Xs_orig[1]))
       
-    delta_S = Array(Array{Complex128, 3}, length(map.geom_faces))
+    delta_S = Array{Array{Complex128, 3}}(length(map.geom_faces))
 
     h = 1e-6
     
@@ -549,7 +549,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
           println("delta_xj = ", delta_xj)
           println("delta_B = ", delta_B[i])
 
-          @fact delta_B[i] --> roughly(delta_xj, atol=1e-6)
+          @test isapprox( delta_B[i], delta_xj) atol=1e-6
           delta_S[itr][j] = 0
         end
       end
@@ -561,7 +561,7 @@ facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---"
 end # End facts("--- Checking Specific Geometry Faces in Pumi DG Mesh Embedded in FFD ---")
 
 #=
-facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
+@testset "--- Checking Functions Specific to CG Pumi Meshes in Serial ---" begin
 
   # MPI Declarations
   comm = MPI.COMM_WORLD
@@ -609,7 +609,7 @@ facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
                              coloring_distance=opts["coloring_distance"],
                              shape_type=shape_type)
 
-  context("--- Checking Linear Mapping For Entire CG Mesh ---") do
+  @testset "--- Checking Linear Mapping For Entire CG Mesh ---" begin
 
     # Free Form deformation parameters
     ndim = 2
@@ -638,12 +638,12 @@ facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
     orig_xi_vals = readdlm(outname)
     for i = 1:10:length(map.xi)
       err = norm(orig_xi_vals[i] - map.xi[i], 2)
-      @fact err --> less_than(1e-14)
+      @test  err  < 1e-14
     end
 
   end # End context("--- Checking Linear mapping For Entire DG Mesh ---")
 
-  context("--- Checking Nonlinear Mapping For Entire CG Mesh ---") do
+  @testset "--- Checking Nonlinear Mapping For Entire CG Mesh ---" begin
 
     # Free Form deformation parameters
     ndim = 2
@@ -672,14 +672,14 @@ facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---") do
     orig_xi_vals = readdlm(outname)
     for i = 1:10:length(map.xi)
       err = norm(orig_xi_vals[i] - map.xi[i], 2)
-      @fact err --> less_than(1e-14)
+      @test  err  < 1e-14
     end
 
   end # End context("--- Checking Linear mapping For Entire DG Mesh ---")
 
 end # End facts("--- Checking Functions Specific to CG Pumi Meshes in Serial ---")
 
-facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---") do
+@testset "--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---" begin
 
   comm = MPI.COMM_WORLD
   comm_world = MPI.MPI_COMM_WORLD
@@ -712,7 +712,7 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
   # Create PumiMesh and SBP objects
   sbp, mesh, pmesh, Tsol, Tres, Tmsh, mesh_time = createMeshAndOperator(opts, 1)
 
-  context("--- Checking Linear Mapping for 2D CG Mesh ---") do
+  @testset "--- Checking Linear Mapping for 2D CG Mesh ---" begin
 
     # geometry faces to be embedded in FFD Box
     geom_faces = opts["BC2"]
@@ -737,18 +737,18 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
 
     calcParametricMappingLinear(map, box, mesh, geom_faces)
 
-    @fact map.ndim --> 2
-    @fact map.full_geom --> false
-    @fact map.nctl --> [4,4,2]
-    @fact map.order --> [4,4,2]
-    @fact map.edge_knot[1] --> [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
-    @fact map.edge_knot[2] --> [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
-    @fact map.edge_knot[3] --> [0.0,0.0,1.0,1.0]
-    @fact size(map.aj) --> (3,4,3)
-    @fact size(map.dl) --> (3,3)
-    @fact size(map.dr) --> (3,3)
-    @fact size(map.work) --> (12,4,4,2)
-    @fact size(map.cp_xyz) --> (3,4,4,2)
+    @test ( map.ndim )== 2
+    @test ( map.full_geom )== false
+    @test ( map.nctl )== [4,4,2]
+    @test ( map.order )== [4,4,2]
+    @test ( map.edge_knot[1] )== [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
+    @test ( map.edge_knot[2] )== [0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0]
+    @test ( map.edge_knot[3] )== [0.0,0.0,1.0,1.0]
+    @test ( size(map.aj) )== (3,4,3)
+    @test ( size(map.dl) )== (3,3)
+    @test ( size(map.dr) )== (3,3)
+    @test ( size(map.work) )== (12,4,4,2)
+    @test ( size(map.cp_xyz) )== (3,4,4,2)
 
     outname = string("./testvalues/xi_values_2D_airfoil_face5.dat")
     test_xi_values = readdlm(outname)
@@ -765,7 +765,7 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums =sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -774,8 +774,8 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
         for j = 1:length(vtx_arr)
           err1 = norm(map.xi[itr][1,j,i] - test_xi_values[ctr],2)
           err2 = norm(map.xi[itr][2,j,i] - test_xi_values[ctr+1],2)
-          @fact err1 --> less_than(1e-14)
-          @fact err2 --> less_than(1e-14)
+          @test  err1  < 1e-14
+          @test  err2  < 1e-14
           ctr += 2
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -804,7 +804,7 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
   # Control points
   controlPoint(map, box)
 
-  context("--- Checking Nonlinear Mapping for CG Mesh ---") do
+  @testset "--- Checking Nonlinear Mapping for CG Mesh ---" begin
 
     # Populate map.xi
     calcParametricMappingNonlinear(map, box, mesh, geom_faces)
@@ -825,7 +825,7 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums =sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -834,8 +834,8 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
         for j = 1:length(vtx_arr)
           err1 = norm(map.xi[itr][1,j,i] - test_xi_values[ctr],2)
           err2 = norm(map.xi[itr][2,j,i] - test_xi_values[ctr+1],2)
-          @fact err1 --> less_than(1e-14)
-          @fact err2 --> less_than(1e-14)
+          @test  err1  < 1e-14
+          @test  err2  < 1e-14
           ctr += 2
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -843,7 +843,7 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
 
   end # End context("--- Checking Nonlinear Mapping for DG Mesh ---")
 
-  context("--- Checking Surface evaluation for 2D CG Mesh ---") do
+  @testset "--- Checking Surface evaluation for 2D CG Mesh ---" begin
 
     evalSurface(map, mesh, sbp)
     outname = string("./testvalues/modified_coordinates_2D_airfoil_face5.dat")
@@ -862,7 +862,7 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:(end_index-1)
-      bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+      bndry_facenums =sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -873,8 +873,8 @@ facts("--- Checking Specific Geometry Faces in Pumi CG Mesh Embedded in FFD ---"
                  test_surface_coords[ctr], 2)
           err2 = norm(mesh.coords[2,vtx_arr[j],bndry_i.element] -
                  test_surface_coords[ctr+1], 2)
-          @fact err1 --> less_than(1e-14)
-          @fact err2 --> less_than(1e-14)
+          @test  err1  < 1e-14
+          @test  err2  < 1e-14
           ctr += 2
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces

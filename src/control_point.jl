@@ -15,11 +15,11 @@ Intended only for initializing of Mapping object as of this commit.
 function controlPoint(map::AbstractMappingType, box::AbstractBoundingBox)
 
   # Remember B-spline control points also lie on the interior of the volume
-  nctl = view(map.nctl, :)
-  origin = view(box.origin, :)
-  S = view(box.unitVector, :, 1)*box.lengths[1]
-  T = view(box.unitVector, :, 2)*box.lengths[2]
-  U = view(box.unitVector, :, 3)*box.lengths[3]
+  nctl =sview(map.nctl, :)
+  origin =sview(box.origin, :)
+  S =sview(box.unitVector, :, 1)*box.lengths[1]
+  T =sview(box.unitVector, :, 2)*box.lengths[2]
+  U =sview(box.unitVector, :, 3)*box.lengths[3]
 
   for k = 0:map.nctl[3]-1
     for j = 0:map.nctl[2]-1

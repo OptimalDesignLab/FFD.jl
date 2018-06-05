@@ -42,9 +42,9 @@ mesh = PumiMeshDG3(Tmsh, sbp, opts, sbpface, topo, dofpernode=dofpernode,
 
 orig_vert_coords = deepcopy(mesh.vert_coords)
 
-facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
+@testset "--- Checking FFD on 3D serial DG Pumi meshes ---" begin
 
-  context("Check control point manipulation with nonlinear mapping on full mesh") do
+  @testset "Check control point manipulation with nonlinear mapping on full mesh" begin
 
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
@@ -88,8 +88,8 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
 
     test_values = readdlm(fname)
     for i = 1:length(test_values)
-      err = abs(test_values[i] - mesh.vert_coords[i])
-      @fact err --> less_than(1e-14)
+      err = abs.(test_values[i] - mesh.vert_coords[i])
+      @test  err  < 1e-14
     end
 
   end # End context("Check control point manipulation with nonlinear mapping on full mesh")
@@ -101,7 +101,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
   commit_coords(mesh, sbp, opts)
 
 
-  context("Check control point manipulation on a geometry face") do
+  @testset "Check control point manipulation on a geometry face" begin
 
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
@@ -147,8 +147,8 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
 
     test_values = readdlm(fname)
     for i = 1:length(test_values)
-      err = abs(test_values[i] - mesh.vert_coords[i])
-      @fact err --> less_than(1e-14)
+      err = abs.(test_values[i] - mesh.vert_coords[i])
+      @test  err  < 1e-14
     end
 
   end # End context("Check control point manipulation on a geometry face")
@@ -159,7 +159,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
   end
   commit_coords(mesh, sbp, opts)
 
-  context("--- Checking evaldXdControlPointProduct for 3D DG Mesh ---") do
+  @testset "--- Checking evaldXdControlPointProduct for 3D DG Mesh ---" begin
 
     ndim = mesh.dim
     order = [4,4,2]  # Order of B-splines in the 3 directions
@@ -211,7 +211,7 @@ facts("--- Checking FFD on 3D serial DG Pumi meshes ---") do
 
     error = vec(cp_xyz_bar) - prod_val
     for i = 1:length(error)
-      @fact error[i] --> roughly(0.0, atol=1e-8) "Error problem at i = $i"
+      @test isapprox( error[i], 0.0) atol=1e-8
     end
 
   end # End context("--- Checking evaldXdControlPointProduct for 2D DG Mesh ---")

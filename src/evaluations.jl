@@ -26,7 +26,7 @@ function evalCurve(u, U, order, P, C)
   @assert length(P) + order == length(U)
   p = order - 1  # Degree of B-spline basis function
   nctl = length(P)
-  N = Array(Float64, order) # Array of basis functions 1D
+  N = Array{Float64}(order) # Array of basis functions 1D
 
   for i = 1:length(u)
     span = findSpan(u[i], U, order, nctl)
@@ -68,14 +68,14 @@ Applies only to DG meshes so fae
 
 """->
 
-function evalVolume{Tmsh}(map::Mapping, Vol::AbstractArray{Tmsh,4})
+function evalVolume(map::Mapping, Vol::AbstractArray{Tmsh,4}) where Tmsh
 
   fill!(Vol, 0.0) # Zero out all entries of Vol
 
   for k = 1:map.numnodes[3]
     for j = 1:map.numnodes[2]
       for i = 1:map.numnodes[1]
-        xyz = view(Vol, i,j,k,:)
+        xyz =sview(Vol, i,j,k,:)
         evalVolumePoint(map, map.xi[i,j,k,:], xyz)
       end  # End for i = 1:map.numnodes[3]
     end    # End for j = 1:map.numnodes[2]
@@ -132,7 +132,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
       start_index = mesh.bndry_offsets[itr2]
       end_index = mesh.bndry_offsets[itr2+1]
       idx_range = start_index:end_index
-      bndry_facenums = view(mesh.bndryfaces, start_index:(end_index - 1))
+      bndry_facenums =sview(mesh.bndryfaces, start_index:(end_index - 1))
       nfaces = length(bndry_facenums)
       for i = 1:nfaces
         bndry_i = bndry_facenums[i]
@@ -165,7 +165,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractCGMesh,
         # get the local index of the vertices on the boundary face (local face number)
         vtx_arr = mesh.topo.face_verts[:,bndry_i.face]
         for j = 1:length(vtx_arr)
-          xyz = view(mesh.coords,:,vtx_arr[j],bndry_i.element)
+          xyz =sview(mesh.coords,:,vtx_arr[j],bndry_i.element)
           evalVolumePoint(map, map.xi[itr][:,j,i], arr)
         end  # End for j = 1:length(vtx_arr)
       end    # End for i = 1:nfaces
@@ -190,7 +190,7 @@ end
           surface points (ordered according to the numbering supplied to
           the `PumiMapping` constructor.
 """
-function evalSurface{Tffd}(map::PumiMapping{Tffd}, pts::Array{Tffd, 2})
+function evalSurface(map::PumiMapping{Tffd}, pts::Array{Tffd, 2}) where Tffd
 
   @assert size(pts, 1) == map.ndim
   @assert size(pts, 2) == map.numFacePts
@@ -241,7 +241,7 @@ function evalSurface{Tffd}(map::PumiMapping{Tffd}, mesh::AbstractDGMesh)
   @assert mesh.coord_order == 1
 
   nwall_faces = getnWallFaces(mesh, map.bc_nums)
-  vertices = Array(Array{Tffd,3}, length(map.bc_nums))
+  vertices = Array{Array{Tffd,3}}(length(map.bc_nums))
   defineVertices(mesh, map.bc_nums, vertices)
 
   # vertices = zeros(Tffd, size(mesh.vert_coords))
@@ -283,7 +283,7 @@ is from "The NURBS book 2nd Edition".
 *  `xyz` : (x,y,z) coordinates of the parametric point in the FFD volume
 """->
 
-function evalVolumePoint{Tffd}(map::AbstractMappingType, xi::AbstractArray{Tffd,1}, xyz)
+function evalVolumePoint(map::AbstractMappingType, xi::AbstractArray{Tffd,1}, xyz) where Tffd
 
   fill!(xyz, 0.0)
 
@@ -341,7 +341,7 @@ flow residual.
 
 """->
 
-function contractWithdGdB{Tffd}(map::AbstractMappingType{Tffd}, xi, dJdG)
+function contractWithdGdB(map::AbstractMappingType{Tffd}, xi, dJdG) where Tffd
 
   # Evaluate the knot vectors and basis values
   Nu = zeros(Tffd, map.order[1])
@@ -397,8 +397,8 @@ end  # End function contractWithdGdB(map, dJdGrid)
 
    * Xcp_bar: arrayto be overwritten with results, same size as `map.cp_xyz`
 """
-function evaldXdControlPointTransposeProduct{T, Tffd, N}(map::PumiMapping{Tffd},
-                          Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, N})
+function evaldXdControlPointTransposeProduct(map::PumiMapping{Tffd},
+                          Xs_bar::AbstractMatrix, Xcp_bar::AbstractArray{T, N}) where {T, Tffd, N}
 
   if map.ndim == 2
     @assert N == 3
@@ -474,8 +474,8 @@ end
 
 
 """
-function evaldXdControlPointProduct{T, Tffd, N}(map::PumiMapping{Tffd},
-               Xcp_dot::AbstractArray{T, N}, Xs_dot::AbstractMatrix )
+function evaldXdControlPointProduct(map::PumiMapping{Tffd},
+               Xcp_dot::AbstractArray{T, N}, Xs_dot::AbstractMatrix ) where {T, Tffd, N}
 
   @assert size(Xs_dot, 1) == map.ndim
   @assert size(Xs_dot, 2) == map.numFacePts
@@ -668,7 +668,7 @@ function evaldXdControlPointProduct(map::PumiMapping, mesh::AbstractDGMesh,
     start_index = mesh.bndry_offsets[itr2]
     end_index = mesh.bndry_offsets[itr2+1]
     idx_range = start_index:(end_index-1)
-    bndry_facenums = view(mesh.bndryfaces, idx_range) # faces on geometric edge i
+    bndry_facenums =sview(mesh.bndryfaces, idx_range) # faces on geometric edge i
     nfaces = length(bndry_facenums)
 
     for i = 1:nfaces
