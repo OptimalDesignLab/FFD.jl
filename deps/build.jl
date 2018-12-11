@@ -33,7 +33,7 @@ global const ARRAYVIEWS_VER = "work"
 
 
 if !haskey(pkg_dict, "ArrayViews")
-  PkgFix.add(ARRYAVIEWS_URL, branch_ish=ARRAYVIEWS_VER)
+  PkgFix.add(ARRAYVIEWS_URL, branch_ish=ARRAYVIEWS_VER)
 else
   PkgFix.checkout("ArrayViews", ARRAYVIEWS_VER)
 end
