@@ -165,7 +165,8 @@ See the docstrings of these functions for more details.
 
 # Versions
 
-v0.1: before upgrading Julia 0.4 to Julia 0.6
-v0.2: after upgrading Julia 0.4 to Julia 0.6
+ * v0.1: before upgrading Julia 0.4 to Julia 0.6
+ * v0.2: after upgrading Julia 0.4 to Julia 0.6
+ * v0.4: update to PumiInterface v0.9
 
 [![Build Status](https://travis-ci.org/OptimalDesignLab/FFD.jl.svg?branch=master)](https://travis-ci.org/OptimalDesignLab/FFD.jl)
