@@ -418,7 +418,8 @@ function calcParametricMappingNonlinear(map::PumiMapping{Tffd},
   for i=1:map.numFacePts
     v_i = map.face_verts[i]
 
-    apf.getPoint(mesh.m_ptr, v_i, 0, x_real)
+    #apf.getPoint(mesh.m_ptr, v_i, 0, x_real)
+    getCoords(mesh, v_i, 0, x_real)
     pX = sview(map.xi, :, i)
     nonlinearMap(map, box, sview(x_real, :), pX)
   end
